@@ -1,0 +1,41 @@
+{
+  "child_001": {
+    "id": "child_001",
+    "parent_id": "parent_001",
+    "name": "Maria Santos",
+    "age": 3,
+    "weight": 14.5,
+    "height": 95,
+    "bmi": 16.1,
+    "bmi_category": "Normal weight",
+    "allergies": "Shellfish, Peanuts",
+    "medical_conditions": "None",
+    "created_at": "2025-01-15T08:00:00"
+  },
+  "child_002": {
+    "id": "child_002", 
+    "parent_id": "parent_001",
+    "name": "Juan Santos",
+    "age": 5,
+    "weight": 18.2,
+    "height": 110,
+    "bmi": 15.0,
+    "bmi_category": "Normal weight",
+    "allergies": "Dairy",
+    "medical_conditions": "Mild asthma",
+    "created_at": "2025-01-15T08:00:00"
+  },
+  "child_003": {
+    "id": "child_003",
+    "parent_id": "parent_002", 
+    "name": "Ana Cruz",
+    "age": 2,
+    "weight": 12.8,
+    "height": 87,
+    "bmi": 16.9,
+    "bmi_category": "Normal weight",
+    "allergies": "None",
+    "medical_conditions": "None",
+    "created_at": "2025-01-15T08:00:00"
+  }
+}

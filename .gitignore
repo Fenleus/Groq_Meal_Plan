@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Streamlit
+.streamlit/
+
+# Environment
+.env
+.env.*
+
+# Data files
+/data/*.json
+!data/knowledge_base.json
+!data/children.json
+!data/meal_plans.json
+!data/nutritionist_notes.json
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Misc
+*.bak
+*.swp
+*.tmp
+
+# Launchers
+*.bat
+
+# Ignore test outputs
+/test_outputs/

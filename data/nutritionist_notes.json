@@ -1,0 +1,16 @@
+{
+  "note_001": {
+    "id": "note_001",
+    "meal_plan_id": "plan_001",
+    "nutritionist_id": "nutritionist_001",
+    "note": "[General Feedback] This meal plan looks well-balanced for Maria's age and BMI. Good job avoiding shellfish and peanuts as specified in her allergy profile. I recommend increasing the vegetable variety in week 2.",
+    "created_at": "2025-01-21T10:30:00"
+  },
+  "note_002": {
+    "id": "note_002", 
+    "meal_plan_id": "plan_002",
+    "nutritionist_id": "nutritionist_001",
+    "note": "[Recommendation] Excellent dairy substitutions for Juan. Consider adding more calcium-rich foods since he can't have dairy. Sardines and leafy greens would be good additions. Monitor his asthma response to new foods.",
+    "created_at": "2025-01-21T11:15:00"
+  }
+}
