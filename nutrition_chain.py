@@ -94,7 +94,14 @@ Available Ingredients at Home: {available_ingredients}
     )
 
     # Prepare input variables
-    age_months = int(child_data.get("age", 0) * 12) if child_data.get("age") else "Unknown"
+    age_val = child_data.get("age")
+    if age_val is not None:
+        if age_val > 5:
+            age_months = int(age_val)
+        else:
+            age_months = int(age_val * 12)
+    else:
+        age_months = "Unknown"
     prompt_inputs = {
         "child_name": child_data.get("name", "Unknown"),
         "age_months": age_months,

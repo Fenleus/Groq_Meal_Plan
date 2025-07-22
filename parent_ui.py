@@ -150,22 +150,26 @@ def show_meal_plan_generator():
         format_func=lambda x: child_options[x]
     )
 
-    # ...existing code...
     if selected_child_id:
         child_data = data_manager.get_child_by_id(selected_child_id)
         st.subheader("👶 Child Summary")
         st.write(f"**Name:** {child_data['name']}")
-        # Age in months
-        age_months = int(child_data['age'] * 12) if child_data.get('age') else "Unknown"
+        # Age in months (check if already in months)
+        age_val = child_data.get('age')
+        if age_val is not None:
+            if age_val > 5:  # unlikely to be months if > 5
+                age_months = int(age_val)
+            else:
+                age_months = int(age_val * 12)
+        else:
+            age_months = "Unknown"
         st.write(f"**Age:** {age_months} months")
         st.write(f"**BMI:** {child_data['bmi']} ({child_data['bmi_category']})")
         st.write(f"**Allergies:** {child_data['allergies']}")
         st.write(f"**Conditions:** {child_data['medical_conditions']}")
-        # Religion input (default to child data if present)
-        religion = st.text_input(
-            "Religion (optional)",
-            value=child_data.get('religion', "")
-        )
+        # Religion (must be present in child data)
+        religion = child_data.get('religion', "Unknown")
+        st.write(f"**Religion:** {religion}")
         # Input for available ingredients
         available_ingredients = st.text_area(
             "Available Ingredients at Home (optional)",
@@ -183,7 +187,7 @@ def show_meal_plan_generator():
                 meal_plan = get_meal_plan_with_langchain(
                     child_id=selected_child_id,
                     available_ingredients=available_ingredients.strip() if selected_child_id else "",
-                    religion=religion.strip() if religion else ""
+                    religion=religion if religion else ""
                 )
                 # Save the meal plan
                 plan_id = data_manager.save_meal_plan(

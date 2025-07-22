@@ -10,6 +10,7 @@
     "bmi_category": "Normal weight",
     "allergies": "Shellfish, Peanuts",
     "medical_conditions": "None",
+    "religion": "Catholic",
     "created_at": "2025-01-15T08:00:00"
   },
   "child_002": {
@@ -23,6 +24,7 @@
     "bmi_category": "Normal weight",
     "allergies": "Dairy",
     "medical_conditions": "Mild asthma",
+    "religion": "Catholic",
     "created_at": "2025-01-15T08:00:00"
   },
   "child_003": {
@@ -36,6 +38,7 @@
     "bmi_category": "Normal weight",
     "allergies": "None",
     "medical_conditions": "None",
+    "religion": "Iglesia ni Cristo",
     "created_at": "2025-01-15T08:00:00"
   }
 }
