@@ -81,4 +81,8 @@ launch.bat
 
 ---
 
+## Data Sources
+
+Food composition and nutrition facts in this system are based on the Philippine Food Composition Tables from [FNRI DOST](https://i.fnri.dost.gov.ph/).
+
 **Start with either interface based on your role!** 👨‍👩‍👧‍👦 or 👩‍⚕️
