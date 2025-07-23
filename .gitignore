@@ -10,6 +10,8 @@ __pycache__/
 # Environment
 .env
 .env.*
+.venv/
+venv/
 
 # Data files
 /data/*.json
