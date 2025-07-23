@@ -102,15 +102,15 @@ Keep recommendations practical for Filipino families."""
             response = self.client.chat.completions.create(
                 model="llama3-8b-8192",
                 messages=[
-                    {"role": "system", "content": "You are a pediatric nutrition expert focused on Filipino children's health and development."},
+                    {"role": "system", "content": "You are a pediatric nutrition expert focused on Filipino children's health and development. All nutrient values provided are based on 100 g of edible portion."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
                 max_tokens=3000
             )
-            
+
             return response.choices[0].message.content
-            
+
         except Exception as e:
             return f"Error generating meal plan: {str(e)}"
     
@@ -156,15 +156,15 @@ Focus on:
             response = self.client.chat.completions.create(
                 model="llama3-8b-8192",
                 messages=[
-                    {"role": "system", "content": "You are a pediatric nutrition expert specializing in food safety for children 0-5 years."},
+                    {"role": "system", "content": "You are a pediatric nutrition expert specializing in food safety for children 0-5 years. All nutrient values provided are based on 100 g of edible portion."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.2,
                 max_tokens=2000
             )
-            
+
             return response.choices[0].message.content
-            
+
         except Exception as e:
             return f"Error analyzing recipes: {str(e)}"
 
