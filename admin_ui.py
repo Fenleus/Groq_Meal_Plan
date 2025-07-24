@@ -4,7 +4,7 @@ import os
 import pandas as pd
 from datetime import datetime
 
-DATA_PATH = os.path.join("data", "food_info_snake_case_cleaned.json")
+DATA_PATH = os.path.join("data", "food_info.json")
 LOG_PATH = os.path.join("data", "admin_logs.json")
 
 st.set_page_config(page_title="🛠️ Admin Dashboard", page_icon="🛠️", layout="wide")

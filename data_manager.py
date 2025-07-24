@@ -24,10 +24,9 @@ class DataManager:
         files = {
             'children.json': {},
             'meal_plans.json': {},
-            'family_recipes.json': {},
             'nutritionist_notes.json': {},
+            "foods_info.json": {},
             'knowledge_base.json': {
-                "filipino_foods": {},
                 "nutrition_guidelines": {},
                 "uploaded_pdfs": []
             }

@@ -1,33 +1,4 @@
 {
-  "filipino_foods": {
-    "recipe_001": {
-      "id": "recipe_001",
-      "name": "Lugaw (Rice Porridge)",
-      "ingredients": "Rice, chicken broth, ginger, onion, chicken strips",
-      "nutrition_facts": "High in carbohydrates, easy to digest, good for sick children. Contains protein from chicken.",
-      "instructions": "Cook rice in chicken broth until soft and creamy. Add minced ginger and onion. Top with small chicken strips.",
-      "added_by": "nutritionist_001",
-      "created_at": "2025-01-15T09:00:00"
-    },
-    "recipe_002": {
-      "id": "recipe_002", 
-      "name": "Ginisang Munggo (Mung Bean Stew)",
-      "ingredients": "Mung beans, pork strips, malunggay leaves, tomato, onion",
-      "nutrition_facts": "High in protein and fiber. Rich in folate and iron. Malunggay provides vitamins A and C.",
-      "instructions": "Boil mung beans until soft. Sauté pork, tomato, onion. Combine and add malunggay leaves.",
-      "added_by": "nutritionist_001",
-      "created_at": "2025-01-15T09:00:00"
-    },
-    "recipe_003": {
-      "id": "recipe_003",
-      "name": "Sopas (Filipino Chicken Macaroni Soup)",
-      "ingredients": "Elbow macaroni, chicken, cabbage, carrots, evaporated milk",
-      "nutrition_facts": "Balanced meal with carbs, protein, and vegetables. Calcium from milk supports bone development.",
-      "instructions": "Cook chicken and shred. Boil macaroni. Combine with vegetables and milk for creamy soup.",
-      "added_by": "nutritionist_001", 
-      "created_at": "2025-01-15T09:00:00"
-    }
-  },
   "nutrition_guidelines": {
     "age_0_6_months": "Exclusive breastfeeding recommended by WHO",
     "age_6_12_months": "Continue breastfeeding + introduce complementary foods gradually",
