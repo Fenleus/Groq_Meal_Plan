@@ -1,0 +1,1093 @@
+[
+  {
+    "Food_ID": "F001",
+    "Food_name_and_Description": "Beef blood",
+    "Scientific_name": "Bos taurus",
+    "Alternate_Common_names": ["Baka dugo"],
+    "Edible_portion": "100%",
+    "Proximates_per_100g_EP": {
+      "Water_g": 77.2,
+      "Energy_kcal": 90,
+      "Protein_g": 20.6,
+      "Total_Fat_g": 0.6,
+      "Carbohydrate_total_g": 0.5,
+      "Ash_total_g": 1.1
+    },
+    "Other_Carbohydrate_per_100g_EP": {
+      "Fiber_total_dietary_g": null,
+      "Sugars_total_g": null
+    },
+    "Minerals_per_100g_EP": {
+      "Calcium_mg": 10,
+      "Phosphorus_mg": 29,
+      "Iron_mg": 1.3,
+      "Sodium_mg": 111
+    },
+    "Vitamins_per_100g_EP": {
+      "Retinol_Vitamin_A_µg": 45,
+      "Beta_Carotene_µg": 0,
+      "Retinol_Activity_Equivalent_RAE_µg": 45,
+      "Thiamin_Vitamin_B1_mg": 0,
+      "Riboflavin_Vitamin_B2_mg": 0.03,
+      "Niacin_mg": 1.2,
+      "Niacin_from_tryptophan_mg": 2.4,
+      "Ascorbic_Acid_Vitamin_C_mg": 0
+    },
+    "Lipids_per_100g_EP": {
+      "Fatty_acids_saturated_total_g": null,
+      "Fatty_acids_monounsaturated_total_g": null,
+      "Fatty_acids_polyunsaturated_total_g": null,
+      "Cholesterol_mg": null
+    }
+  }
+  ,
+  {
+    "Food_ID": "F002",
+    "Food_name_and_Description": "Beef blood, bbq",
+    "Scientific_name": "Bos taurus",
+    "Alternate_Common_names": ["Baka dugo", "bbq", "rambo"],
+    "Edible_portion": "100%",
+    "Proximates_per_100g_EP": {
+      "Water_g": 75.7,
+      "Energy_kcal": 93,
+      "Protein_g": 19.7,
+      "Total_Fat_g": 1.1,
+      "Carbohydrate_total_g": 1.1,
+      "Ash_total_g": 2.4
+    },
+    "Other_Carbohydrate_per_100g_EP": {
+      "Fiber_total_dietary_g": null,
+      "Sugars_total_g": null
+    },
+    "Minerals_per_100g_EP": {
+      "Calcium_mg": 24,
+      "Phosphorus_mg": 21,
+      "Iron_mg": 47.5,
+      "Sodium_mg": null
+    },
+    "Vitamins_per_100g_EP": {
+      "Retinol_Vitamin_A_µg": 0,
+      "Beta_Carotene_µg": 0,
+      "Retinol_Activity_Equivalent_RAE_µg": 0,
+      "Thiamin_Vitamin_B1_mg": 0.01,
+      "Riboflavin_Vitamin_B2_mg": 0.03,
+      "Niacin_mg": 0.6,
+      "Ascorbic_Acid_Vitamin_C_mg": 0
+    },
+    "Lipids_per_100g_EP": {
+      "Fatty_acids_saturated_total_g": null,
+      "Fatty_acids_monounsaturated_total_g": null,
+      "Fatty_acids_polyunsaturated_total_g": null,
+      "Cholesterol_mg": null
+    }
+  }
+,
+  {
+    "Food_ID": "F003",
+    "Food_name_and_Description": "Beef brain",
+    "Scientific_name": "Bos taurus",
+    "Alternate_Common_names": ["Baka utak"],
+    "Edible_portion": "100%",
+    "Proximates_per_100g_EP": {
+      "Water_g": 78.6,
+      "Energy_kcal": 127,
+      "Protein_g": 10.3,
+      "Total_Fat_g": 9.4,
+      "Carbohydrate_total_g": 0.3,
+      "Ash_total_g": 1.4
+    },
+    "Other_Carbohydrate_per_100g_EP": {
+      "Fiber_total_dietary_g": 0,
+      "Sugars_total_g": 0
+    },
+    "Minerals_per_100g_EP": {
+      "Calcium_mg": 11,
+      "Phosphorus_mg": 208,
+      "Iron_mg": 2.4,
+      "Sodium_mg": 141
+    },
+    "Vitamins_per_100g_EP": {
+      "Retinol_Vitamin_A_µg": 115,
+      "Beta_Carotene_µg": 0,
+      "Retinol_Activity_Equivalent_RAE_µg": 115,
+      "Thiamin_Vitamin_B1_mg": 0.13,
+      "Riboflavin_Vitamin_B2_mg": 0.16,
+      "Niacin_mg": 3.8,
+      "Niacin_from_Tryptophan_mg": 2.4,
+      "Ascorbic_Acid_Vitamin_C_mg": 0
+    },
+    "Lipids_per_100g_EP": {
+      "Fatty_acids_saturated_total_g": 2.1,
+      "Fatty_acids_monounsaturated_total_g": 1.72,
+      "Fatty_acids_polyunsaturated_total_g": 1.45,
+      "Cholesterol_mg": 2747
+    }
+  }
+,
+  {
+    "Food_ID": "F004",
+    "Food_name_and_Description": "Beef brain, boiled",
+    "Scientific_name": "Bos taurus",
+    "Alternate_Common_names": ["Baka utak", "nilaga"],
+    "Edible_portion": "100%",
+    "Proximates_per_100g_EP": {
+      "Water_g": 73.9,
+      "Energy_kcal": 155,
+      "Protein_g": 12.2,
+      "Total_Fat_g": 11.3,
+      "Carbohydrate_total_g": 1.2,
+      "Ash_total_g": 1.4
+    },
+    "Other_Carbohydrate_per_100g_EP": {
+      "Fiber_total_dietary_g": 0,
+      "Sugars_total_g": 0
+    },
+    "Minerals_per_100g_EP": {
+      "Calcium_mg": 0,
+      "Phosphorus_mg": 231,
+      "Iron_mg": 4.3,
+      "Sodium_mg": 112
+    },
+    "Vitamins_per_100g_EP": {
+      "Retinol_Vitamin_A_µg": 105,
+      "Beta_Carotene_µg": 0,
+      "Retinol_Activity_Equivalent_RAE_µg": 105,
+      "Thiamin_Vitamin_B1_mg": 0.08,
+      "Riboflavin_Vitamin_B2_mg": 0,
+      "Niacin_mg": 3,
+      "Ascorbic_Acid_Vitamin_C_mg": 0
+    },
+    "Lipids_per_100g_EP": {
+      "Fatty_acids_saturated_total_g": 2.57,
+      "Fatty_acids_monounsaturated_total_g": 2.02,
+      "Fatty_acids_polyunsaturated_total_g": 1.75,
+      "Cholesterol_mg": 3327
+    }
+  },
+  {
+    "Food_ID": "F005",
+    "Food_name_and_Description": "Beef brisket",
+    "Scientific_name": "Bos taurus",
+    "Alternate_Common_names": ["Baka punta y pecho"],
+    "Edible_portion": "84%",
+    "Proximates_per_100g_EP": {
+      "Water_g": 65.4,
+      "Energy_kcal": 211,
+      "Protein_g": 18.2,
+      "Total_Fat_g": 15.4,
+      "Carbohydrate_total_g": 0,
+      "Ash_total_g": 1
+    },
+    "Other_Carbohydrate_per_100g_EP": {
+      "Fiber_total_dietary_g": 0,
+      "Sugars_total_g": 0
+    },
+    "Minerals_per_100g_EP": {
+      "Calcium_mg": 8,
+      "Phosphorus_mg": 148,
+      "Iron_mg": 1.4,
+      "Sodium_mg": 58
+    },
+    "Vitamins_per_100g_EP": {
+      "Retinol_Vitamin_A_µg": 35,
+      "Beta_Carotene_µg": 0,
+      "Retinol_Activity_Equivalent_RAE_µg": 35,
+      "Thiamin_Vitamin_B1_mg": 0.04,
+      "Riboflavin_Vitamin_B2_mg": 0.12,
+      "Niacin_mg": 5.4,
+      "Ascorbic_Acid_Vitamin_C_mg": 14
+    },
+    "Lipids_per_100g_EP": {
+      "Fatty_acids_saturated_total_g": 6.08,
+      "Fatty_acids_monounsaturated_total_g": 6.88,
+      "Fatty_acids_polyunsaturated_total_g": 0.53,
+      "Cholesterol_mg": 55
+    }
+  },
+  {
+    "Food_ID": "F006",
+    "Food_name_and_Description": "Beef chuck",
+    "Scientific_name": "Bos taurus",
+    "Alternate_Common_names": ["Baka paypay"],
+    "Edible_portion": "94%",
+    "Proximates_per_100g_EP": {
+      "Water_g": 69.5,
+      "Energy_kcal": 171,
+      "Protein_g": 19,
+      "Total_Fat_g": 10.5,
+      "Carbohydrate_total_g": 0,
+      "Ash_total_g": 1
+    },
+    "Other_Carbohydrate_per_100g_EP": {
+      "Fiber_total_dietary_g": 0,
+      "Sugars_total_g": 0
+    },
+    "Minerals_per_100g_EP": {
+      "Calcium_mg": 12,
+      "Phosphorus_mg": 162,
+      "Iron_mg": 1.2,
+      "Sodium_mg": 43
+    },
+    "Vitamins_per_100g_EP": {
+      "Retinol_Vitamin_A_µg": 70,
+      "Beta_Carotene_µg": 0,
+      "Retinol_Activity_Equivalent_RAE_µg": 70,
+      "Thiamin_Vitamin_B1_mg": 0.02,
+      "Riboflavin_Vitamin_B2_mg": 0.14,
+      "Niacin_mg": 5.6,
+      "Ascorbic_Acid_Vitamin_C_mg": 0
+    },
+    "Lipids_per_100g_EP": {
+      "Fatty_acids_saturated_total_g": 4.25,
+      "Fatty_acids_monounsaturated_total_g": 4.63,
+      "Fatty_acids_polyunsaturated_total_g": 0.43,
+      "Cholesterol_mg": 54
+    }
+  },
+  {
+    "Food_ID": "F007",
+    "Food_name_and_Description": "Beef chuck, lean, boiled",
+    "Scientific_name": "Bos taurus",
+    "Alternate_Common_names": ["Baka paypay", "laman", "nilaga"],
+    "Edible_portion": "100%",
+    "Proximates_per_100g_EP": {
+      "Water_g": 75.2,
+      "Energy_kcal": 109,
+      "Protein_g": 11.4,
+      "Total_Fat_g": 2.4,
+      "Carbohydrate_total_g": 10.4,
+      "Ash_total_g": 0.6
+    },
+    "Other_Carbohydrate_per_100g_EP": {
+      "Fiber_total_dietary_g": 0,
+      "Sugars_total_g": 0
+    },
+    "Minerals_per_100g_EP": {
+      "Calcium_mg": 15,
+      "Phosphorus_mg": 107,
+      "Iron_mg": 0.4,
+      "Sodium_mg": 42
+    },
+    "Vitamins_per_100g_EP": {
+      "Retinol_Vitamin_A_µg": 5,
+      "Beta_Carotene_µg": 0,
+      "Retinol_Activity_Equivalent_RAE_µg": 5,
+      "Thiamin_Vitamin_B1_mg": 0.01,
+      "Riboflavin_Vitamin_B2_mg": 0.05,
+      "Niacin_mg": 1.9,
+      "Ascorbic_Acid_Vitamin_C_mg": 0
+    },
+    "Lipids_per_100g_EP": {
+      "Fatty_acids_saturated_total_g": 1.16,
+      "Fatty_acids_monounsaturated_total_g": 1.12,
+      "Fatty_acids_polyunsaturated_total_g": 0.12,
+      "Cholesterol_mg": 33
+    }
+  },
+  {
+    "Food_ID": "F008",
+    "Food_name_and_Description": "Beef club steak",
+    "Scientific_name": "Bos taurus",
+    "Alternate_Common_names": ["Baka tagiliran", "unahan"],
+    "Edible_portion": "82%",
+    "Proximates_per_100g_EP": {
+      "Water_g": 74.5,
+      "Energy_kcal": 104,
+      "Protein_g": 23.1,
+      "Total_Fat_g": 1.3,
+      "Carbohydrate_total_g": 0,
+      "Ash_total_g": 1.1
+    },
+    "Other_Carbohydrate_per_100g_EP": {
+      "Fiber_total_dietary_g": 0,
+      "Sugars_total_g": 0
+    },
+    "Minerals_per_100g_EP": {
+      "Calcium_mg": 6,
+      "Phosphorus_mg": 176,
+      "Iron_mg": 1,
+      "Sodium_mg": 36
+    },
+    "Vitamins_per_100g_EP": {
+      "Retinol_Vitamin_A_µg": 0,
+      "Beta_Carotene_µg": 0,
+      "Retinol_Activity_Equivalent_RAE_µg": 0,
+      "Thiamin_Vitamin_B1_mg": 0.03,
+      "Riboflavin_Vitamin_B2_mg": 0.09,
+      "Niacin_mg": 7.8,
+      "Ascorbic_Acid_Vitamin_C_mg": 0
+    },
+    "Lipids_per_100g_EP": {
+      "Fatty_acids_saturated_total_g": 0.56,
+      "Fatty_acids_monounsaturated_total_g": 0.61,
+      "Fatty_acids_polyunsaturated_total_g": 0.06,
+      "Cholesterol_mg": null
+    }
+  },
+  {
+    "Food_ID": "F009",
+    "Food_name_and_Description": "Beef flank",
+    "Scientific_name": "Bos taurus",
+    "Alternate_Common_names": ["Baka camto"],
+    "Edible_portion": "100%",
+    "Proximates_per_100g_EP": {
+      "Water_g": 62.5,
+      "Energy_kcal": 231,
+      "Protein_g": 19.4,
+      "Total_Fat_g": 17,
+      "Carbohydrate_total_g": 0,
+      "Ash_total_g": 1.1
+    },
+    "Other_Carbohydrate_per_100g_EP": {
+      "Fiber_total_dietary_g": 0,
+      "Sugars_total_g": 0
+    },
+    "Minerals_per_100g_EP": {
+      "Calcium_mg": 7,
+      "Phosphorus_mg": 139,
+      "Iron_mg": 3.6,
+      "Sodium_mg": 49
+    },
+    "Vitamins_per_100g_EP": {
+      "Retinol_Vitamin_A_µg": 25,
+      "Beta_Carotene_µg": 0,
+      "Retinol_Activity_Equivalent_RAE_µg": 25,
+      "Thiamin_Vitamin_B1_mg": 0.04,
+      "Riboflavin_Vitamin_B2_mg": 0.17,
+      "Niacin_mg": 5.7,
+      "Ascorbic_Acid_Vitamin_C_mg": 0
+    },
+    "Lipids_per_100g_EP": {
+      "Fatty_acids_saturated_total_g": 7.11,
+      "Fatty_acids_monounsaturated_total_g": 7.85,
+      "Fatty_acids_polyunsaturated_total_g": 0.65,
+      "Cholesterol_mg": 49
+    }
+  }
+,
+  {
+    "Food_ID": "F010",
+    "Food_name_and_Description": "Beef head",
+    "Scientific_name": "Bos taurus",
+    "Alternate_Common_names": ["Baka ulo"],
+    "Edible_portion": "44%",
+    "Proximates_per_100g_EP": {
+      "Water_g": 69.9,
+      "Energy_kcal": 139,
+      "Protein_g": 25,
+      "Total_Fat_g": 4.2,
+      "Carbohydrate_total_g": 0.4,
+      "Ash_total_g": 0.5
+    },
+    "Other_Carbohydrate_per_100g_EP": {
+      "Fiber_total_dietary_g": null,
+      "Sugars_total_g": null
+    },
+    "Minerals_per_100g_EP": {
+      "Calcium_mg": 28,
+      "Phosphorus_mg": 44,
+      "Iron_mg": 2.5,
+      "Sodium_mg": null
+    },
+    "Vitamins_per_100g_EP": {
+      "Retinol_Vitamin_A_µg": null,
+      "Beta_Carotene_µg": 0,
+      "Retinol_Activity_Equivalent_RAE_µg": null,
+      "Thiamin_Vitamin_B1_mg": 0.01,
+      "Riboflavin_Vitamin_B2_mg": 0.02,
+      "Niacin_mg": 1.4,
+      "Ascorbic_Acid_Vitamin_C_mg": 0
+    },
+    "Lipids_per_100g_EP": {
+      "Fatty_acids_saturated_total_g": null,
+      "Fatty_acids_monounsaturated_total_g": null,
+      "Fatty_acids_polyunsaturated_total_g": null,
+      "Cholesterol_mg": null
+    }
+  }
+,
+  {
+    "Food_ID": "F091",
+    "Food_name_and_Description": "Chicken back",
+    "Scientific_name": "Gallus gallus",
+    "Alternate_Common_names": ["Manok likod"],
+    "Edible_portion": "45%",
+    "Proximates_per_100g_EP": {
+      "Water_g": 66.8,
+      "Energy_kcal": 207,
+      "Protein_g": 17.4,
+      "Total_Fat_g": 15.3,
+      "Carbohydrate_total_g": 0,
+      "Ash_total_g": 0.9
+    },
+    "Other_Carbohydrate_per_100g_EP": {
+      "Fiber_total_dietary_g": 0,
+      "Sugars_total_g": 0
+    },
+    "Minerals_per_100g_EP": {
+      "Calcium_mg": 52,
+      "Phosphorus_mg": 102,
+      "Iron_mg": 1.3,
+      "Sodium_mg": 51
+    },
+    "Vitamins_per_100g_EP": {
+      "Retinol_Vitamin_A_µg": 30,
+      "Beta_Carotene_µg": 0,
+      "Retinol_Activity_Equivalent_RAE_µg": 30,
+      "Thiamin_Vitamin_B1_mg": 0.07,
+      "Riboflavin_Vitamin_B2_mg": 0.18,
+      "Niacin_mg": 5.3,
+      "Ascorbic_Acid_Vitamin_C_mg": 4
+    },
+    "Lipids_per_100g_EP": {
+      "Fatty_acids_saturated_total_g": 4.44,
+      "Fatty_acids_monounsaturated_total_g": 6.52,
+      "Fatty_acids_polyunsaturated_total_g": 3.27,
+      "Cholesterol_mg": 42
+    }
+  }
+,
+  {
+    "Food_ID": "F093",
+    "Food_name_and_Description": "Chicken breast",
+    "Scientific_name": "Gallus gallus",
+    "Alternate_Common_names": ["Manok pitso"],
+    "Edible_portion": "84%",
+    "Proximates_per_100g_EP": {
+      "Water_g": 73.1,
+      "Energy_kcal": 131,
+      "Protein_g": 21.6,
+      "Total_Fat_g": 5,
+      "Carbohydrate_total_g": 0,
+      "Ash_total_g": 1
+    },
+    "Other_Carbohydrate_per_100g_EP": {
+      "Fiber_total_dietary_g": 0,
+      "Sugars_total_g": 0
+    },
+    "Minerals_per_100g_EP": {
+      "Calcium_mg": 24,
+      "Phosphorus_mg": 162,
+      "Iron_mg": 1,
+      "Sodium_mg": 66
+    },
+    "Vitamins_per_100g_EP": {
+      "Retinol_Vitamin_A_µg": 30,
+      "Beta_Carotene_µg": 0,
+      "Retinol_Activity_Equivalent_RAE_µg": 30,
+      "Thiamin_Vitamin_B1_mg": 0.06,
+      "Riboflavin_Vitamin_B2_mg": 0.06,
+      "Niacin_mg": 9.7,
+      "Ascorbic_Acid_Vitamin_C_mg": 0
+    },
+    "Lipids_per_100g_EP": {
+      "Fatty_acids_saturated_total_g": 1.44,
+      "Fatty_acids_monounsaturated_total_g": 2.06,
+      "Fatty_acids_polyunsaturated_total_g": 1.06,
+      "Cholesterol_mg": 35
+    }
+  }
+,
+  {
+    "Food_ID": "F094",
+    "Food_name_and_Description": "Chicken feet",
+    "Scientific_name": "Gallus gallus",
+    "Alternate_Common_names": ["Manok paa"],
+    "Edible_portion": "34%",
+    "Proximates_per_100g_EP": {
+      "Water_g": 64.5,
+      "Energy_kcal": 187,
+      "Protein_g": 24.7,
+      "Total_Fat_g": 9.8,
+      "Carbohydrate_total_g": 0,
+      "Ash_total_g": 1
+    },
+    "Other_Carbohydrate_per_100g_EP": {
+      "Fiber_total_dietary_g": 0,
+      "Sugars_total_g": 0
+    },
+    "Minerals_per_100g_EP": {
+      "Calcium_mg": 126,
+      "Phosphorus_mg": 87,
+      "Iron_mg": 2.2,
+      "Sodium_mg": 112
+    },
+    "Vitamins_per_100g_EP": {
+      "Retinol_Vitamin_A_µg": 25,
+      "Beta_Carotene_µg": 0,
+      "Retinol_Activity_Equivalent_RAE_µg": 25,
+      "Thiamin_Vitamin_B1_mg": 0.02,
+      "Riboflavin_Vitamin_B2_mg": 0.1,
+      "Niacin_mg": 1.5,
+      "Ascorbic_Acid_Vitamin_C_mg": 0
+    },
+    "Lipids_per_100g_EP": {
+      "Fatty_acids_saturated_total_g": 2.15,
+      "Fatty_acids_monounsaturated_total_g": 4.81,
+      "Fatty_acids_polyunsaturated_total_g": 2.75,
+      "Cholesterol_mg": 89
+    }
+  }
+  ,
+  {
+    "FoodID": "F096",
+    "FoodName": "Chicken gizzard",
+    "Description": "Edible muscular stomach of a chicken",
+    "ScientificName": "Gallus gallus",
+    "AlternateNames": ["Manok balun-balunan"],
+    "EdiblePortion": "100%",
+    "CompositionPer100g": {
+      "Proximates": {
+        "Water_g": 73.8,
+        "Energy_kcal": 106,
+        "Protein_g": 21.8,
+        "TotalFat_g": 1,
+        "Carbohydrate_g": 2.5,
+        "Ash_g": 0.9
+      },
+      "OtherCarbohydrates": {
+        "Fiber_g": 0,
+        "Sugars_g": 0
+      },
+      "Minerals": {
+        "Calcium_mg": 18,
+        "Phosphorus_mg": 71,
+        "Iron_mg": 0.6,
+        "Sodium_mg": 83
+      },
+      "Vitamins": {
+        "VitaminA_Retinol_ug": 45,
+        "BetaCarotene_ug": 0,
+        "VitaminA_RAE_ug": 45,
+        "VitaminB1_Thiamin_mg": 0.06,
+        "VitaminB2_Riboflavin_mg": 0.25,
+        "Niacin_mg": 4.8,
+        "VitaminC_AscorbicAcid_mg": 4
+      },
+      "Lipids": {
+        "FattyAcids_Saturated_g": 0.26,
+        "FattyAcids_Monounsaturated_g": 0.25,
+        "FattyAcids_Polyunsaturated_g": 0.17,
+        "Cholesterol_mg": 117
+      }
+    }
+  },
+  {
+    "FoodID": "F097",
+    "FoodName": "Chicken head",
+    "Description": "Cooked or prepared chicken head, commonly eaten grilled or stewed",
+    "ScientificName": "Gallus gallus",
+    "AlternateNames": ["Manok ulo"],
+    "EdiblePortion": "61%",
+    "CompositionPer100g": {
+      "Proximates": {
+        "Water_g": 76.8,
+        "Energy_kcal": 129,
+        "Protein_g": 13.1,
+        "TotalFat_g": 8.2,
+        "Carbohydrate_g": 0.8,
+        "Ash_g": 1.1
+      },
+      "OtherCarbohydrates": {
+        "Fiber_g": 0,
+        "Sugars_g": 0
+      },
+      "Minerals": {
+        "Calcium_mg": 308,
+        "Phosphorus_mg": 130,
+        "Iron_mg": 1.8,
+        "Sodium_mg": 37
+      },
+      "Vitamins": {
+        "VitaminA_Retinol_ug": 25,
+        "BetaCarotene_ug": 0,
+        "VitaminA_RAE_ug": 25,
+        "VitaminB1_Thiamin_mg": 0.03,
+        "VitaminB2_Riboflavin_mg": 0.16,
+        "Niacin_mg": 1.9,
+        "VitaminC_AscorbicAcid_mg": 0
+      },
+      "Lipids": {
+        "FattyAcids_Saturated_g": null,
+        "FattyAcids_Monounsaturated_g": null,
+        "FattyAcids_Polyunsaturated_g": null,
+        "Cholesterol_mg": null
+      }
+    }
+  }
+  ,
+  {
+    "FoodID": "F102",
+    "FoodName": "Chicken leg/drumstick",
+    "Description": "Chicken drumstick, typically includes meat and skin from the lower leg portion",
+    "ScientificName": "Gallus gallus",
+    "AlternateNames": ["Manok binti"],
+    "EdiblePortion": "85%",
+    "CompositionPer100g": {
+      "Proximates": {
+        "Water_g": 67.7,
+        "Energy_kcal": 204,
+        "Protein_g": 17.1,
+        "TotalFat_g": 15.1,
+        "Carbohydrate_g": 0,
+        "Ash_g": 0.9
+      },
+      "OtherCarbohydrates": {
+        "Fiber_g": 0,
+        "Sugars_g": 0
+      },
+      "Minerals": {
+        "Calcium_mg": 12,
+        "Phosphorus_mg": 102,
+        "Iron_mg": 1,
+        "Sodium_mg": 127
+      },
+      "Vitamins": {
+        "VitaminA_Retinol_ug": 15,
+        "BetaCarotene_ug": 0,
+        "VitaminA_RAE_ug": 15,
+        "VitaminB1_Thiamin_mg": 0.1,
+        "VitaminB2_Riboflavin_mg": 0.15,
+        "Niacin_mg": 4.9,
+        "VitaminC_AscorbicAcid_mg": 4
+      },
+      "Lipids": {
+        "FattyAcids_Saturated_g": 4.13,
+        "FattyAcids_Monounsaturated_g": 6.27,
+        "FattyAcids_Polyunsaturated_g": 3.17,
+        "Cholesterol_mg": 88
+      }
+    }
+  },
+  {
+    "FoodID": "F103",
+    "FoodName": "Chicken liver",
+    "Description": "Liver of a chicken, commonly used in various traditional dishes",
+    "ScientificName": "Gallus gallus",
+    "AlternateNames": ["Manok atay"],
+    "EdiblePortion": "100%",
+    "CompositionPer100g": {
+      "Proximates": {
+        "Water_g": 72.7,
+        "Energy_kcal": 124,
+        "Protein_g": 18.1,
+        "TotalFat_g": 3.9,
+        "Carbohydrate_g": 4,
+        "Ash_g": 1.3
+      },
+      "OtherCarbohydrates": {
+        "Fiber_g": 0,
+        "Sugars_g": 0
+      },
+      "Minerals": {
+        "Calcium_mg": 14,
+        "Phosphorus_mg": 152,
+        "Iron_mg": 3.5,
+        "Sodium_mg": 97
+      },
+      "Vitamins": {
+        "VitaminA_Retinol_ug": 9205,
+        "BetaCarotene_ug": 0,
+        "VitaminA_RAE_ug": 9205,
+        "VitaminB1_Thiamin_mg": 0.3,
+        "VitaminB2_Riboflavin_mg": 4.49,
+        "Niacin_mg": 11.2,
+        "VitaminC_AscorbicAcid_mg": 35
+      },
+      "Lipids": {
+        "FattyAcids_Saturated_g": 1.26,
+        "FattyAcids_Monounsaturated_g": 1.01,
+        "FattyAcids_Polyunsaturated_g": 1.05,
+        "Cholesterol_mg": 279
+      }
+    }
+  },
+  {
+    "FoodID": "F104",
+    "FoodName": "Chicken neck",
+    "Description": "Neck portion of chicken, often used in soups or grilled",
+    "ScientificName": "Gallus gallus",
+    "AlternateNames": ["Manok leeg"],
+    "EdiblePortion": "48%",
+    "CompositionPer100g": {
+      "Proximates": {
+        "Water_g": 57.8,
+        "Energy_kcal": 314,
+        "Protein_g": 14.1,
+        "TotalFat_g": 28.6,
+        "Carbohydrate_g": 0,
+        "Ash_g": 0.6
+      },
+      "OtherCarbohydrates": {
+        "Fiber_g": 0,
+        "Sugars_g": 0
+      },
+      "Minerals": {
+        "Calcium_mg": 75,
+        "Phosphorus_mg": 96,
+        "Iron_mg": 1.4,
+        "Sodium_mg": 68
+      },
+      "Vitamins": {
+        "VitaminA_Retinol_ug": 60,
+        "BetaCarotene_ug": 0,
+        "VitaminA_RAE_ug": 60,
+        "VitaminB1_Thiamin_mg": 0.05,
+        "VitaminB2_Riboflavin_mg": 0.1,
+        "Niacin_mg": 2.6,
+        "VitaminC_AscorbicAcid_mg": 4
+      },
+      "Lipids": {
+        "FattyAcids_Saturated_g": 7.92,
+        "FattyAcids_Monounsaturated_g": 11.5,
+        "FattyAcids_Polyunsaturated_g": 6.19,
+        "Cholesterol_mg": 108
+      }
+    }
+  }
+,
+  {
+    "FoodID": "F105",
+    "FoodName": "Chicken pullet, breast",
+    "Description": "Breast portion of a young hen (dumalaga), lean meat cut",
+    "ScientificName": "Gallus gallus",
+    "AlternateNames": ["Manok dumalaga", "pitso"],
+    "EdiblePortion": "85%",
+    "CompositionPer100g": {
+      "Proximates": {
+        "Water_g": 76.7,
+        "Energy_kcal": 103,
+        "Protein_g": 19.6,
+        "TotalFat_g": 2.7,
+        "Carbohydrate_g": 0,
+        "Ash_g": 1
+      },
+      "OtherCarbohydrates": {
+        "Fiber_g": 0,
+        "Sugars_g": 0
+      },
+      "Minerals": {
+        "Calcium_mg": 10,
+        "Phosphorus_mg": 157,
+        "Iron_mg": 1.6,
+        "Sodium_mg": 48
+      },
+      "Vitamins": {
+        "VitaminA_Retinol_ug": 10,
+        "BetaCarotene_ug": 0,
+        "VitaminA_RAE_ug": 10,
+        "VitaminB1_Thiamin_mg": 0.12,
+        "VitaminB2_Riboflavin_mg": 0.12,
+        "Niacin_mg": 6.1,
+        "VitaminC_AscorbicAcid_mg": 0
+      },
+      "Lipids": {
+        "FattyAcids_Saturated_g": 0.78,
+        "FattyAcids_Monounsaturated_g": 1.12,
+        "FattyAcids_Polyunsaturated_g": 0.57,
+        "Cholesterol_mg": null
+      }
+    }
+  },
+  {
+    "FoodID": "F106",
+    "FoodName": "Chicken pullet, thigh",
+    "Description": "Thigh portion of a young hen (dumalaga), lean meat cut",
+    "ScientificName": "Gallus gallus",
+    "AlternateNames": ["Manok dumalaga", "hita"],
+    "EdiblePortion": "74%",
+    "CompositionPer100g": {
+      "Proximates": {
+        "Water_g": 76.7,
+        "Energy_kcal": 103,
+        "Protein_g": 19.6,
+        "TotalFat_g": 2.7,
+        "Carbohydrate_g": 0,
+        "Ash_g": 1
+      },
+      "OtherCarbohydrates": {
+        "Fiber_g": 0,
+        "Sugars_g": 0
+      },
+      "Minerals": {
+        "Calcium_mg": 10,
+        "Phosphorus_mg": 157,
+        "Iron_mg": 1.6,
+        "Sodium_mg": 56
+      },
+      "Vitamins": {
+        "VitaminA_Retinol_ug": 15,
+        "BetaCarotene_ug": 0,
+        "VitaminA_RAE_ug": 15,
+        "VitaminB1_Thiamin_mg": 0.12,
+        "VitaminB2_Riboflavin_mg": 0.12,
+        "Niacin_mg": 6,
+        "VitaminC_AscorbicAcid_mg": 0
+      },
+      "Lipids": {
+        "FattyAcids_Saturated_g": 0.74,
+        "FattyAcids_Monounsaturated_g": 1.13,
+        "FattyAcids_Polyunsaturated_g": 0.56,
+        "Cholesterol_mg": null
+      }
+    }
+  },
+  {
+    "FoodID": "F107",
+    "FoodName": "Chicken thigh",
+    "Description": "Thigh portion of chicken, usually includes skin and muscle",
+    "ScientificName": "Gallus gallus",
+    "AlternateNames": ["Manok hita"],
+    "EdiblePortion": "66%",
+    "CompositionPer100g": {
+      "Proximates": {
+        "Water_g": 72.3,
+        "Energy_kcal": 149,
+        "Protein_g": 19.8,
+        "TotalFat_g": 7.7,
+        "Carbohydrate_g": 0,
+        "Ash_g": 1
+      },
+      "OtherCarbohydrates": {
+        "Fiber_g": 0,
+        "Sugars_g": 0
+      },
+      "Minerals": {
+        "Calcium_mg": 15,
+        "Phosphorus_mg": 103,
+        "Iron_mg": 0.9,
+        "Sodium_mg": 88
+      },
+      "Vitamins": {
+        "VitaminA_Retinol_ug": 15,
+        "BetaCarotene_ug": 0,
+        "VitaminA_RAE_ug": 15,
+        "VitaminB1_Thiamin_mg": 0.12,
+        "VitaminB2_Riboflavin_mg": 0.17,
+        "Niacin_mg": 5,
+        "VitaminC_AscorbicAcid_mg": 4
+      },
+      "Lipids": {
+        "FattyAcids_Saturated_g": 2.1,
+        "FattyAcids_Monounsaturated_g": 3.22,
+        "FattyAcids_Polyunsaturated_g": 1.61,
+        "Cholesterol_mg": 45
+      }
+    }
+  },
+  {
+    "FoodID": "F108",
+    "FoodName": "Chicken thigh & leg",
+    "Description": "Combined thigh and leg portion of chicken, typically with skin and muscle",
+    "ScientificName": "Gallus gallus",
+    "AlternateNames": ["Manok hita at binti"],
+    "EdiblePortion": "74%",
+    "CompositionPer100g": {
+      "Proximates": {
+        "Water_g": 69.4,
+        "Energy_kcal": 187,
+        "Protein_g": 17.6,
+        "TotalFat_g": 13,
+        "Carbohydrate_g": 0,
+        "Ash_g": 0.9
+      },
+      "OtherCarbohydrates": {
+        "Fiber_g": 0,
+        "Sugars_g": 0
+      },
+      "Minerals": {
+        "Calcium_mg": 20,
+        "Phosphorus_mg": 160,
+        "Iron_mg": 0.9,
+        "Sodium_mg": 79
+      },
+      "Vitamins": {
+        "VitaminA_Retinol_ug": 30,
+        "BetaCarotene_ug": 0,
+        "VitaminA_RAE_ug": 30,
+        "VitaminB1_Thiamin_mg": 0.05,
+        "VitaminB2_Riboflavin_mg": 0.19,
+        "Niacin_mg": 4.8,
+        "VitaminC_AscorbicAcid_mg": 4
+      },
+      "Lipids": {
+        "FattyAcids_Saturated_g": 3.55,
+        "FattyAcids_Monounsaturated_g": 5.41,
+        "FattyAcids_Polyunsaturated_g": 2.72,
+        "Cholesterol_mg": 76
+      }
+    }
+  },
+  {
+    "FoodID": "F109",
+    "FoodName": "Chicken wing",
+    "Description": "Wing portion of chicken, includes skin and muscle",
+    "ScientificName": "Gallus gallus",
+    "AlternateNames": ["Manok pakpak"],
+    "EdiblePortion": "62%",
+    "CompositionPer100g": {
+      "Proximates": {
+        "Water_g": 67.3,
+        "Energy_kcal": 194,
+        "Protein_g": 18.9,
+        "TotalFat_g": 13.2,
+        "Carbohydrate_g": 0,
+        "Ash_g": 0.8
+      },
+      "OtherCarbohydrates": {
+        "Fiber_g": 0,
+        "Sugars_g": 0
+      },
+      "Minerals": {
+        "Calcium_mg": 61,
+        "Phosphorus_mg": 143,
+        "Iron_mg": 1.2,
+        "Sodium_mg": 81
+      },
+      "Vitamins": {
+        "VitaminA_Retinol_ug": 25,
+        "BetaCarotene_ug": 0,
+        "VitaminA_RAE_ug": 25,
+        "VitaminB1_Thiamin_mg": 0.04,
+        "VitaminB2_Riboflavin_mg": 0.09,
+        "Niacin_mg": 4.8,
+        "VitaminC_AscorbicAcid_mg": 4
+      },
+      "Lipids": {
+        "FattyAcids_Saturated_g": 4.07,
+        "FattyAcids_Monounsaturated_g": 6.25,
+        "FattyAcids_Polyunsaturated_g": 2.88,
+        "Cholesterol_mg": 111
+      }
+    }
+  },
+  {
+    "FoodID": "F110",
+    "FoodName": "Chicken white meat",
+    "Description": "White meat portion of chicken, primarily breast muscle",
+    "ScientificName": "Gallus gallus",
+    "AlternateNames": ["Manok laman"],
+    "EdiblePortion": "70%",
+    "CompositionPer100g": {
+      "Proximates": {
+        "Water_g": 75.3,
+        "Energy_kcal": 110,
+        "Protein_g": 20.6,
+        "TotalFat_g": 3.1,
+        "Carbohydrate_g": 0,
+        "Ash_g": 1
+      },
+      "OtherCarbohydrates": {
+        "Fiber_g": 0,
+        "Sugars_g": 0
+      },
+      "Minerals": {
+        "Calcium_mg": 86,
+        "Phosphorus_mg": 188,
+        "Iron_mg": 1.5,
+        "Sodium_mg": 78
+      },
+      "Vitamins": {
+        "VitaminA_Retinol_ug": 20,
+        "BetaCarotene_ug": 0,
+        "VitaminA_RAE_ug": 20,
+        "VitaminB1_Thiamin_mg": 0.02,
+        "VitaminB2_Riboflavin_mg": 0.06,
+        "Niacin_mg": 6.6,
+        "VitaminC_AscorbicAcid_mg": 0
+      },
+      "Lipids": {
+        "FattyAcids_Saturated_g": 0.8,
+        "FattyAcids_Monounsaturated_g": 0.91,
+        "FattyAcids_Polyunsaturated_g": 0.75,
+        "Cholesterol_mg": 70
+      }
+    }
+  },
+  {
+    "FoodID": "F111",
+    "FoodName": "Chicken, white meat, boiled",
+    "Description": "Boiled white meat portion of chicken, primarily breast muscle",
+    "ScientificName": "Gallus gallus",
+    "AlternateNames": ["Manok laman", "nilaga"],
+    "EdiblePortion": "72%",
+    "CompositionPer100g": {
+      "Proximates": {
+        "Water_g": 61.8,
+        "Energy_kcal": 173,
+        "Protein_g": 32.9,
+        "TotalFat_g": 4.6,
+        "Carbohydrate_g": 0,
+        "Ash_g": 0.7
+      },
+      "OtherCarbohydrates": {
+        "Fiber_g": 0,
+        "Sugars_g": 0
+      },
+      "Minerals": {
+        "Calcium_mg": 104,
+        "Phosphorus_mg": 154,
+        "Iron_mg": 2.8,
+        "Sodium_mg": 81
+      },
+      "Vitamins": {
+        "VitaminA_Retinol_ug": 20,
+        "BetaCarotene_ug": 0,
+        "VitaminA_RAE_ug": 20,
+        "VitaminB1_Thiamin_mg": 0.04,
+        "VitaminB2_Riboflavin_mg": 0.04,
+        "Niacin_mg": 4.5,
+        "VitaminC_AscorbicAcid_mg": 0
+      },
+      "Lipids": {
+        "FattyAcids_Saturated_g": 1.18,
+        "FattyAcids_Monounsaturated_g": 1.34,
+        "FattyAcids_Polyunsaturated_g": 1.12,
+        "Cholesterol_mg": null
+      }
+    }
+  },
+  {
+    "FoodID": "F112",
+    "FoodName": "Chicken, white meat, fried",
+    "Description": "Fried white meat portion of chicken, typically breast meat cooked in oil",
+    "ScientificName": "Gallus gallus",
+    "AlternateNames": ["Manok laman", "prito"],
+    "EdiblePortion": "70%",
+    "CompositionPer100g": {
+      "Proximates": {
+        "Water_g": 51.5,
+        "Energy_kcal": 226,
+        "Protein_g": 40.3,
+        "TotalFat_g": 7.2,
+        "Carbohydrate_g": 0,
+        "Ash_g": 1
+      },
+      "OtherCarbohydrates": {
+        "Fiber_g": 0.1,
+        "Sugars_g": 0
+      },
+      "Minerals": {
+        "Calcium_mg": 86,
+        "Phosphorus_mg": 213,
+        "Iron_mg": 2.9,
+        "Sodium_mg": 104
+      },
+      "Vitamins": {
+        "VitaminA_Retinol_ug": 10,
+        "BetaCarotene_ug": 0,
+        "VitaminA_RAE_ug": 10,
+        "VitaminB1_Thiamin_mg": 0.02,
+        "VitaminB2_Riboflavin_mg": 0.05,
+        "Niacin_mg": 8.4,
+        "VitaminC_AscorbicAcid_mg": 0
+      },
+      "Lipids": {
+        "FattyAcids_Saturated_g": 1.94,
+        "FattyAcids_Monounsaturated_g": 2.64,
+        "FattyAcids_Polyunsaturated_g": 1.7,
+        "Cholesterol_mg": 74
+      }
+    }
+  }
+]
