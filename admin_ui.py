@@ -73,7 +73,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Tabs
-main_tab, import_tab, logs_tab = st.tabs(["🍲 Food Database", "⬆️⬇️ Import/Export", "📜 Logs & Audit Trail"])
+main_tab = st.tabs(["🍲 Food Database"])[0]
 
 with main_tab:
     st.header("🍲 Food Database Management")
@@ -84,87 +84,7 @@ with main_tab:
     else:
         st.info("No food data available.")
 
-    st.subheader("Add New Food")
-    with st.form("add_food_form"):
-        food_id = st.text_input("Food ID")
-        food_name = st.text_input("Food Name/Description")
-        scientific_name = st.text_input("Scientific Name")
-        alt_names = st.text_input("Alternate/Common Names (comma separated)")
-        edible_portion = st.text_input("Edible Portion (%)", value="100%")
-        is_unsafe = st.checkbox("Flag as unsafe for 0-5 years old (e.g., choking hazard, high sodium, organ meats)")
-        submitted = st.form_submit_button("Add Food")
-        if submitted:
-            new_food = {
-                "Food_ID": food_id,
-                "Food_name_and_Description": food_name,
-                "Scientific_name": scientific_name,
-                "Alternate_Common_names": [n.strip() for n in alt_names.split(",") if n.strip()],
-                "Edible_portion": edible_portion,
-                "is_unsafe": is_unsafe
-            }
-            food_data.append(new_food)
-            save_food_data(food_data)
-            log_action("Add Food", new_food)
-            st.success(f"Added food: {food_name}")
-            st.experimental_rerun()
+    # Add and Edit/Remove Food functionality removed as requested.
 
-    st.subheader("Edit/Remove Foods")
-    if food_data:
-        food_ids = [f.get("Food_ID", "") for f in food_data]
-        selected = st.selectbox("Select Food to Edit/Remove", options=food_ids)
-        if selected:
-            idx = next((i for i, f in enumerate(food_data) if f.get("Food_ID") == selected), None)
-            if idx is not None:
-                food = food_data[idx]
-                with st.form("edit_food_form"):
-                    food_name = st.text_input("Food Name/Description", value=food.get("Food_name_and_Description", ""))
-                    scientific_name = st.text_input("Scientific Name", value=food.get("Scientific_name", ""))
-                    alt_names = st.text_input("Alternate/Common Names (comma separated)", value=", ".join(food.get("Alternate_Common_names", [])))
-                    edible_portion = st.text_input("Edible Portion (%)", value=food.get("Edible_portion", "100%"))
-                    is_unsafe = st.checkbox("Flag as unsafe for 0-5 years old", value=food.get("is_unsafe", False))
-                    update = st.form_submit_button("Update Food")
-                    delete = st.form_submit_button("Delete Food")
-                    if update:
-                        food.update({
-                            "Food_name_and_Description": food_name,
-                            "Scientific_name": scientific_name,
-                            "Alternate_Common_names": [n.strip() for n in alt_names.split(",") if n.strip()],
-                            "Edible_portion": edible_portion,
-                            "is_unsafe": is_unsafe
-                        })
-                        food_data[idx] = food
-                        save_food_data(food_data)
-                        log_action("Edit Food", food)
-                        st.success("Food updated.")
-                        st.experimental_rerun()
-                    if delete:
-                        removed = food_data.pop(idx)
-                        save_food_data(food_data)
-                        log_action("Delete Food", removed)
-                        st.warning("Food deleted.")
-                        st.experimental_rerun()
+    # Removed the import_tab block as it is now invalid and empty.
 
-with import_tab:
-    st.header("⬆️⬇️ Bulk Import/Export Food Data")
-    st.download_button("Download Food Data (JSON)", data=json.dumps(load_food_data(), indent=2), file_name="food_info.json", mime="application/json")
-    st.download_button("Download Food Data (CSV)", data=df.to_csv(index=False), file_name="food_info.csv", mime="text/csv")
-    st.subheader("Import Food Data (JSON)")
-    uploaded = st.file_uploader("Upload food_info.json", type=["json"])
-    if uploaded:
-        try:
-            new_data = json.load(uploaded)
-            save_food_data(new_data)
-            log_action("Import Food Data", f"Imported {len(new_data)} foods from JSON.")
-            st.success(f"Imported {len(new_data)} foods.")
-            st.experimental_rerun()
-        except Exception as e:
-            st.error(f"Import failed: {e}")
-
-with logs_tab:
-    st.header("📜 Logs & Audit Trail")
-    logs = load_logs()
-    if logs:
-        logs_df = pd.DataFrame(logs)
-        st.dataframe(logs_df, use_container_width=True)
-    else:
-        st.info("No logs available yet.")
