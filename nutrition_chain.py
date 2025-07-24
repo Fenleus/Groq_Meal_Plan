@@ -10,7 +10,7 @@ load_dotenv()
 def get_meal_plan_with_langchain(child_id, available_ingredients=None, religion=None):
     """
     Use LangChain to generate a meal plan for a child using Groq LLM and a nutritionist-style prompt.
-    Only uses knowledge_base.json (no family recipes).
+    Only uses knowledge_base.json.
     Optionally includes available ingredients provided by the parent.
     """
     api_key = os.getenv('GROQ_API_KEY')
