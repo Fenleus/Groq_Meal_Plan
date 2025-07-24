@@ -1,5 +1,5 @@
+
 import streamlit as st
-import os
 from nutrition_ai import ChildNutritionAI
 from data_manager import data_manager
 from datetime import datetime
@@ -92,16 +92,13 @@ def main():
         st.info(f"Logged in as: {parent_options[selected_parent]}")
     
     # Main tabs
-    tab1, tab2, tab3 = st.tabs(["👶 My Children", "🍽️ Generate Meal Plan", "📄 Download Plans"])
+    tab1, tab2 = st.tabs(["👶 My Children", "🍽️ Generate Meal Plan"])
 
     with tab1:
         show_children_overview()
 
     with tab2:
         show_meal_plan_generator()
-
-    with tab3:
-        show_download_plans()
 
 def show_children_overview():
     """Display children overview with their basic info and recent meal plans"""
@@ -206,66 +203,7 @@ def show_meal_plan_generator():
 def show_family_recipes():
     pass
 
-def show_download_plans():
-    """Download meal plans as PDF"""
-    st.header("📄 Download Meal Plans")
-    
-    children = data_manager.get_children_by_parent(st.session_state.parent_id)
-    
-    if not children:
-        st.warning("No children found.")
-        return
-    
-    # Child selection
-    child_options = {child['id']: f"{child['name']} ({child['age']} years)" for child in children}
-    selected_child_id = st.selectbox(
-        "Select Child for Download",
-        options=list(child_options.keys()),
-        format_func=lambda x: child_options[x]
-    )
-    
-    if selected_child_id:
-        meal_plans = data_manager.get_meal_plans_by_child(selected_child_id, months_back=6)
-        
-        if meal_plans:
-            st.subheader(f"📋 Available Meal Plans for {child_options[selected_child_id]}")
-            
-            for plan in meal_plans:
-                plan_date = datetime.fromisoformat(plan['created_at']).strftime("%B %d, %Y")
-                
-                col1, col2, col3 = st.columns([3, 1, 1])
-                
-                with col1:
-                    st.write(f"📅 **{plan_date}** - {plan['duration_days']} days")
-                
-                with col2:
-                    if st.button("👀 Preview", key=f"preview_{plan['id']}"):
-                        st.session_state[f"show_preview_{plan['id']}"] = True
-                
-                with col3:
-                    # For now, just show the text (PDF generation can be added later)
-                    if st.button("📥 Download", key=f"download_{plan['id']}"):
-                        st.info("PDF download functionality will be implemented soon!")
-                        # TODO: Implement PDF generation
-                
-                # Show preview if requested
-                if st.session_state.get(f"show_preview_{plan['id']}", False):
-                    with st.expander(f"Preview - {plan_date}", expanded=True):
-                        st.markdown(plan['meal_plan'])
-                        
-                        # Show nutritionist notes
-                        notes = data_manager.get_notes_for_meal_plan(plan['id'])
-                        if notes:
-                            st.subheader("👩‍⚕️ Nutritionist Notes:")
-                            for note in notes:
-                                note_date = datetime.fromisoformat(note['created_at']).strftime("%B %d, %Y")
-                                st.info(f"**{note_date}:** {note['note']}")
-                        
-                        if st.button("❌ Close Preview", key=f"close_{plan['id']}"):
-                            st.session_state[f"show_preview_{plan['id']}"] = False
-                            st.rerun()
-        else:
-            st.info(f"No meal plans found for {child_options[selected_child_id]}.")
+
 
 if __name__ == "__main__":
     main()
