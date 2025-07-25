@@ -7,7 +7,42 @@ from datetime import datetime
 DATA_PATH = os.path.join("data", "food_info.json")
 LOG_PATH = os.path.join("data", "admin_logs.json")
 
-st.set_page_config(page_title="🛠️ Admin Dashboard", page_icon="🛠️", layout="wide")
+
+# Configure page
+st.set_page_config(
+    page_title="🛠️ Admin Dashboard",
+    page_icon="🛠️",
+    layout="wide"
+)
+
+# Show a styled header with subtitle (like parent UI)
+st.markdown("""
+<div class='main-header'>
+    <span style='font-size:2.2rem;'>🛠️</span><br>
+    <span style='font-size:1.7rem;font-weight:bold;'>Admin Dashboard</span>
+    <p>Manage the food database, logs, and system settings</p>
+</div>
+""", unsafe_allow_html=True)
+
+# Sidebar: Admin info and quick stats
+with st.sidebar:
+    st.header("🛠️ Admin Login")
+    st.info("Logged in as: System Administrator")
+    st.write("ID: admin")
+    st.subheader("📊 Quick Stats")
+    # Food count
+    try:
+        with open(DATA_PATH, "r", encoding="utf-8") as f:
+            food_count = len(json.load(f))
+    except Exception:
+        food_count = 0
+    try:
+        with open(LOG_PATH, "r", encoding="utf-8") as f:
+            log_count = len(json.load(f))
+    except Exception:
+        log_count = 0
+    st.metric("Total Foods", food_count)
+    st.metric("Total Logs", log_count)
 
 st.markdown("""
 <style>
