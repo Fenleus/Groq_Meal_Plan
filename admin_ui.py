@@ -110,30 +110,44 @@ with main_tab:
         end_idx = min(start_idx+records_per_page, total_records)
         st.caption(f"Showing {start_idx+1} to {end_idx} of {total_records} rows | {records_per_page} records per page")
 
-        # Table columns
-        columns = ["No.", "food_id", "food_name_and_description", "scientific_name", "alternate_names", "edible_portion", "Options"]
-        # Show nutrition facts basis note
-        if food_data and "nutrition_facts_basis" in food_data[0]:
-            st.info(f"All nutrition facts are based on: {food_data[0]['nutrition_facts_basis']}")
+        # Restrict columns to the specified set
+        columns = [
+            "No.",
+            "food_id",
+            "food_name_and_description",
+            "scientific_name",
+            "alternate_common_names",
+            "edible_portion",
+            "Options"
+        ]
+
+        # Render column headers
+        header_cols = st.columns([1,2,4,3,3,2,2])
+        header_labels = [
+            "No.",
+            "Food ID",
+            "Food Name and Description",
+            "Scientific Name",
+            "Alternate Common Names",
+            "Edible Portion",
+            "Options"
+        ]
+        for i, label in enumerate(header_labels):
+            header_cols[i].markdown(f"**{label}**")
+
         # Prepare table data
         table_rows = []
         for idx, item in enumerate(food_data[start_idx:end_idx], start=start_idx+1):
-            food_id = item.get('food_id', f'f{idx:03d}')
-            name_desc = item.get('food_name', '')
-            if item.get('description'):
-                name_desc += ", " + item['description']
-            sci_name = item.get('scientific_name', '')
-            alt_names = item.get('alternate_names', '')
-            edible = item.get('edible_portion', '')
-            table_rows.append({
+            row = {
                 "No.": idx,
-                "food_id": food_id,
-                "food_name_and_description": name_desc,
-                "scientific_name": sci_name,
-                "alternate_names": alt_names,
-                "edible_portion": edible,
+                "food_id": item.get("food_id", ""),
+                "food_name_and_description": item.get("food_name_and_description", item.get("food_name", "")),
+                "scientific_name": item.get("scientific_name", ""),
+                "alternate_common_names": ", ".join(item.get("alternate_common_names", item.get("alternate_names", []))) if isinstance(item.get("alternate_common_names", item.get("alternate_names", [])), list) else item.get("alternate_common_names", item.get("alternate_names", "")),
+                "edible_portion": item.get("edible_portion", ""),
                 "Options": ""
-            })
+            }
+            table_rows.append(row)
 
         # Edit state
         if 'edit_row' not in st.session_state:
@@ -143,38 +157,24 @@ with main_tab:
 
         # Render table
         for row_idx, row in enumerate(table_rows):
-            cols = st.columns([1,2,4,3,3,2,2])
-            # No. and food_id
+            col_widths = [1,2,4,3,3,2,2]
+            cols = st.columns(col_widths)
             cols[0].markdown(f"{row['No.']}")
-            cols[1].markdown(f"{row['food_id']}")
-            # Edit mode check
             is_editing = st.session_state['edit_row'] == row['No.']
             if is_editing:
-                # Editable fields
-                st.session_state['edit_data'].setdefault('food_name_and_description', row['food_name_and_description'])
-                st.session_state['edit_data'].setdefault('scientific_name', row['scientific_name'])
-                st.session_state['edit_data'].setdefault('alternate_names', row['alternate_names'])
-                st.session_state['edit_data'].setdefault('edible_portion', row['edible_portion'])
-                cols[2].text_input("", value=st.session_state['edit_data']['food_name_and_description'], key=f"edit_name_{row['No.']}")
-                cols[3].text_input("", value=st.session_state['edit_data']['scientific_name'], key=f"edit_sci_{row['No.']}")
-                cols[4].text_input("", value=st.session_state['edit_data']['alternate_names'], key=f"edit_alt_{row['No.']}")
-                cols[5].text_input("", value=st.session_state['edit_data']['edible_portion'], key=f"edit_edible_{row['No.']}")
+                # Editable fields for all columns except No. and Options
+                for i, col in enumerate(columns[1:-1], start=1):
+                    st.session_state['edit_data'].setdefault(col, row[col])
+                    cols[i].text_input("", value=st.session_state['edit_data'][col], key=f"edit_{col}_{row['No.']}")
                 # Options: Save/Cancel
-                btn_cols = cols[6].columns([1,0.1,1])
+                btn_cols = cols[len(columns)-1].columns([1,0.1,1])
                 save = btn_cols[0].button("✓ Save", key=f"save_{row['No.']}")
                 btn_cols[1].markdown("", unsafe_allow_html=True)  # minimal gap
                 edit_cancel = btn_cols[2].button("✗ Cancel", key=f"cancel_{row['No.']}")
                 if save:
-                    # Validate and update
                     i = row['No.']-1
-                    food_data[i]['food_name'] = st.session_state['edit_data']['food_name_and_description'].split(',')[0].strip()
-                    if ',' in st.session_state['edit_data']['food_name_and_description']:
-                        food_data[i]['description'] = st.session_state['edit_data']['food_name_and_description'].split(',',1)[1].strip()
-                    else:
-                        food_data[i]['description'] = ''
-                    food_data[i]['scientific_name'] = st.session_state['edit_data']['scientific_name']
-                    food_data[i]['alternate_names'] = st.session_state['edit_data']['alternate_names']
-                    food_data[i]['edible_portion'] = st.session_state['edit_data']['edible_portion']
+                    for col in columns[1:-1]:
+                        food_data[i][col] = st.session_state['edit_data'][col]
                     save_food_data(food_data)
                     log_action("Edit Food", {"food_id": row['food_id']})
                     st.session_state['edit_row'] = None
@@ -185,13 +185,10 @@ with main_tab:
                     st.session_state['edit_data'] = {}
                     st.experimental_rerun()
             else:
-                # Read-only fields
-                cols[2].markdown(row['food_name_and_description'])
-                cols[3].markdown(row['scientific_name'])
-                cols[4].markdown(row['alternate_names'])
-                cols[5].markdown(row['edible_portion'])
+                for i, col in enumerate(columns[1:-1], start=1):
+                    cols[i].markdown(row[col])
                 # Options: Data/Edit
-                btn_cols = cols[6].columns([1,0.1,1])
+                btn_cols = cols[len(columns)-1].columns([1,0.1,1])
                 data_btn = btn_cols[0].button("Data", key=f"data_{row['No.']}" )
                 btn_cols[1].markdown("", unsafe_allow_html=True)  # minimal gap
                 edit_btn = btn_cols[2].button("Edit", key=f"edit_{row['No.']}" )
@@ -199,12 +196,7 @@ with main_tab:
                     st.session_state['show_modal'] = row['No.']
                 if edit_btn:
                     st.session_state['edit_row'] = row['No.']
-                    st.session_state['edit_data'] = {
-                        'food_name_and_description': row['food_name_and_description'],
-                        'scientific_name': row['scientific_name'],
-                        'alternate_names': row['alternate_names'],
-                        'edible_portion': row['edible_portion']
-                    }
+                    st.session_state['edit_data'] = {col: row[col] for col in columns[1:-1]}
                     st.experimental_rerun()
 
         # Data modal
@@ -213,23 +205,11 @@ with main_tab:
             food = food_data[i]
             modal_title = f"{food.get('food_name','')} Nutritional Data"
             st.markdown(f"<h3>{modal_title}</h3>", unsafe_allow_html=True)
-            tabs = st.tabs(["Proximates", "Other Carbohydrates", "Minerals", "Vitamins", "Lipids"])
-            
-            with tabs[0]:
-                for k, v in food.get('proximates', {}).items():
-                    st.write(f"{k}: {v}")
-            with tabs[1]:
-                for k, v in food.get('other_carbohydrates', {}).items():
-                    st.write(f"{k}: {v}")
-            with tabs[2]:
-                for k, v in food.get('minerals', {}).items():
-                    st.write(f"{k}: {v}")
-            with tabs[3]:
-                for k, v in food.get('vitamins', {}).items():
-                    st.write(f"{k}: {v}")
-            with tabs[4]:
-                for k, v in food.get('lipids', {}).items():
-                    st.write(f"{k}: {v}")
+            # Show all nutrition data as pretty JSON
+            with st.expander("Show Nutrition Data", expanded=True):
+                st.code(json.dumps({
+                    k: food[k] for k in ["proximates", "other_carbohydrates", "minerals", "vitamins", "lipids"] if k in food
+                }, indent=2, ensure_ascii=False), language="json")
             if st.button("Close", key="close_modal"):
                 st.session_state['show_modal'] = None
                 st.experimental_rerun()
