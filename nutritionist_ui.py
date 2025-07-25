@@ -325,26 +325,65 @@ def show_knowledge_base():
     
     with col1:
         st.subheader("📚 Current Knowledge Base")
-        
         knowledge_base = data_manager.get_knowledge_base()
-        
-        # Show Filipino foods
         filipino_foods = knowledge_base.get('filipino_foods', {})
         if filipino_foods:
             st.write(f"**Filipino Foods Database: {len(filipino_foods)} recipes**")
-            
             for food_id, food_data in list(filipino_foods.items())[:3]:
                 with st.expander(f"🍽️ {food_data['name']}"):
                     st.write(f"**Ingredients:** {food_data['ingredients']}")
                     st.write(f"**Nutrition Facts:** {food_data['nutrition_facts']}")
                     st.write(f"**Instructions:** {food_data['instructions']}")
-        
-        # Show uploaded PDFs
+
+        # Show uploaded PDFs with delete option
         uploaded_pdfs = knowledge_base.get('uploaded_pdfs', [])
-        if uploaded_pdfs:
-            st.write(f"**Uploaded PDFs: {len(uploaded_pdfs)} documents**")
-            for pdf in uploaded_pdfs:
-                st.write(f"- {pdf.get('name', 'Unknown document')}")
+        # Use a session state variable to track which PDF is pending deletion
+        if 'pending_delete_pdf_idx' not in st.session_state:
+            st.session_state['pending_delete_pdf_idx'] = None
+        st.write(f"**Uploaded PDFs: {len(uploaded_pdfs)} documents**")
+        for idx, pdf in enumerate(uploaded_pdfs):
+            pdf_name = pdf.get('name', 'Unknown document')
+            col_pdf, col_del = st.columns([8,1])
+            with col_pdf:
+                st.write(f"- {pdf_name}")
+            with col_del:
+                delete_btn = st.button("🗑️", key=f"delete_pdf_{idx}", help=f"Delete {pdf_name}")
+            # If delete button is clicked, set pending_delete_pdf_idx
+            if delete_btn:
+                st.session_state['pending_delete_pdf_idx'] = idx
+                st.session_state['pending_delete_pdf_name'] = pdf_name
+                st.session_state['pending_delete_pdf_uploaded_at'] = pdf.get('uploaded_at')
+                st.rerun()
+            # Show confirmation dialog only for the selected PDF
+            if st.session_state.get('pending_delete_pdf_idx') == idx:
+                confirm = st.warning(f"Are you sure you want to delete '{pdf_name}'? This will remove it from the knowledge base.", icon="⚠️")
+                confirm_col1, confirm_col2 = st.columns([1,1])
+                with confirm_col1:
+                    confirm_yes = st.button("Yes, delete", key=f"confirm_delete_{idx}")
+                with confirm_col2:
+                    confirm_no = st.button("Cancel", key=f"cancel_delete_{idx}")
+                if confirm_yes:
+                    # Remove from uploaded_pdfs
+                    knowledge_base = data_manager.get_knowledge_base()  # reload in case of changes
+                    # Remove from uploaded_pdfs by name and uploaded_at
+                    uploaded_pdfs_new = [p for p in knowledge_base.get('uploaded_pdfs', []) if not (p.get('name') == pdf_name and p.get('uploaded_at') == pdf.get('uploaded_at'))]
+                    knowledge_base['uploaded_pdfs'] = uploaded_pdfs_new
+                    # Remove from pdf_memories by name and uploaded_at if present
+                    if 'pdf_memories' in knowledge_base:
+                        pdf_memories_new = [m for m in knowledge_base['pdf_memories'] if not (m.get('name') == pdf_name and m.get('uploaded_at', None) == pdf.get('uploaded_at', None))]
+                        knowledge_base['pdf_memories'] = pdf_memories_new
+                    data_manager.save_knowledge_base(knowledge_base)
+                    # Clear pending delete state
+                    st.session_state['pending_delete_pdf_idx'] = None
+                    st.session_state['pending_delete_pdf_name'] = None
+                    st.session_state['pending_delete_pdf_uploaded_at'] = None
+                    st.success(f"Deleted '{pdf_name}' from knowledge base.")
+                    st.rerun()
+                elif confirm_no:
+                    st.session_state['pending_delete_pdf_idx'] = None
+                    st.session_state['pending_delete_pdf_name'] = None
+                    st.session_state['pending_delete_pdf_uploaded_at'] = None
+                    st.rerun()
     
     with col2:
         # PDF upload and processing with submit button and duplicate prevention
