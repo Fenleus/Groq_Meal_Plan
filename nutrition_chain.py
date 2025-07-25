@@ -92,7 +92,7 @@ def get_meal_plan_with_langchain(child_id, available_ingredients=None, religion=
     # Groq LLM for LangChain
     llm = ChatGroq(
         groq_api_key=api_key,
-        model_name="llama3-8b-8192",
+        model_name="llama-4-scout-17b-16e-instruct",
         temperature=0.3,
         max_tokens=3000
     )

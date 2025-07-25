@@ -98,7 +98,7 @@ def main():
         st.metric("Total Meal Plans", len(all_meal_plans))
     
     # Main tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["👨‍👩‍👧‍👦 All Parents", "📝 Add Notes", "� Knowledge Base", "🍽️ Recipe Database"])
+    tab1, tab2, tab3, tab4 = st.tabs(["👨‍👩‍👧‍👦 All Parents", "📝 Add Notes", "🧠 Knowledge Base", "🍽️ Food Database"])
 
     with tab1:
         show_all_parents()
@@ -347,48 +347,6 @@ def show_knowledge_base():
                 st.write(f"- {pdf.get('name', 'Unknown document')}")
     
     with col2:
-        st.subheader("➕ Add Knowledge")
-        
-        # Add Filipino recipe
-        st.write("**Add Filipino Recipe:**")
-        recipe_name = st.text_input("Recipe Name", placeholder="e.g., Chicken Tinola")
-        ingredients = st.text_area("Ingredients", placeholder="List main ingredients...")
-        nutrition_facts = st.text_area("Nutrition Facts", placeholder="Nutritional benefits and considerations...")
-        instructions = st.text_area("Instructions", placeholder="Brief cooking instructions...")
-        
-        if st.button("💾 Add Recipe to Database"):
-            if all([recipe_name, ingredients, nutrition_facts, instructions]):
-                recipe_id = data_manager.add_filipino_recipe(
-                    nutritionist_id=st.session_state.nutritionist_id,
-                    recipe_name=recipe_name,
-                    ingredients=ingredients,
-                    nutrition_facts=nutrition_facts,
-                    instructions=instructions
-                )
-                st.success(f"Recipe '{recipe_name}' added to knowledge base!")
-                st.rerun()
-            else:
-                st.error("Please fill in all fields!")
-        
-        st.markdown("---")
-        
-        # Add nutrition guideline
-        st.write("**Add Nutrition Guideline:**")
-        guideline_key = st.text_input("Guideline Key", placeholder="e.g., age_3_4_years")
-        guideline_text = st.text_area("Guideline Text", placeholder="Nutrition recommendation...")
-        
-        if st.button("💾 Add Guideline"):
-            if guideline_key and guideline_text:
-                knowledge_base = data_manager.get_knowledge_base()
-
-                data_manager.save_knowledge_base(knowledge_base)
-                st.success("Guideline added!")
-                st.rerun()
-            else:
-                st.error("Please fill in both fields!")
-        
-        st.markdown("---")
-        
         # PDF upload and processing
         import pdfplumber
         from io import BytesIO
@@ -424,7 +382,6 @@ def show_knowledge_base():
                 st.error(f"Failed to process PDF: {e}")
 
 def show_recipe_database():
-    st.header("�️ Recipe Database")
     st.header("Food Database")
     DATA_PATH = os.path.join("data", "food_info.json")
     def load_food_data():
@@ -592,7 +549,6 @@ def show_recipe_database():
                         st.info(f"No {tab_name.lower()} data available.")
             st.markdown("</div>", unsafe_allow_html=True)
     
-    # End of recipe database
 
 if __name__ == "__main__":
     main()
