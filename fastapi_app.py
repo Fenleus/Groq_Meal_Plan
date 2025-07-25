@@ -27,7 +27,7 @@ class MealPlanRequest(BaseModel):
     available_ingredients: Optional[str] = ""
     religion: Optional[str] = ""
 
-class FamilyRecipeRequest(BaseModel):
+class ParentRecipeRequest(BaseModel):
     parent_id: str
     recipe_name: str
     recipe_description: str
@@ -89,26 +89,26 @@ def get_meal_plans_by_parent(parent_id: str):
         logger.error(f"Error retrieving meal plans for parent_id {parent_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error. Please contact support.")
 
-@app.post("/family_recipe/")
-def add_family_recipe(request: FamilyRecipeRequest):
+@app.post("/parent_recipe/")
+def add_parent_recipe(request: ParentRecipeRequest):
     try:
-        recipe_id = data_manager.save_family_recipe(
+        recipe_id = data_manager.save_parent_recipe(
             request.parent_id,
             request.recipe_name,
             request.recipe_description
         )
         return {"recipe_id": recipe_id}
     except Exception as e:
-        logger.error(f"Error saving family recipe for parent_id {request.parent_id}: {e}")
+        logger.error(f"Error saving parent recipe for parent_id {request.parent_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error. Please contact support.")
 
-@app.get("/family_recipes/{parent_id}")
-def get_family_recipes(parent_id: str):
+@app.get("/parent_recipes/{parent_id}")
+def get_parent_recipes(parent_id: str):
     try:
         recipes = data_manager.get_recipes_by_parent(parent_id)
         return {"recipes": recipes}
     except Exception as e:
-        logger.error(f"Error retrieving family recipes for parent_id {parent_id}: {e}")
+        logger.error(f"Error retrieving parent recipes for parent_id {parent_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error. Please contact support.")
 
 @app.post("/nutritionist_note/")
@@ -145,7 +145,7 @@ def get_knowledge_base():
 @app.get("/")
 def root():
     try:
-        return {"message": "Family Nutrition Management API is running."}
+        return {"message": "Parent Nutrition Management API is running."}
     except Exception as e:
         logger.error(f"Error in root endpoint: {e}")
         raise HTTPException(status_code=500, detail="Internal server error. Please contact support.")

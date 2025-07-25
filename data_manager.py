@@ -137,14 +137,14 @@ class DataManager:
         
         return sorted(parent_plans, key=lambda x: x['created_at'], reverse=True)
     
-    # Family Recipes Management
-    def get_family_recipes(self) -> Dict:
-        """Get all family recipes"""
-        return self.load_json(os.path.join(self.data_dir, 'family_recipes.json'))
+    # Parent Recipes Management
+    def get_parent_recipes(self) -> Dict:
+        """Get all parent recipes"""
+        return self.load_json(os.path.join(self.data_dir, 'parent_recipes.json'))
     
-    def save_family_recipe(self, parent_id: str, recipe_name: str, recipe_description: str) -> str:
-        """Save a family recipe"""
-        recipes = self.get_family_recipes()
+    def save_parent_recipe(self, parent_id: str, recipe_name: str, recipe_description: str) -> str:
+        """Save a parent recipe"""
+        recipes = self.get_parent_recipes()
         
         recipe_id = str(uuid.uuid4())
         recipe_data = {
@@ -156,12 +156,12 @@ class DataManager:
         }
         
         recipes[recipe_id] = recipe_data
-        self.save_json(os.path.join(self.data_dir, 'family_recipes.json'), recipes)
+        self.save_json(os.path.join(self.data_dir, 'parent_recipes.json'), recipes)
         return recipe_id
     
     def get_recipes_by_parent(self, parent_id: str) -> List[Dict]:
         """Get recipes uploaded by a parent"""
-        recipes = self.get_family_recipes()
+        recipes = self.get_parent_recipes()
         return [recipe for recipe in recipes.values() if recipe.get('parent_id') == parent_id]
     
     # Nutritionist Notes Management

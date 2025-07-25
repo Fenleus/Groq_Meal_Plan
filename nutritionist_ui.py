@@ -22,7 +22,7 @@ st.markdown("""
         text-align: center;
         color: white;
     }
-    .family-card {
+    .parent-card {
         background: #e8f5e8;
         padding: 1rem;
         border-radius: 8px;
@@ -95,10 +95,10 @@ def main():
         st.metric("Total Meal Plans", len(all_meal_plans))
     
     # Main tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["👨‍👩‍👧‍👦 All Families", "📝 Add Notes", "🧠 Knowledge Base", "🍽️ Recipe Database"])
-    
+    tab1, tab2, tab3, tab4 = st.tabs(["👨‍👩‍👧‍👦 All Parents", "📝 Add Notes", "� Knowledge Base", "🍽️ Recipe Database"])
+
     with tab1:
-        show_all_families()
+        show_all_parents()
     
     with tab2:
         show_add_notes()
@@ -109,37 +109,37 @@ def main():
     with tab4:
         show_recipe_database()
 
-def show_all_families():
-    """Display all families and their children's meal plans"""
-    st.header("👨‍👩‍👧‍👦 All Families Overview")
+def show_all_parents():
+    """Display all parents and their children's meal plans"""
+    st.header("👨‍👩‍👧‍👦 All Parents Overview")
     
     # Group children by parent
     all_children = data_manager.get_children_data()
-    families = {}
+    parents = {}
     
     for child in all_children.values():
         parent_id = child['parent_id']
-        if parent_id not in families:
-            families[parent_id] = []
-        families[parent_id].append(child)
+        if parent_id not in parents:
+            parents[parent_id] = []
+        parents[parent_id].append(child)
     
-    if not families:
-        st.info("No families found in the system.")
+    if not parents:
+        st.info("No parents found in the system.")
         return
     
     # Get all parents data for name lookup
     parents_data = data_manager.get_parents_data()
 
     # Display each parent name
-    for parent_id, children in families.items():
+    for parent_id, children in parents.items():
         parent_name = parents_data.get(parent_id, {}).get('name', f"Parent {parent_id}")
         st.markdown(f"""
-        <div class="family-card">
+        <div class="parent-card">
             <h3>👨‍👩‍👧‍👦 {parent_name}</h3>
         </div>
         """, unsafe_allow_html=True)
 
-        # Show children in this family
+        # Show children for this parent
         for child in children:
             col1, col2 = st.columns([2, 1])
 
@@ -218,15 +218,15 @@ def show_add_notes():
     col1, col2 = st.columns(2)
     
     with col1:
-        # Family filter
-        family_options = {
-            "all": "All Families",
-            "parent_001": "Santos Family", 
-            "parent_002": "Cruz Family"
+        # Parent filter
+        parent_options = {
+            "all": "All Parents",
+            "parent_001": "Santos Parent", 
+            "parent_002": "Cruz Parent"
         }
-        selected_family = st.selectbox("Filter by Family", 
-                                     options=list(family_options.keys()),
-                                     format_func=lambda x: family_options[x])
+        selected_parent = st.selectbox("Filter by Parent", 
+                                     options=list(parent_options.keys()),
+                                     format_func=lambda x: parent_options[x])
     
     with col2:
         # Date range
@@ -241,7 +241,7 @@ def show_add_notes():
     for plan in all_plans.values():
         plan_date = datetime.fromisoformat(plan['created_at'])
         if plan_date >= cutoff_date:
-            if selected_family == "all" or plan['parent_id'] == selected_family:
+            if selected_parent == "all" or plan['parent_id'] == selected_parent:
                 # Add child info for display
                 child_data = data_manager.get_child_by_id(plan['child_id'])
                 plan['child_name'] = child_data['name'] if child_data else "Unknown"
