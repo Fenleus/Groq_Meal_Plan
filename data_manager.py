@@ -20,10 +20,8 @@ class DataManager:
             os.makedirs(self.data_dir)
     
     def ensure_data_files(self):
-        """Create JSON files with initial structure if they don't exist"""
         files = {
             'children.json': {},
-            'meal_plans.json': {},
             'nutritionist_notes.json': {},
             "foods_info.json": {},
             'knowledge_base.json': {
@@ -31,7 +29,6 @@ class DataManager:
                 "uploaded_pdfs": []
             }
         }
-        
         for filename, initial_data in files.items():
             filepath = os.path.join(self.data_dir, filename)
             if not os.path.exists(filepath):
@@ -65,54 +62,7 @@ class DataManager:
         children = self.get_children_data()
         return children.get(child_id)
     
-    # Meal Plans Management
-    def get_meal_plans(self) -> Dict:
-        """Get all meal plans"""
-        return self.load_json(os.path.join(self.data_dir, 'meal_plans.json'))
-    
-    def save_meal_plan(self, child_id: str, meal_plan: str, duration_days: int, parent_id: str) -> str:
-        """Save a new meal plan"""
-        meal_plans = self.get_meal_plans()
-        
-        plan_id = str(uuid.uuid4())
-        plan_data = {
-            'id': plan_id,
-            'child_id': child_id,
-            'parent_id': parent_id,
-            'meal_plan': meal_plan,
-            'duration_days': duration_days,
-            'created_at': datetime.now().isoformat(),
-            'status': 'active'
-        }
-        
-        meal_plans[plan_id] = plan_data
-        self.save_json(os.path.join(self.data_dir, 'meal_plans.json'), meal_plans)
-        return plan_id
-    
-    def get_meal_plans_by_child(self, child_id: str, months_back: int = 6) -> List[Dict]:
-        """Get meal plans for a child within the last X months"""
-        meal_plans = self.get_meal_plans()
-        cutoff_date = datetime.now() - timedelta(days=months_back * 30)
-        
-        child_plans = []
-        for plan in meal_plans.values():
-            if plan.get('child_id') == child_id:
-                plan_date = datetime.fromisoformat(plan['created_at'])
-                if plan_date >= cutoff_date:
-                    child_plans.append(plan)
-        
-        return sorted(child_plans, key=lambda x: x['created_at'], reverse=True)
-    
-    def get_meal_plans_by_parent(self, parent_id: str) -> List[Dict]:
-        """Get all recent meal plans for a parent's children"""
-        meal_plans = self.get_meal_plans()
-        parent_plans = []
-        
-        for plan in meal_plans.values():
-            if plan.get('parent_id') == parent_id:
-                parent_plans.append(plan)
-        
-        return sorted(parent_plans, key=lambda x: x['created_at'], reverse=True)
+
     
     # Family Recipes Management
     def get_family_recipes(self) -> Dict:
