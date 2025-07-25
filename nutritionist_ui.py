@@ -1,4 +1,3 @@
-
 import streamlit as st
 import os
 from nutrition_ai import ChildNutritionAI
@@ -6,10 +5,8 @@ from data_manager import data_manager
 from datetime import datetime, timedelta
 import json
 import pdfplumber
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import FAISS
-from langchain.embeddings import HuggingFaceEmbeddings
-import tempfile
+from io import BytesIO
+import math
 
 # Configure page
 st.set_page_config(
@@ -87,125 +84,91 @@ def main():
     
     st.success("✅ Connected to Nutrition AI")
     
-
     # Sidebar for nutritionist info
     with st.sidebar:
         st.header("👩‍⚕️ Nutritionist Login")
-        st.info("Logged in as: Dr. Maria Rodriguez")
+        st.info(f"Logged in as: Dr. Maria Rodriguez")
         st.write(f"ID: {st.session_state.nutritionist_id}")
+        
+        # Quick stats
         st.subheader("📊 Quick Stats")
         all_children = data_manager.get_children_data()
-        all_meal_plans = {}  # You can load actual meal plans if needed
+        all_meal_plans = {}
         st.metric("Total Children", len(all_children))
         st.metric("Total Meal Plans", len(all_meal_plans))
+    
+    # Main tabs
+    tab1, tab2, tab3, tab4 = st.tabs(["👨‍👩‍👧‍👦 All Parents", "📝 Add Notes", "� Knowledge Base", "🍽️ Recipe Database"])
 
-    # Main content
-    st.header("🧠 Filipino Nutrition Knowledge Base")
-    col1, col2 = st.columns([1, 1])
+    with tab1:
+        show_all_parents()
+    
+    with tab2:
+        show_add_notes()
+    
+    with tab3:
+        show_knowledge_base()
+    
+    with tab4:
+        show_recipe_database()
 
-    with col1:
-        st.subheader("� Current Knowledge Base")
-        knowledge_base = data_manager.get_knowledge_base()
-        # Show nutrition guidelines
-        guidelines = knowledge_base.get('nutrition_guidelines', {})
-        if guidelines:
-            st.write("**Age-Specific Guidelines:**")
-            for age_group, guideline in guidelines.items():
-                st.info(f"**{age_group.replace('_', ' ').title()}:** {guideline}")
-        # Show Filipino foods
-        filipino_foods = knowledge_base.get('filipino_foods', {})
-        if filipino_foods:
-            st.write(f"**Filipino Foods Database: {len(filipino_foods)} recipes**")
-            for food_id, food_data in list(filipino_foods.items())[:3]:
-                with st.expander(f"🍽️ {food_data['name']}"):
-                    st.write(f"**Ingredients:** {food_data['ingredients']}")
-                    st.write(f"**Nutrition Facts:** {food_data['nutrition_facts']}")
-                    st.write(f"**Instructions:** {food_data['instructions']}")
-        # Show uploaded PDFs
-        uploaded_pdfs = knowledge_base.get('uploaded_pdfs', [])
-        if uploaded_pdfs:
-            st.write(f"**Uploaded PDFs: {len(uploaded_pdfs)} documents**")
-            for pdf in uploaded_pdfs:
-                st.write(f"- {pdf.get('name', 'Unknown document')}")
-        # Show vector store status
-        if os.path.exists("pdf_vector.index"):
-            st.success("PDF Vector Store: Ready for LLM retrieval!")
-        else:
-            st.warning("PDF Vector Store not initialized yet.")
+def show_all_parents():
+    """Display all parents and their children's meal plans"""
+    st.header("👨‍👩‍👧‍👦 All Parents Overview")
+    
+    # Group children by parent
+    all_children = data_manager.get_children_data()
+    parents = {}
+    
+    for child in all_children.values():
+        parent_id = child['parent_id']
+        if parent_id not in parents:
+            parents[parent_id] = []
+        parents[parent_id].append(child)
+    
+    if not parents:
+        st.info("No parents found in the system.")
+        return
+    
+    # Get all parents data for name lookup
+    parents_data = data_manager.get_parents_data()
 
-    with col2:
-        st.subheader("➕ Add Knowledge")
-        # Add Filipino recipe
-        recipe_name = st.text_input("Recipe Name", placeholder="e.g., Chicken Tinola")
-        ingredients = st.text_area("Ingredients", placeholder="List main ingredients...")
-        nutrition_facts = st.text_area("Nutrition Facts", placeholder="Nutritional benefits and considerations...")
-        instructions = st.text_area("Instructions", placeholder="Brief cooking instructions...")
-        if st.button("� Add Recipe to Database"):
-            if all([recipe_name, ingredients, nutrition_facts, instructions]):
-                recipe_id = data_manager.add_filipino_recipe(
-                    nutritionist_id=st.session_state.nutritionist_id,
-                    recipe_name=recipe_name,
-                    ingredients=ingredients,
-                    nutrition_facts=nutrition_facts,
-                    instructions=instructions
-                )
-                st.success(f"Recipe '{recipe_name}' added to knowledge base!")
-                st.rerun()
-            else:
-                st.error("Please fill in all fields!")
-        st.markdown("---")
-        # Add nutrition guideline
-        st.write("**Add Nutrition Guideline:**")
-        guideline_key = st.text_input("Guideline Key", placeholder="e.g., age_3_4_years")
-        guideline_text = st.text_area("Guideline Text", placeholder="Nutrition recommendation...")
-        if st.button("💾 Add Guideline"):
-            if guideline_key and guideline_text:
-                knowledge_base = data_manager.get_knowledge_base()
-                if 'nutrition_guidelines' not in knowledge_base:
-                    knowledge_base['nutrition_guidelines'] = {}
-                knowledge_base['nutrition_guidelines'][guideline_key] = guideline_text
-                data_manager.save_knowledge_base(knowledge_base)
-                st.success("Guideline added!")
-                st.rerun()
-            else:
-                st.error("Please fill in both fields!")
-        st.markdown("---")
-        # PDF upload and vector memory
-        st.write("**Upload PDF Knowledge (LLM-Ready):**")
-        uploaded_file = st.file_uploader("Choose PDF file", type="pdf")
-        if uploaded_file is not None:
-            with pdfplumber.open(uploaded_file) as pdf:
-                text = ""
-                for page in pdf.pages:
-                    page_text = page.extract_text()
-                    if page_text:
-                        text += page_text + "\n"
-            if text.strip():
-                # Save to knowledge base for record
-                knowledge_base = data_manager.get_knowledge_base()
-                if 'uploaded_pdfs' not in knowledge_base:
-                    knowledge_base['uploaded_pdfs'] = []
-                knowledge_base['uploaded_pdfs'].append({
-                    "name": uploaded_file.name,
-                    "content": text[:1000] + ("..." if len(text) > 1000 else "")
-                })
-                data_manager.save_knowledge_base(knowledge_base)
-                # Chunk and embed for vector memory
-                with st.spinner("Indexing PDF for LLM retrieval (this may take a moment)..."):
-                    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-                    docs = text_splitter.create_documents([text])
-                    # Use a simple HuggingFace embedding (can swap for OpenAI or Groq if available)
-                    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-                    if os.path.exists("pdf_vector.index"):
-                        db = FAISS.load_local("pdf_vector.index", embeddings)
-                        db.add_documents(docs)
+    # Display each parent name
+    for parent_id, children in parents.items():
+        parent_name = parents_data.get(parent_id, {}).get('name', f"Parent {parent_id}")
+        st.markdown(f"""
+        <div class="parent-card">
+            <h3>👨‍👩‍👧‍👦 {parent_name}</h3>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Show children for this parent
+        for child in children:
+            col1, col2 = st.columns([2, 1])
+
+            with col1:
+                # Calculate age string from age_in_months
+                age_months = child.get('age_in_months')
+                if age_months is not None:
+                    years = age_months // 12
+                    months = age_months % 12
+                    if years > 0 and months > 0:
+                        age_str = f"{years} years, {months} months old ({age_months} months)"
+                    elif years > 0:
+                        age_str = f"{years} years old ({age_months} months)"
                     else:
-                        db = FAISS.from_documents(docs, embeddings)
-                    db.save_local("pdf_vector.index")
-                st.success(f"PDF '{uploaded_file.name}' uploaded, extracted, and indexed for LLM retrieval!")
-                st.rerun()
-            else:
-                st.error("No text could be extracted from this PDF.")
+                        age_str = f"{months} months old"
+                else:
+                    age_str = "Unknown"
+                st.markdown(f"""
+                <div class="child-info">
+                    <h4>👶 {child['name']} ({age_str})</h4>
+                    <p><strong>BMI:</strong> {child['bmi']} ({child['bmi_category']})</p>
+                    <p><strong>Allergies:</strong> {child['allergies']}</p>
+                    <p><strong>Conditions:</strong> {child['medical_conditions']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
             with col2:
                 # Show meal plan count
                 meal_plans = []
@@ -218,7 +181,7 @@ def main():
             recent_plans = []
 
             if recent_plans:
-                with st.expander("Recent Meal Plans"):
+                with st.expander(f"Recent Meal Plans for {child['name']}"):
                     for plan in recent_plans[:2]:  # Show 2 most recent
                         plan_date = datetime.fromisoformat(plan['created_at']).strftime("%B %d, %Y")
 
@@ -435,11 +398,39 @@ def show_knowledge_base():
         
         st.markdown("---")
         
-        # PDF upload placeholder
+        # PDF upload and processing
+        import pdfplumber
+        from io import BytesIO
+        import math
         st.write("**Upload PDF Knowledge:**")
         uploaded_file = st.file_uploader("Choose PDF file", type="pdf")
         if uploaded_file is not None:
-            st.info("PDF processing functionality will be implemented soon!")
+            try:
+                with pdfplumber.open(BytesIO(uploaded_file.read())) as pdf:
+                    all_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+                # Chunking: split into ~1000 character chunks (adjust as needed)
+                chunk_size = 1000
+                chunks = [all_text[i:i+chunk_size] for i in range(0, len(all_text), chunk_size)]
+                # Store in knowledge base as memory chunks
+                knowledge_base = data_manager.get_knowledge_base()
+                if 'pdf_memories' not in knowledge_base:
+                    knowledge_base['pdf_memories'] = []
+                pdf_entry = {
+                    'name': uploaded_file.name,
+                    'chunks': chunks,
+                    'uploaded_at': datetime.now().isoformat(),
+                    'source': 'pdf_upload',
+                }
+                knowledge_base['pdf_memories'].append(pdf_entry)
+                # Optionally, also add to uploaded_pdfs for display
+                if 'uploaded_pdfs' not in knowledge_base:
+                    knowledge_base['uploaded_pdfs'] = []
+                knowledge_base['uploaded_pdfs'].append({'name': uploaded_file.name, 'uploaded_at': datetime.now().isoformat()})
+                data_manager.save_knowledge_base(knowledge_base)
+                st.success(f"PDF '{uploaded_file.name}' processed and added to knowledge base!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Failed to process PDF: {e}")
 
 def show_recipe_database():
     st.header("🇭 Filipino Recipes Database")
