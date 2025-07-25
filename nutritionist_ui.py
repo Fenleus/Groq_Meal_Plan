@@ -328,13 +328,6 @@ def show_knowledge_base():
         
         knowledge_base = data_manager.get_knowledge_base()
         
-        # Show nutrition guidelines
-        guidelines = knowledge_base.get('nutrition_guidelines', {})
-        if guidelines:
-            st.write("**Age-Specific Guidelines:**")
-            for age_group, guideline in guidelines.items():
-                st.info(f"**{age_group.replace('_', ' ').title()}:** {guideline}")
-        
         # Show Filipino foods
         filipino_foods = knowledge_base.get('filipino_foods', {})
         if filipino_foods:
@@ -387,9 +380,7 @@ def show_knowledge_base():
         if st.button("💾 Add Guideline"):
             if guideline_key and guideline_text:
                 knowledge_base = data_manager.get_knowledge_base()
-                if 'nutrition_guidelines' not in knowledge_base:
-                    knowledge_base['nutrition_guidelines'] = {}
-                knowledge_base['nutrition_guidelines'][guideline_key] = guideline_text
+
                 data_manager.save_knowledge_base(knowledge_base)
                 st.success("Guideline added!")
                 st.rerun()
