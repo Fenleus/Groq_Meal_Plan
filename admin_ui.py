@@ -33,10 +33,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def log_action(action, details):
+    if isinstance(details, dict):
+        sensitive_keys = [
+            'child_name', 'parent_name', 'name', 'address', 'contact', 'email', 'phone',
+            'children', 'parents', 'profile', 'bmi', 'bmi_category', 'age', 'age_in_months',
+            'medical_conditions', 'allergies', 'religion', 'weight', 'height', 'notes',
+            'history', 'meal_plans', 'recipes', 'password', 'token', 'id', 'user_id', 'parent_id', 'child_id'
+        ]
+        filtered_details = {k: v for k, v in details.items() if k not in sensitive_keys}
+    else:
+        filtered_details = details
     log_entry = {
         "timestamp": datetime.now().isoformat(),
         "action": action,
-        "details": details
+        "details": filtered_details
     }
     logs = []
     if os.path.exists(LOG_PATH):
@@ -71,8 +81,11 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+
 # Tabs
-main_tab = st.tabs(["🍲 Food Database"])[0]
+tabs = st.tabs(["🍲 Food Database", "📜 Logs"])
+main_tab = tabs[0]
+logs_tab = tabs[1]
 
 with main_tab:
     st.header("🍲 Food Database Management")
@@ -220,4 +233,23 @@ with main_tab:
             if st.button("Close", key="close_modal"):
                 st.session_state['show_modal'] = None
                 st.experimental_rerun()
+
+
+# Logs Tab
+with logs_tab:
+    st.header("📜 Admin Logs")
+    logs = load_logs()
+    if not logs:
+        st.info("No logs available.")
+    else:
+        # Show logs in a table
+        log_df = pd.DataFrame(logs)
+        # Flatten details for display
+        def flatten_details(details):
+            if isinstance(details, dict):
+                return ", ".join(f"{k}: {v}" for k, v in details.items())
+            return str(details)
+        if 'details' in log_df.columns:
+            log_df['details'] = log_df['details'].apply(flatten_details)
+        st.dataframe(log_df[['timestamp', 'action', 'details']], use_container_width=True)
 
