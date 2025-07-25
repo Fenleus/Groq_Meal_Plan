@@ -29,7 +29,7 @@ class DataManager:
             'admin_logs.json': [],
             "foods_info.json": {},
             'knowledge_base.json': {
-                "nutrition_guidelines": {},
+
                 "uploaded_pdfs": []
             }
         }
