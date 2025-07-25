@@ -114,59 +114,6 @@ Keep recommendations practical for Filipino families."""
         except Exception as e:
             return f"Error generating meal plan: {str(e)}"
     
-    def recommend_family_recipes(
-        self,
-        child_id: str,
-        family_recipes: List[Dict]
-    ) -> str:
-        """Recommend which family recipes are suitable for a specific child"""
-        
-        child_data = data_manager.get_child_by_id(child_id)
-        if not child_data:
-            return "Error: Child data not found"
-        
-        recipes_text = ""
-        for recipe in family_recipes:
-            recipes_text += f"\nRecipe: {recipe['name']}\nDescription: {recipe['description']}\n---\n"
-        
-        try:
-            prompt = f"""You are a pediatric nutrition expert. Review these family recipes and determine which are suitable for this child:
-
-CHILD PROFILE:
-- Age: {child_data.get('age', 'Unknown')} years old
-- BMI Category: {child_data.get('bmi_category', 'Unknown')}
-- Allergies: {child_data.get('allergies', 'None')}
-- Medical Conditions: {child_data.get('medical_conditions', 'None')}
-
-FAMILY RECIPES TO REVIEW:
-{recipes_text}
-
-FOR EACH RECIPE, PROVIDE:
-1. ✅ SUITABLE or ❌ NOT SUITABLE
-2. Reason (considering allergies, age-appropriateness, medical conditions)
-3. If suitable: suggested modifications for the child's age/condition
-4. If not suitable: explain why and suggest alternatives
-
-Focus on:
-- Age-appropriate textures and ingredients
-- Allergen safety
-- Nutritional value for growing children
-- Filipino dietary considerations"""
-
-            response = self.client.chat.completions.create(
-                model="llama3-8b-8192",
-                messages=[
-                    {"role": "system", "content": "You are a pediatric nutrition expert specializing in food safety for children 0-5 years. All nutrient values provided are based on 100 g of edible portion."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.2,
-                max_tokens=2000
-            )
-
-            return response.choices[0].message.content
-
-        except Exception as e:
-            return f"Error analyzing recipes: {str(e)}"
 
 if __name__ == "__main__":
 
