@@ -73,7 +73,7 @@ def main():
         st.info("Make sure your GROQ_API_KEY is set in the .env file")
         return
     
-    st.success("✅ Connected to Nutrition AI")
+    # Removed 'Connected to Nutrition AI' message
     
     # Sidebar for parent selection (for demo)
     with st.sidebar:
@@ -111,10 +111,23 @@ def show_children_overview():
     
     for child in children:
         with st.container():
+            # Calculate age in months
+            age_months = child.get('age_in_months')
+            if age_months is not None:
+                years = age_months // 12
+                months = age_months % 12
+                if years > 0 and months > 0:
+                    age_str = f"{years} years, {months} months old ({age_months} months)"
+                elif years > 0:
+                    age_str = f"{years} years old ({age_months} months)"
+                else:
+                    age_str = f"{months} months old"
+            else:
+                age_str = "Unknown"
             st.markdown(f"""
             <div class="child-card">
                 <h3>👶 {child['name']}</h3>
-                <p><strong>Age:</strong> {child['age']} years old</p>
+                <p><strong>Age:</strong> {age_str}</p>
                 <p><strong>BMI:</strong> {child['bmi']} ({child['bmi_category']})</p>
                 <p><strong>Weight:</strong> {child['weight']} kg | <strong>Height:</strong> {child['height']} cm</p>
                 <p><strong>Allergies:</strong> {child['allergies']}</p>
@@ -134,8 +147,8 @@ def show_meal_plan_generator():
         st.warning("No children found. Please check with your account administrator.")
         return
     
-    # Child selection
-    child_options = {child['id']: f"{child['name']} ({child['age']} years)" for child in children}
+    # Child selection (show only name, no age)
+    child_options = {child['id']: f"{child['name']}" for child in children}
     selected_child_id = st.selectbox(
         "Select Child",
         options=list(child_options.keys()),
@@ -146,16 +159,9 @@ def show_meal_plan_generator():
         child_data = data_manager.get_child_by_id(selected_child_id)
         st.subheader("👶 Child Summary")
         st.write(f"**Name:** {child_data['name']}")
-        # Age in months (check if already in months)
-        age_val = child_data.get('age')
-        if age_val is not None:
-            if age_val > 5:  # unlikely to be months if > 5
-                age_months = int(age_val)
-            else:
-                age_months = int(age_val * 12)
-        else:
-            age_months = "Unknown"
-        st.write(f"**Age:** {age_months} months")
+        # Age in months only
+        age_months = child_data.get('age_in_months')
+        st.write(f"**Age:** {age_months if age_months is not None else 'Unknown'} months")
         st.write(f"**BMI:** {child_data['bmi']} ({child_data['bmi_category']})")
         st.write(f"**Allergies:** {child_data['allergies']}")
         st.write(f"**Conditions:** {child_data['medical_conditions']}")
