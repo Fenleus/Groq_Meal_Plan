@@ -23,6 +23,7 @@ class DataManager:
         """Create JSON files with initial structure if they don't exist"""
         files = {
             'children.json': {},
+            'parents.json': {},
             'meal_plans.json': {},
             'nutritionist_notes.json': {},
             "foods_info.json": {},
@@ -31,11 +32,25 @@ class DataManager:
                 "uploaded_pdfs": []
             }
         }
-        
         for filename, initial_data in files.items():
             filepath = os.path.join(self.data_dir, filename)
             if not os.path.exists(filepath):
                 self.save_json(filepath, initial_data)
+    # Parents Data Management
+    def get_parents_data(self) -> Dict:
+        """Get all parents data"""
+        return self.load_json(os.path.join(self.data_dir, 'parents.json'))
+
+    def get_parent_by_id(self, parent_id: str) -> Optional[Dict]:
+        """Get specific parent data"""
+        parents = self.get_parents_data()
+        return parents.get(parent_id)
+
+    def get_religion_by_parent(self, parent_id: str) -> Optional[str]:
+        parent = self.get_parent_by_id(parent_id)
+        if parent:
+            return parent.get('religion')
+        return None
     
     def load_json(self, filepath: str) -> Dict:
         """Load JSON data from file"""
@@ -59,6 +74,13 @@ class DataManager:
         """Get all children for a specific parent"""
         all_children = self.get_children_data()
         return [child for child in all_children.values() if child.get('parent_id') == parent_id]
+
+    def get_children_ids_by_parent(self, parent_id: str) -> List[str]:
+        """Get all children IDs for a specific parent"""
+        parent = self.get_parent_by_id(parent_id)
+        if parent:
+            return [child['id'] for child in parent.get('children', [])]
+        return []
     
     def get_child_by_id(self, child_id: str) -> Optional[Dict]:
         """Get specific child data"""

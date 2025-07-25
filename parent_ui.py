@@ -78,10 +78,9 @@ def main():
     # Sidebar for parent selection (for demo)
     with st.sidebar:
         st.header("👤 Parent Login")
-        parent_options = {
-            "parent_001": "Santos Family",
-            "parent_002": "Cruz Family"
-        }
+        # Dynamically load parent names from parents.json
+        parents_data = data_manager.get_parents_data()
+        parent_options = {pid: pdata.get('name', pid) for pid, pdata in parents_data.items()}
         selected_parent = st.selectbox(
             "Select Parent Account",
             options=list(parent_options.keys()),
@@ -160,9 +159,10 @@ def show_meal_plan_generator():
         st.write(f"**BMI:** {child_data['bmi']} ({child_data['bmi_category']})")
         st.write(f"**Allergies:** {child_data['allergies']}")
         st.write(f"**Conditions:** {child_data['medical_conditions']}")
-        # Religion (must be present in child data)
-        religion = child_data.get('religion', "Unknown")
-        st.write(f"**Religion:** {religion}")
+        # Religion (now fetched from parent)
+        parent_id = child_data.get('parent_id')
+        religion = data_manager.get_religion_by_parent(parent_id) if parent_id else "Unknown"
+        st.write(f"**Religion:** {religion if religion else 'Unknown'}")
         # Input for available ingredients
         available_ingredients = st.text_area(
             "Available Ingredients at Home (optional)",
