@@ -65,21 +65,15 @@ def load_food_data():
     with open(DATA_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def save_food_data(data):
-    with open(DATA_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
 
 def load_logs():
     if not os.path.exists(LOG_PATH):
         return []
     with open(LOG_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
-
-st.markdown("""
-<div class="main-header">
-    <h1>🛠️ Admin Dashboard</h1>
-</div>
-""", unsafe_allow_html=True)
+def save_food_data(data):
+    with open(DATA_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
 
 
 # Tabs
@@ -89,13 +83,56 @@ logs_tab = tabs[1]
 
 with main_tab:
     st.header("🍲 Food Database Management")
+    if st.session_state.get('show_nutrition_notice'):
+        food_idx = st.session_state.get('show_nutrition_section', None)
+        food_data_list = load_food_data() if food_idx else []
+        food_name = ""
+        if food_idx and 0 < food_idx <= len(food_data_list):
+            food = food_data_list[food_idx-1]
+            food_name = food.get('food_name_and_description', food.get('food_name', ''))
+        st.markdown(f"""
+            <div style='background:#2196F3;color:white;padding:0.75rem 1.5rem;border-radius:8px;font-weight:bold;margin-bottom:0.5rem;font-size:1.1rem;'>
+                The nutrition data is shown below.<br>
+                <span style='font-size:1rem;font-weight:normal;'>You are now viewing nutrition data for: <b>{food_name}</b></span>
+            </div>
+        """, unsafe_allow_html=True)
     food_data = load_food_data()
     if not food_data:
         st.info("No food data available.")
     else:
+
+        # Search bar
+        if 'food_db_search' not in st.session_state:
+            st.session_state['food_db_search'] = ''
+        prev_search = st.session_state['food_db_search']
+        search_val = st.text_input(
+            "🔍 Search food database",
+            value=prev_search,
+            key='food_db_search',
+        )
+        if search_val != prev_search:
+            st.session_state['food_db_search'] = search_val
+            st.rerun()
+        def filter_foods(data, query):
+            if not query:
+                return data
+            query = query.lower()
+            filtered = []
+            for item in data:
+                for col in ["food_id", "food_name_and_description", "scientific_name", "alternate_common_names", "edible_portion"]:
+                    val = item.get(col, '')
+                    if isinstance(val, list):
+                        val = ', '.join(val)
+                    if query in str(val).lower():
+                        filtered.append(item)
+                        break
+            return filtered
+
+        filtered_food_data = filter_foods(food_data, search_val)
+
         # Pagination setup
         records_per_page = 10
-        total_records = len(food_data)
+        total_records = len(filtered_food_data)
         total_pages = (total_records - 1) // records_per_page + 1
         page = st.session_state.get('food_db_page', 1)
         def set_page(new_page):
@@ -110,7 +147,6 @@ with main_tab:
         end_idx = min(start_idx+records_per_page, total_records)
         st.caption(f"Showing {start_idx+1} to {end_idx} of {total_records} rows | {records_per_page} records per page")
 
-        # Restrict columns to the specified set
         columns = [
             "No.",
             "food_id",
@@ -137,7 +173,7 @@ with main_tab:
 
         # Prepare table data
         table_rows = []
-        for idx, item in enumerate(food_data[start_idx:end_idx], start=start_idx+1):
+        for idx, item in enumerate(filtered_food_data[start_idx:end_idx], start=start_idx+1):
             row = {
                 "No.": idx,
                 "food_id": item.get("food_id", ""),
@@ -162,14 +198,14 @@ with main_tab:
             cols[0].markdown(f"{row['No.']}")
             is_editing = st.session_state['edit_row'] == row['No.']
             if is_editing:
-                # Editable fields for all columns except No. and Options
+                # Editing mode
                 for i, col in enumerate(columns[1:-1], start=1):
                     st.session_state['edit_data'].setdefault(col, row[col])
                     cols[i].text_input("", value=st.session_state['edit_data'][col], key=f"edit_{col}_{row['No.']}")
                 # Options: Save/Cancel
                 btn_cols = cols[len(columns)-1].columns([1,0.1,1])
                 save = btn_cols[0].button("✓ Save", key=f"save_{row['No.']}")
-                btn_cols[1].markdown("", unsafe_allow_html=True)  # minimal gap
+                btn_cols[1].markdown("", unsafe_allow_html=True) 
                 edit_cancel = btn_cols[2].button("✗ Cancel", key=f"cancel_{row['No.']}")
                 if save:
                     i = row['No.']-1
@@ -179,41 +215,68 @@ with main_tab:
                     log_action("Edit Food", {"food_id": row['food_id']})
                     st.session_state['edit_row'] = None
                     st.session_state['edit_data'] = {}
-                    st.experimental_rerun()
+                    st.rerun()
                 if edit_cancel:
                     st.session_state['edit_row'] = None
                     st.session_state['edit_data'] = {}
-                    st.experimental_rerun()
+                    st.rerun()
             else:
                 for i, col in enumerate(columns[1:-1], start=1):
                     cols[i].markdown(row[col])
                 # Options: Data/Edit
                 btn_cols = cols[len(columns)-1].columns([1,0.1,1])
                 data_btn = btn_cols[0].button("Data", key=f"data_{row['No.']}" )
-                btn_cols[1].markdown("", unsafe_allow_html=True)  # minimal gap
+                btn_cols[1].markdown("", unsafe_allow_html=True) 
                 edit_btn = btn_cols[2].button("Edit", key=f"edit_{row['No.']}" )
                 if data_btn:
-                    st.session_state['show_modal'] = row['No.']
+                    st.session_state['show_nutrition_section'] = row['No.']
+                    st.session_state['scroll_to_nutrition'] = True
+                    st.session_state['show_nutrition_notice'] = True
+                    st.rerun()
                 if edit_btn:
                     st.session_state['edit_row'] = row['No.']
                     st.session_state['edit_data'] = {col: row[col] for col in columns[1:-1]}
-                    st.experimental_rerun()
+                    st.rerun()
 
-        # Data modal
-        if st.session_state.get('show_modal'):
-            i = st.session_state['show_modal']-1
+        # Nutrition data section with tabbed info
+        if st.session_state.get('show_nutrition_section'):
+            # Show nutrition section
+            if st.session_state.get('scroll_to_nutrition'):
+                st.session_state['scroll_to_nutrition'] = False
+            i = st.session_state['show_nutrition_section']-1
             food = food_data[i]
-            modal_title = f"{food.get('food_name','')} Nutritional Data"
-            st.markdown(f"<h3>{modal_title}</h3>", unsafe_allow_html=True)
-            # Show all nutrition data as pretty JSON
-            with st.expander("Show Nutrition Data", expanded=True):
-                st.code(json.dumps({
-                    k: food[k] for k in ["proximates", "other_carbohydrates", "minerals", "vitamins", "lipids"] if k in food
-                }, indent=2, ensure_ascii=False), language="json")
-            if st.button("Close", key="close_modal"):
-                st.session_state['show_modal'] = None
-                st.experimental_rerun()
-
+            section_title = food.get('food_name_and_description', food.get('food_name', ''))
+            st.markdown(f"<div class='nutrition-section-container'><h2 id='nutrition_data'>{section_title}</h2>", unsafe_allow_html=True)
+            # Nutrition data
+            tab_keys = [
+                ("proximates", "Proximates"),
+                ("other_carbohydrates", "Other Carbohydrate"),
+                ("minerals", "Minerals"),
+                ("vitamins", "Vitamins"),
+                ("lipids", "Lipids")
+            ]
+            nutrition = None
+            for k in ["composition", "composition_per100g"]:
+                if k in food and isinstance(food[k], dict) and food[k]:
+                    nutrition = food[k]
+                    break
+            if not nutrition:
+                nutrition = food
+            tabs = st.tabs([tab for _, tab in tab_keys])
+            for idx, (nut_key, tab_name) in enumerate(tab_keys):
+                with tabs[idx]:
+                    nut_data = nutrition.get(nut_key, {})
+                    if nut_data:
+                        st.markdown(f"<div style='background:#2196F3;color:white;padding:0.5rem 1rem;border-radius:6px;font-weight:bold;margin-bottom:0.5rem;'>"
+                                    f"{tab_name} <span style='float:right;'>Amount per 100 g E.P.</span></div>", unsafe_allow_html=True)
+                        for k, v in nut_data.items():
+                            # Prettify key
+                            pretty_k = k.replace('_g', ' (g)').replace('_mg', ' (mg)').replace('_µg', ' (µg)').replace('_ug', ' (µg)').replace('_', ' ').capitalize()
+                            display_val = v if (v is not None and str(v).strip() != "") else "-"
+                            st.markdown(f"<div style='display:flex;justify-content:space-between;padding:0.5rem 0.2rem;border-bottom:1px solid #eee;'><span>{pretty_k}</span><span style='font-weight:bold'>{display_val}</span></div>", unsafe_allow_html=True)
+                    else:
+                        st.info(f"No {tab_name.lower()} data available.")
+            st.markdown("</div>", unsafe_allow_html=True)
 
 # Logs Tab
 with logs_tab:
