@@ -1,0 +1,78 @@
+{
+  "parent_001": {
+    "id": "parent_001",
+    "name": "Maria Santos",
+    "children": [
+      {
+        "id": "child_001",
+        "name": "Maria Santos",
+        "age": 3
+      },
+      {
+        "id": "child_002",
+        "name": "Juan Santos",
+        "age": 5
+      }
+    ],
+    "religion": "Catholic"
+  },
+  "parent_002": {
+    "id": "parent_002",
+    "name": "Ana Cruz",
+    "children": [
+      {
+        "id": "child_003",
+        "name": "Ana Cruz",
+        "age": 2
+      }
+    ],
+    "religion": "Iglesia ni Cristo"
+  }
+  ,
+  "parent_003": {
+    "id": "parent_003",
+    "name": "Carlos Dela Vega",
+    "children": [
+      {
+        "id": "child_004",
+        "name": "Miguel Dela Vega",
+        "age": 4
+      },
+      {
+        "id": "child_005",
+        "name": "Sofia Dela Vega",
+        "age": 7
+      }
+    ],
+    "religion": "Muslim"
+  },
+  "parent_004": {
+    "id": "parent_004",
+    "name": "Emily Tan",
+    "children": [
+      {
+        "id": "child_006",
+        "name": "Lucas Tan",
+        "age": 6
+      }
+    ],
+    "religion": "Buddhist"
+  },
+  "parent_005": {
+    "id": "parent_005",
+    "name": "John Smith",
+    "children": [
+      {
+        "id": "child_007",
+        "name": "Emma Smith",
+        "age": 5
+      },
+      {
+        "id": "child_008",
+        "name": "Oliver Smith",
+        "age": 3
+      }
+    ],
+    "religion": "Protestant"
+  }
+}

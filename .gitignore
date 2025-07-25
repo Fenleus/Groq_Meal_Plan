@@ -20,6 +20,7 @@ venv/
 !data/food_info.json
 !data/meal_plans.json
 !data/nutritionist_notes.json
+!data/parents.json
 
 # VS Code
 .vscode/
