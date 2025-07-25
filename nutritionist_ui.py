@@ -87,7 +87,19 @@ def main():
     
     st.success("✅ Connected to Nutrition AI")
     
+
     # Sidebar for nutritionist info
+    with st.sidebar:
+        st.header("👩‍⚕️ Nutritionist Login")
+        st.info("Logged in as: Dr. Maria Rodriguez")
+        st.write(f"ID: {st.session_state.nutritionist_id}")
+        st.subheader("📊 Quick Stats")
+        all_children = data_manager.get_children_data()
+        all_meal_plans = {}  # You can load actual meal plans if needed
+        st.metric("Total Children", len(all_children))
+        st.metric("Total Meal Plans", len(all_meal_plans))
+
+    # Main content
     st.header("🧠 Filipino Nutrition Knowledge Base")
     col1, col2 = st.columns([1, 1])
 
@@ -206,7 +218,7 @@ def main():
             recent_plans = []
 
             if recent_plans:
-                with st.expander(f"Recent Meal Plans for {child['name']}"):
+                with st.expander("Recent Meal Plans"):
                     for plan in recent_plans[:2]:  # Show 2 most recent
                         plan_date = datetime.fromisoformat(plan['created_at']).strftime("%B %d, %Y")
 

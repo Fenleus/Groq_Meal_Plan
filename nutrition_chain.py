@@ -53,7 +53,8 @@ def get_meal_plan_with_langchain(child_id, available_ingredients=None, religion=
     relevant_pdf_chunks = get_relevant_pdf_chunks(query, k=4)
     pdf_context = ""
     if relevant_pdf_chunks:
-        pdf_context = "\nRelevant Reference Documents (from uploaded PDFs):\n" + "\n---\n".join(relevant_pdf_chunks)
+        # Use as background knowledge, do not mention source
+        pdf_context = "\nBACKGROUND KNOWLEDGE (for your reference only, do NOT mention or cite this in your response):\n" + "\n---\n".join(relevant_pdf_chunks)
 
     # Build the refined prompt string
     prompt_str = (
@@ -70,6 +71,7 @@ def get_meal_plan_with_langchain(child_id, available_ingredients=None, religion=
         "\nStrictly do not use or mention any foods, ingredients, or recipes that are not found in the JSON database. Do not invent or assume any foods. Avoid all allergens and respect all medical and religious restrictions."
         "\nDo not organize the output by breakfast, lunch, or dinner. Instead, provide a concise, general list of recommended foods or food combinations, and a brief explanation for your choices."
         "\nDo not include the child's name or any sensitive information."
+        "\nIf you use any background knowledge provided, do NOT mention or cite the source, file, or that you used a document. Present all recommendations as your own expertise."
     )
     if pdf_context:
         prompt_str += "\n" + pdf_context
