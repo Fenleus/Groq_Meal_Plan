@@ -215,7 +215,7 @@ def show_all_parents():
 
 def show_add_notes():
     """Dedicated section for adding detailed notes to meal plans"""
-    st.header("📝 Add Detailed Notes to Meal Plans")
+    st.header("📝 Add Notes to Meal Plans")
     
     # Search/filter options
     col1, col2 = st.columns(2)
@@ -347,39 +347,53 @@ def show_knowledge_base():
                 st.write(f"- {pdf.get('name', 'Unknown document')}")
     
     with col2:
-        # PDF upload and processing
+        # PDF upload and processing with submit button and duplicate prevention
         import pdfplumber
         from io import BytesIO
         import math
         st.write("**Upload PDF Knowledge:**")
-        uploaded_file = st.file_uploader("Choose PDF file", type="pdf")
+        if 'pending_pdf_file' not in st.session_state:
+            st.session_state['pending_pdf_file'] = None
+        uploaded_file = st.file_uploader("Choose PDF file", type="pdf", key="pdf_upload")
         if uploaded_file is not None:
-            try:
-                with pdfplumber.open(BytesIO(uploaded_file.read())) as pdf:
-                    all_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
-                # Chunking: split into ~1000 character chunks (adjust as needed)
-                chunk_size = 1000
-                chunks = [all_text[i:i+chunk_size] for i in range(0, len(all_text), chunk_size)]
-                # Store in knowledge base as memory chunks
-                knowledge_base = data_manager.get_knowledge_base()
-                if 'pdf_memories' not in knowledge_base:
-                    knowledge_base['pdf_memories'] = []
-                pdf_entry = {
-                    'name': uploaded_file.name,
-                    'chunks': chunks,
-                    'uploaded_at': datetime.now().isoformat(),
-                    'source': 'pdf_upload',
-                }
-                knowledge_base['pdf_memories'].append(pdf_entry)
-                # Optionally, also add to uploaded_pdfs for display
-                if 'uploaded_pdfs' not in knowledge_base:
-                    knowledge_base['uploaded_pdfs'] = []
-                knowledge_base['uploaded_pdfs'].append({'name': uploaded_file.name, 'uploaded_at': datetime.now().isoformat()})
-                data_manager.save_knowledge_base(knowledge_base)
-                st.success(f"PDF '{uploaded_file.name}' processed and added to knowledge base!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Failed to process PDF: {e}")
+            st.session_state['pending_pdf_file'] = uploaded_file
+        if st.session_state['pending_pdf_file'] is not None:
+            st.info(f"Ready to upload: {st.session_state['pending_pdf_file'].name}")
+            if st.button("Submit PDF to Knowledge Base", key="submit_pdf_knowledge"):
+                try:
+                    # Check for duplicate by name in knowledge_base
+                    knowledge_base = data_manager.get_knowledge_base()
+                    existing_names = set()
+                    if 'pdf_memories' in knowledge_base:
+                        existing_names.update(entry.get('name') for entry in knowledge_base['pdf_memories'] if 'name' in entry)
+                    if 'uploaded_pdfs' in knowledge_base:
+                        existing_names.update(pdf.get('name') for pdf in knowledge_base['uploaded_pdfs'] if 'name' in pdf)
+                    if st.session_state['pending_pdf_file'].name in existing_names:
+                        st.warning(f"PDF '{st.session_state['pending_pdf_file'].name}' is already in the knowledge base.")
+                        st.session_state['pending_pdf_file'] = None
+                    else:
+                        with pdfplumber.open(BytesIO(st.session_state['pending_pdf_file'].read())) as pdf:
+                            all_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+                        chunk_size = 1000
+                        chunks = [all_text[i:i+chunk_size] for i in range(0, len(all_text), chunk_size)]
+                        if 'pdf_memories' not in knowledge_base:
+                            knowledge_base['pdf_memories'] = []
+                        pdf_entry = {
+                            'name': st.session_state['pending_pdf_file'].name,
+                            'chunks': chunks,
+                            'uploaded_at': datetime.now().isoformat(),
+                            'source': 'pdf_upload',
+                        }
+                        knowledge_base['pdf_memories'].append(pdf_entry)
+                        if 'uploaded_pdfs' not in knowledge_base:
+                            knowledge_base['uploaded_pdfs'] = []
+                        knowledge_base['uploaded_pdfs'].append({'name': st.session_state['pending_pdf_file'].name, 'uploaded_at': datetime.now().isoformat()})
+                        data_manager.save_knowledge_base(knowledge_base)
+                        st.success(f"PDF '{st.session_state['pending_pdf_file'].name}' processed and added to knowledge base!")
+                        st.session_state['pending_pdf_file'] = None
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to process PDF: {e}")
 
 def show_recipe_database():
     st.header("Food Database")
