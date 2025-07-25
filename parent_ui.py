@@ -192,7 +192,7 @@ def show_meal_plan_generator():
             except Exception as e:
                 st.error(f"❌ Error generating meal plan: {str(e)}")
 
-def show_family_recipes():
+def show_parent_recipes():
     pass
 
 

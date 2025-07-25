@@ -23,7 +23,7 @@ class ChildNutritionAI:
         self,
         child_id: str,
         duration_days: int = 7,
-        family_recipes: List[str] = None
+        parent_recipes: List[str] = None
     ) -> str:
         """Generate meal plan specifically for a child based on their profile"""
         
@@ -36,10 +36,10 @@ class ChildNutritionAI:
         knowledge_base = data_manager.get_knowledge_base()
         filipino_foods = knowledge_base.get('filipino_foods', {})
         
-        # Prepare family recipes context
-        family_recipes_context = ""
-        if family_recipes:
-            family_recipes_context = f"\n\nFamily Recipes to Consider:\n" + "\n".join(family_recipes)
+        # Prepare parent recipes context
+        parent_recipes_context = ""
+        if parent_recipes:
+            parent_recipes_context = f"\n\nParent Recipes to Consider:\n" + "\n".join(parent_recipes)
         
         # Build Filipino foods context
         filipino_context = ""
@@ -73,7 +73,7 @@ GUIDELINES:
 7. Include traditional Filipino foods when appropriate
 8. Focus on balanced nutrition for growing children
 
-{family_recipes_context}
+{parent_recipes_context}
 {filipino_context}
 
 MEAL PLAN FORMAT:
@@ -97,7 +97,8 @@ SAFETY NOTES:
 - Note appropriate textures for the child's age
 - Include hydration recommendations
 
-Keep recommendations practical for Filipino families."""
+
+Keep recommendations practical for Filipino parents."""
 
             response = self.client.chat.completions.create(
                 model="llama3-8b-8192",

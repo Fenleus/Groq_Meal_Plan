@@ -1,15 +1,15 @@
-# Family Nutrition Management System
+# Parent Nutrition Management System
 
 A comprehensive nutrition management system with separate interfaces for parents and nutritionists, powered by Groq AI.
 
 ## 🏗️ System Overview
 
 ### **Two Separate Applications:**
-1. **Parent Interface** (`parent_ui.py`) - Manage children's meal plans and family recipes
+1. **Parent Interface** (`parent_ui.py`) - Manage children's meal plans and parent recipes
 2. **Nutritionist Interface** (`nutritionist_ui.py`) - Review plans, add notes, manage knowledge base
 
 ### **Key Features:**
-- 👨‍👩‍👧‍👦 **For Parents**: Child meal plan management, family recipe input
+- 👨‍👩‍👧‍👦 **For Parents**: Child meal plan management, parent recipe input
 - 👩‍⚕️ **For Nutritionists**: Client overview, meal plan notes, knowledge base management
 - 🧠 **AI-Powered**: Groq API for personalized meal recommendations
 - 📄 **Data Storage**: JSON-based storage for simplicity
@@ -50,7 +50,7 @@ launch.bat
 - **`data/`** - JSON storage directory
   - `children.json` - Children profiles and BMI data
   - `meal_plans.json` - Historical meal plans  
-  - `family_recipes.json` - Parent-uploaded recipes
+  - `parent_recipes.json` - Parent-uploaded recipes
   - `nutritionist_notes.json` - Nutritionist notes on plans
   - `knowledge_base.json` - Filipino nutrition knowledge
 - **`requirements.txt`** - Dependencies
@@ -61,21 +61,21 @@ launch.bat
 ### **Parents Can:**
 - View all their children's meal plans
 - Generate new meal plans based on child's BMI, allergies, conditions
-- Input family recipes (simple text area format)
+- Input parent recipes (simple text area format)
 - View historical meal plans (6 months)
 - See nutritionist notes on their meal plans
 
 ### **Nutritionists Can:**
-- View all families and their meal plans
+- View all parents and their meal plans
 - Add notes to any meal plan (simple note-taking, no approval workflow)
 - Upload and manage Filipino nutrition knowledge
 - Upload Filipino recipes with nutrition facts
-- Review family-uploaded recipes with professional notes
+- Review parent-uploaded recipes with professional notes
 
 ## 📊 Data Flow
 
 1. **Parent** generates meal plan → AI considers child's BMI, allergies, medical conditions
-2. **System** uses Filipino nutrition knowledge + family recipes for recommendations
+2. **System** uses Filipino nutrition knowledge + parent recipes for recommendations
 3. **Nutritionist** reviews and adds notes to meal plans
 4. **Parent** can view updated meal plans with nutritionist notes
 
