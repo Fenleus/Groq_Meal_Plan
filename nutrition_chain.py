@@ -36,25 +36,25 @@ def get_meal_plan_with_langchain(child_id, available_ingredients=None, religion=
     if not religion:
         parent_id = child_data.get('parent_id')
         religion = data_manager.get_religion_by_parent(parent_id) if parent_id else ""
+    # Build the prompt string without Jinja logic
+    prompt_str = (
+        "You are a pediatric nutrition expert. Based only on the foods in the knowledge based, generate a general meal plan for a Filipino child (0-5 years old) with the following profile:\n"
+        f"\n- Age (months): {{age_in_months}}"
+        f"\n- BMI Category: {{bmi_category}}"
+        f"\n- Allergies: {{allergies}}"
+        f"\n- Medical Conditions: {{medical_conditions}}"
+        f"\n- Religion: {{religion}}\n"
+    )
+    # Add available ingredients line if provided
+    if available_ingredients:
+        prompt_str += f"\nOnly use these available ingredients: {{available_ingredients}}\n"
+    prompt_str += (
+        "\nDo NOT use any foods or ingredients not found in the database. Strictly avoid allergens and respect religious and medical restrictions. Do not include the child's name or any sensitive information.\n"
+        "\nProvide a concise, general list of recommended meals and a brief explanation for your choices. Keep the output short and practical."
+    )
     prompt_template = PromptTemplate(
         input_variables=["age_in_months", "bmi_category", "allergies", "medical_conditions", "available_ingredients", "religion"],
-        template="""
-You are a pediatric nutrition expert. Based only on the foods in the knowledge based, generate a general meal plan for a Filipino child (0-5 years old) with the following profile:
-
-- Age (months): {age_in_months}
-- BMI Category: {bmi_category}
-- Allergies: {allergies}
-- Medical Conditions: {medical_conditions}
-- Religion: {religion}
-
-{%- if available_ingredients %}
-Only use these available ingredients: {available_ingredients}
-{%- endif %}
-
-Do NOT use any foods or ingredients not found in the database. Strictly avoid allergens and respect religious and medical restrictions. Do not include the child's name or any sensitive information.
-
-Provide a concise, general list of recommended meals and a brief explanation for your choices. Keep the output short and practical.
-"""
+        template=prompt_str
     )
 
     prompt_inputs = {
