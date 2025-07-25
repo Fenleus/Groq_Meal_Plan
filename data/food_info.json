@@ -3,9 +3,7 @@
     "food_id": "F001",
     "food_name_and_description": "Beef blood",
     "scientific_name": "Bos taurus",
-    "alternate_common_names": [
-      "Baka dugo"
-    ],
+    "alternate_common_names": "Baka dugo",
     "edible_portion": "100%",
     "composition": {
       "proximates": {
@@ -27,9 +25,9 @@
         "sodium_mg": 111
       },
       "vitamins": {
-        "retinol_vitamin_a_µg": 45,
-        "beta_carotene_µg": 0,
-        "retinol_activity_equivalent_rae_µg": 45,
+        "retinol_vitamin_a_\u00b5g": 45,
+        "beta_carotene_\u00b5g": 0,
+        "retinol_activity_equivalent_rae_\u00b5g": 45,
         "thiamin_vitamin_b1_mg": 0,
         "riboflavin_vitamin_b2_mg": 0.03,
         "niacin_mg": 1.2,
@@ -75,9 +73,9 @@
         "sodium_mg": null
       },
       "vitamins": {
-        "retinol_vitamin_a_µg": 0,
-        "beta_carotene_µg": 0,
-        "retinol_activity_equivalent_rae_µg": 0,
+        "retinol_vitamin_a_\u00b5g": 0,
+        "beta_carotene_\u00b5g": 0,
+        "retinol_activity_equivalent_rae_\u00b5g": 0,
         "thiamin_vitamin_b1_mg": 0.01,
         "riboflavin_vitamin_b2_mg": 0.03,
         "niacin_mg": 0.6,
@@ -120,9 +118,9 @@
         "sodium_mg": 141
       },
       "vitamins": {
-        "retinol_vitamin_a_µg": 115,
-        "beta_carotene_µg": 0,
-        "retinol_activity_equivalent_rae_µg": 115,
+        "retinol_vitamin_a_\u00b5g": 115,
+        "beta_carotene_\u00b5g": 0,
+        "retinol_activity_equivalent_rae_\u00b5g": 115,
         "thiamin_vitamin_b1_mg": 0.13,
         "riboflavin_vitamin_b2_mg": 0.16,
         "niacin_mg": 3.8,
@@ -173,9 +171,9 @@
         "sodium_mg": 112
       },
       "vitamins": {
-        "retinol_vitamin_a_µg": 105,
-        "beta_carotene_µg": 0,
-        "retinol_activity_equivalent_rae_µg": 105,
+        "retinol_vitamin_a_\u00b5g": 105,
+        "beta_carotene_\u00b5g": 0,
+        "retinol_activity_equivalent_rae_\u00b5g": 105,
         "thiamin_vitamin_b1_mg": 0.08,
         "riboflavin_vitamin_b2_mg": 0,
         "niacin_mg": 3,
@@ -212,9 +210,9 @@
         "sodium_mg": 58
       },
       "vitamins": {
-        "retinol_vitamin_a_µg": 35,
-        "beta_carotene_µg": 0,
-        "retinol_activity_equivalent_rae_µg": 35,
+        "retinol_vitamin_a_\u00b5g": 35,
+        "beta_carotene_\u00b5g": 0,
+        "retinol_activity_equivalent_rae_\u00b5g": 35,
         "thiamin_vitamin_b1_mg": 0.04,
         "riboflavin_vitamin_b2_mg": 0.12,
         "niacin_mg": 5.4,
@@ -257,9 +255,9 @@
         "sodium_mg": 43
       },
       "vitamins": {
-        "retinol_vitamin_a_µg": 70,
-        "beta_carotene_µg": 0,
-        "retinol_activity_equivalent_rae_µg": 70,
+        "retinol_vitamin_a_\u00b5g": 70,
+        "beta_carotene_\u00b5g": 0,
+        "retinol_activity_equivalent_rae_\u00b5g": 70,
         "thiamin_vitamin_b1_mg": 0.02,
         "riboflavin_vitamin_b2_mg": 0.14,
         "niacin_mg": 5.6,
@@ -304,9 +302,9 @@
         "sodium_mg": 42
       },
       "vitamins": {
-        "retinol_vitamin_a_µg": 5,
-        "beta_carotene_µg": 0,
-        "retinol_activity_equivalent_rae_µg": 5,
+        "retinol_vitamin_a_\u00b5g": 5,
+        "beta_carotene_\u00b5g": 0,
+        "retinol_activity_equivalent_rae_\u00b5g": 5,
         "thiamin_vitamin_b1_mg": 0.01,
         "riboflavin_vitamin_b2_mg": 0.05,
         "niacin_mg": 1.9,
@@ -350,9 +348,9 @@
         "sodium_mg": 36
       },
       "vitamins": {
-        "retinol_vitamin_a_µg": 0,
-        "beta_carotene_µg": 0,
-        "retinol_activity_equivalent_rae_µg": 0,
+        "retinol_vitamin_a_\u00b5g": 0,
+        "beta_carotene_\u00b5g": 0,
+        "retinol_activity_equivalent_rae_\u00b5g": 0,
         "thiamin_vitamin_b1_mg": 0.03,
         "riboflavin_vitamin_b2_mg": 0.09,
         "niacin_mg": 7.8,
@@ -395,9 +393,9 @@
         "sodium_mg": 49
       },
       "vitamins": {
-        "retinol_vitamin_a_µg": 25,
-        "beta_carotene_µg": 0,
-        "retinol_activity_equivalent_rae_µg": 25,
+        "retinol_vitamin_a_\u00b5g": 25,
+        "beta_carotene_\u00b5g": 0,
+        "retinol_activity_equivalent_rae_\u00b5g": 25,
         "thiamin_vitamin_b1_mg": 0.04,
         "riboflavin_vitamin_b2_mg": 0.17,
         "niacin_mg": 5.7,
@@ -440,9 +438,9 @@
         "sodium_mg": null
       },
       "vitamins": {
-        "retinol_vitamin_a_µg": null,
-        "beta_carotene_µg": 0,
-        "retinol_activity_equivalent_rae_µg": null,
+        "retinol_vitamin_a_\u00b5g": null,
+        "beta_carotene_\u00b5g": 0,
+        "retinol_activity_equivalent_rae_\u00b5g": null,
         "thiamin_vitamin_b1_mg": 0.01,
         "riboflavin_vitamin_b2_mg": 0.02,
         "niacin_mg": 1.4,
@@ -485,9 +483,9 @@
         "sodium_mg": 51
       },
       "vitamins": {
-        "retinol_vitamin_a_µg": 30,
-        "beta_carotene_µg": 0,
-        "retinol_activity_equivalent_rae_µg": 30,
+        "retinol_vitamin_a_\u00b5g": 30,
+        "beta_carotene_\u00b5g": 0,
+        "retinol_activity_equivalent_rae_\u00b5g": 30,
         "thiamin_vitamin_b1_mg": 0.07,
         "riboflavin_vitamin_b2_mg": 0.18,
         "niacin_mg": 5.3,
@@ -530,9 +528,9 @@
         "sodium_mg": 66
       },
       "vitamins": {
-        "retinol_vitamin_a_µg": 30,
-        "beta_carotene_µg": 0,
-        "retinol_activity_equivalent_rae_µg": 30,
+        "retinol_vitamin_a_\u00b5g": 30,
+        "beta_carotene_\u00b5g": 0,
+        "retinol_activity_equivalent_rae_\u00b5g": 30,
         "thiamin_vitamin_b1_mg": 0.06,
         "riboflavin_vitamin_b2_mg": 0.06,
         "niacin_mg": 9.7,
@@ -575,9 +573,9 @@
         "sodium_mg": 112
       },
       "vitamins": {
-        "retinol_vitamin_a_µg": 25,
-        "beta_carotene_µg": 0,
-        "retinol_activity_equivalent_rae_µg": 25,
+        "retinol_vitamin_a_\u00b5g": 25,
+        "beta_carotene_\u00b5g": 0,
+        "retinol_activity_equivalent_rae_\u00b5g": 25,
         "thiamin_vitamin_b1_mg": 0.02,
         "riboflavin_vitamin_b2_mg": 0.1,
         "niacin_mg": 1.5,
