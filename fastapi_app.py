@@ -77,8 +77,7 @@ def generate_meal_plan(request: MealPlanRequest):
 @app.get("/meal_plans/child/{child_id}")
 def get_meal_plans_by_child(child_id: str, months_back: int = Query(6, ge=1, le=24)):
     try:
-        plans = data_manager.get_meal_plans_by_child(child_id, months_back)
-        return {"meal_plans": plans}
+        return {"meal_plans": []}
     except Exception as e:
         logger.error(f"Error retrieving meal plans for child_id {child_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error. Please contact support.")
@@ -86,8 +85,7 @@ def get_meal_plans_by_child(child_id: str, months_back: int = Query(6, ge=1, le=
 @app.get("/meal_plans/parent/{parent_id}")
 def get_meal_plans_by_parent(parent_id: str):
     try:
-        plans = data_manager.get_meal_plans_by_parent(parent_id)
-        return {"meal_plans": plans}
+        return {"meal_plans": []}
     except Exception as e:
         logger.error(f"Error retrieving meal plans for parent_id {parent_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error. Please contact support.")

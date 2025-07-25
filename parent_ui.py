@@ -123,10 +123,6 @@ def show_children_overview():
             </div>
             """, unsafe_allow_html=True)
 
-            # Only show clickable link if no meal plans
-            recent_plans = data_manager.get_meal_plans_by_child(child['id'], months_back=2)
-            if not recent_plans:
-                st.markdown(f"No meal plans yet for {child['name']}. [Generate one in the 'Generate Meal Plan' tab!](#🍽️-generate-meal-plan)")
             st.markdown("---")
 
 def show_meal_plan_generator():
@@ -186,17 +182,9 @@ def show_meal_plan_generator():
                     available_ingredients=available_ingredients.strip() if selected_child_id else "",
                     religion=religion if religion else ""
                 )
-                # Save the meal plan
-                plan_id = data_manager.save_meal_plan(
-                    child_id=selected_child_id,
-                    meal_plan=meal_plan,
-                    duration_days=None,
-                    parent_id=st.session_state.parent_id
-                )
                 st.success(f"✅ Meal plan generated successfully!")
                 st.markdown("### 📋 Your Child's Personalized Meal Plan")
                 st.markdown(meal_plan)
-                st.info(f"💾 Meal plan saved with ID: {plan_id}")
             except Exception as e:
                 st.error(f"❌ Error generating meal plan: {str(e)}")
 
