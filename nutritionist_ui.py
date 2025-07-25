@@ -127,55 +127,67 @@ def show_all_families():
         st.info("No families found in the system.")
         return
     
+    # Get all parents data for name lookup
+    parents_data = data_manager.get_parents_data()
+
     # Display each parent name
     for parent_id, children in families.items():
-        family_names = {
-            "parent_001": "Santos Family",
-            "parent_002": "Cruz Family"
-        }
-        
+        parent_name = parents_data.get(parent_id, {}).get('name', f"Parent {parent_id}")
         st.markdown(f"""
         <div class="family-card">
-            <h3>👨‍👩‍👧‍👦 {family_names.get(parent_id, f"Family {parent_id}")}</h3>
+            <h3>👨‍👩‍👧‍👦 {parent_name}</h3>
         </div>
         """, unsafe_allow_html=True)
-        
+
         # Show children in this family
         for child in children:
             col1, col2 = st.columns([2, 1])
-            
+
             with col1:
+                # Calculate age string from age_in_months
+                age_months = child.get('age_in_months')
+                if age_months is not None:
+                    years = age_months // 12
+                    months = age_months % 12
+                    if years > 0 and months > 0:
+                        age_str = f"{years} years, {months} months old ({age_months} months)"
+                    elif years > 0:
+                        age_str = f"{years} years old ({age_months} months)"
+                    else:
+                        age_str = f"{months} months old"
+                else:
+                    age_str = "Unknown"
                 st.markdown(f"""
                 <div class="child-info">
-                    <h4>👶 {child['name']} ({child['age']} years)</h4>
+                    <h4>👶 {child['name']} ({age_str})</h4>
                     <p><strong>BMI:</strong> {child['bmi']} ({child['bmi_category']})</p>
                     <p><strong>Allergies:</strong> {child['allergies']}</p>
                     <p><strong>Conditions:</strong> {child['medical_conditions']}</p>
                 </div>
                 """, unsafe_allow_html=True)
-            
+
             with col2:
                 # Show meal plan count
                 meal_plans = []
                 notes_count = sum(len(data_manager.get_notes_for_meal_plan(plan['id'])) for plan in meal_plans)
-                
+
                 st.metric("Meal Plans", len(meal_plans))
                 st.metric("Your Notes", notes_count)
-            
+
             # Show recent meal plans
             recent_plans = []
-            
+
             if recent_plans:
                 with st.expander(f"Recent Meal Plans for {child['name']}"):
                     for plan in recent_plans[:2]:  # Show 2 most recent
                         plan_date = datetime.fromisoformat(plan['created_at']).strftime("%B %d, %Y")
-                        
+
                         st.subheader(f"📅 {plan_date} ({plan['duration_days']} days)")
-                        
+
                         # Show meal plan in collapsed form
                         with st.expander("View Meal Plan"):
                             st.markdown(plan['meal_plan'])
-                        
+
                         # Show existing notes
                         notes = data_manager.get_notes_for_meal_plan(plan['id'])
                         if notes:
@@ -183,7 +195,7 @@ def show_all_families():
                             for note in notes:
                                 note_date = datetime.fromisoformat(note['created_at']).strftime("%B %d, %Y")
                                 st.info(f"**{note_date}:** {note['note']}")
-                        
+
                         # Quick add note
                         quick_note = st.text_area(f"Add note for {plan_date} plan:", key=f"note_{plan['id']}")
                         if st.button(f"💾 Add Note", key=f"save_note_{plan['id']}"):
@@ -195,7 +207,7 @@ def show_all_families():
                                 )
                                 st.success("Note added successfully!")
                                 st.rerun()
-            
+
             st.markdown("---")
 
 def show_add_notes():
