@@ -169,7 +169,7 @@ Focus on:
             return f"Error analyzing recipes: {str(e)}"
 
 if __name__ == "__main__":
-    # Simple test
+
     try:
         nutrition_ai = ChildNutritionAI()
         print("✅ Child Nutrition AI initialized successfully!")

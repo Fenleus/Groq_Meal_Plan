@@ -13,7 +13,6 @@ logging.basicConfig(level=logging.INFO)
 
 app = FastAPI()
 
-# Allow CORS for local development (adjust origins as needed)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
