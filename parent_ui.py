@@ -54,7 +54,7 @@ def initialize_session_state():
             st.session_state.api_error = str(e)
     
     if 'parent_id' not in st.session_state:
-        st.session_state.parent_id = "parent_001"  # Default for demo
+        st.session_state.parent_id = "parent_001"
 
 def main():
     initialize_session_state()
@@ -72,9 +72,7 @@ def main():
         st.error(f"❌ API Error: {st.session_state.get('api_error', 'Unknown error')}")
         st.info("Make sure your GROQ_API_KEY is set in the .env file")
         return
-    
-    # Removed 'Connected to Nutrition AI' message
-    
+        
     # Sidebar for parent selection (for demo)
     with st.sidebar:
         st.header("👤 Parent Login")
@@ -147,7 +145,7 @@ def show_meal_plan_generator():
         st.warning("No children found. Please check with your account administrator.")
         return
     
-    # Child selection (show only name, no age)
+    # Child selection
     child_options = {child['id']: f"{child['name']}" for child in children}
     selected_child_id = st.selectbox(
         "Select Child",
@@ -165,7 +163,7 @@ def show_meal_plan_generator():
         st.write(f"**BMI:** {child_data['bmi']} ({child_data['bmi_category']})")
         st.write(f"**Allergies:** {child_data['allergies']}")
         st.write(f"**Conditions:** {child_data['medical_conditions']}")
-        # Religion (now fetched from parent)
+        # Religion
         parent_id = child_data.get('parent_id')
         religion = data_manager.get_religion_by_parent(parent_id) if parent_id else "Unknown"
         st.write(f"**Religion:** {religion if religion else 'Unknown'}")

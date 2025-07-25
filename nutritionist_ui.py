@@ -12,7 +12,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS
 st.markdown("""
 <style>
     .main-header {
@@ -61,7 +60,7 @@ def initialize_session_state():
             st.session_state.api_error = str(e)
     
     if 'nutritionist_id' not in st.session_state:
-        st.session_state.nutritionist_id = "nutritionist_001"  # Default for demo
+        st.session_state.nutritionist_id = "nutritionist_001" 
 
 def main():
     initialize_session_state()
@@ -128,7 +127,7 @@ def show_all_families():
         st.info("No families found in the system.")
         return
     
-    # Display each family
+    # Display each parent name
     for parent_id, children in families.items():
         family_names = {
             "parent_001": "Santos Family",
@@ -389,7 +388,6 @@ def show_knowledge_base():
         uploaded_file = st.file_uploader("Choose PDF file", type="pdf")
         if uploaded_file is not None:
             st.info("PDF processing functionality will be implemented soon!")
-            # TODO: Implement PDF text extraction and storage
 
 def show_recipe_database():
     st.header("🇭 Filipino Recipes Database")

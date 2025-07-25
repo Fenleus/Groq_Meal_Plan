@@ -87,7 +87,7 @@ with main_tab:
         page = st.session_state.get('food_db_page', 1)
         def set_page(new_page):
             st.session_state['food_db_page'] = new_page
-        # Pagination controls - left aligned
+        # Pagination controls
         pag_row = st.columns([0.18,0.82])
         with pag_row[0]:
             btn_cols = st.columns([1,1])
@@ -131,7 +131,7 @@ with main_tab:
         # Render table
         for row_idx, row in enumerate(table_rows):
             cols = st.columns([1,2,4,3,3,2,2])
-            # No. and food_id (not editable)
+            # No. and food_id
             cols[0].markdown(f"{row['No.']}")
             cols[1].markdown(f"{row['food_id']}")
             # Edit mode check
@@ -146,7 +146,7 @@ with main_tab:
                 cols[3].text_input("", value=st.session_state['edit_data']['scientific_name'], key=f"edit_sci_{row['No.']}")
                 cols[4].text_input("", value=st.session_state['edit_data']['alternate_names'], key=f"edit_alt_{row['No.']}")
                 cols[5].text_input("", value=st.session_state['edit_data']['edible_portion'], key=f"edit_edible_{row['No.']}")
-                # Options: Save/Cancel true horizontal alignment
+                # Options: Save/Cancel
                 btn_cols = cols[6].columns([1,0.1,1])
                 save = btn_cols[0].button("✓ Save", key=f"save_{row['No.']}")
                 btn_cols[1].markdown("", unsafe_allow_html=True)  # minimal gap
@@ -177,7 +177,7 @@ with main_tab:
                 cols[3].markdown(row['scientific_name'])
                 cols[4].markdown(row['alternate_names'])
                 cols[5].markdown(row['edible_portion'])
-                # Options: Data/Edit true horizontal alignment
+                # Options: Data/Edit
                 btn_cols = cols[6].columns([1,0.1,1])
                 data_btn = btn_cols[0].button("Data", key=f"data_{row['No.']}" )
                 btn_cols[1].markdown("", unsafe_allow_html=True)  # minimal gap
@@ -201,7 +201,7 @@ with main_tab:
             modal_title = f"{food.get('food_name','')} Nutritional Data"
             st.markdown(f"<h3>{modal_title}</h3>", unsafe_allow_html=True)
             tabs = st.tabs(["Proximates", "Other Carbohydrates", "Minerals", "Vitamins", "Lipids"])
-            # Use new keys directly from food (not nested under composition_per_100g)
+            
             with tabs[0]:
                 for k, v in food.get('proximates', {}).items():
                     st.write(f"{k}: {v}")
