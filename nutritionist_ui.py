@@ -91,7 +91,7 @@ def main():
         # Quick stats
         st.subheader("📊 Quick Stats")
         all_children = data_manager.get_children_data()
-        all_meal_plans = data_manager.get_meal_plans()
+        all_meal_plans = {}
         st.metric("Total Children", len(all_children))
         st.metric("Total Meal Plans", len(all_meal_plans))
     
@@ -157,14 +157,14 @@ def show_all_families():
             
             with col2:
                 # Show meal plan count
-                meal_plans = data_manager.get_meal_plans_by_child(child['id'])
+                meal_plans = []
                 notes_count = sum(len(data_manager.get_notes_for_meal_plan(plan['id'])) for plan in meal_plans)
                 
                 st.metric("Meal Plans", len(meal_plans))
                 st.metric("Your Notes", notes_count)
             
             # Show recent meal plans
-            recent_plans = data_manager.get_meal_plans_by_child(child['id'], months_back=1)
+            recent_plans = []
             
             if recent_plans:
                 with st.expander(f"Recent Meal Plans for {child['name']}"):
@@ -222,7 +222,7 @@ def show_add_notes():
         days_back = st.selectbox("Show plans from last:", [7, 14, 30, 60], index=2)
     
     # Get meal plans based on filters
-    all_plans = data_manager.get_meal_plans()
+    all_plans = {}
     filtered_plans = []
     
     cutoff_date = datetime.now() - timedelta(days=days_back)
