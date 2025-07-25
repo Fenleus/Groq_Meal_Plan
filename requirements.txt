@@ -5,3 +5,6 @@ langchain
 fastapi
 uvicorn
 pydantic
+pdfplumber
+langchain-community
+sentence-transformers

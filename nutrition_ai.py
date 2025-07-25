@@ -101,7 +101,7 @@ SAFETY NOTES:
 Keep recommendations practical for Filipino parents."""
 
             response = self.client.chat.completions.create(
-                model="llama3-8b-8192",
+                model="llama-4-scout-17b-16e-instruct",
                 messages=[
                     {"role": "system", "content": "You are a pediatric nutrition expert focused on Filipino children's health and development. All nutrient values provided are based on 100 g of edible portion."},
                     {"role": "user", "content": prompt}
