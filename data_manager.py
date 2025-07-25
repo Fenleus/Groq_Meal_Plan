@@ -26,6 +26,7 @@ class DataManager:
             'parents.json': {},
             'meal_plans.json': {},
             'nutritionist_notes.json': {},
+            'admin_logs.json': [],
             "foods_info.json": {},
             'knowledge_base.json': {
                 "nutrition_guidelines": {},
