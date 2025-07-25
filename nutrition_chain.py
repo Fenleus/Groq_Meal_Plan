@@ -38,7 +38,7 @@ def get_meal_plan_with_langchain(child_id, available_ingredients=None, religion=
         religion = data_manager.get_religion_by_parent(parent_id) if parent_id else ""
     # ...existing code...
     prompt_template = PromptTemplate(
-        input_variables=["child_name", "age_months", "bmi", "bmi_category", "allergies", "medical_conditions", "weight", "height", "filipino_context", "available_ingredients", "religion"],
+        input_variables=["child_name", "age_in_months", "bmi", "bmi_category", "allergies", "medical_conditions", "weight", "height", "filipino_context", "available_ingredients", "religion"],
         template="""
 You are a pediatric nutrition expert specializing in Filipino children's nutrition (ages 0-5).
 
@@ -46,7 +46,7 @@ Create a meal plan for this child:
 
 CHILD PROFILE:
 - Name: {child_name}
-- Age: {age_months} months old
+- Age: {age_in_months} months old
 - BMI: {bmi}
 - BMI Category: {bmi_category}
 - Allergies: {allergies}
@@ -98,14 +98,8 @@ Available Ingredients at Home: {available_ingredients}
     )
 
     # Prepare input variables
-    age_val = child_data.get("age")
-    if age_val is not None:
-        if age_val > 5:
-            age_months = int(age_val)
-        else:
-            age_months = int(age_val * 12)
-    else:
-        age_months = "Unknown"
+    age_in_months = child_data.get("age_in_months")
+    age_months = age_in_months if age_in_months is not None else "Unknown"
     prompt_inputs = {
         "child_name": child_data.get("name", "Unknown"),
         "age_months": age_months,
