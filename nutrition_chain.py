@@ -32,24 +32,10 @@ def get_meal_plan_with_langchain(child_id, available_ingredients=None, religion=
             filipino_recipes.append(f"- {recipe['name']}: {recipe['nutrition_facts']}")
         filipino_context = "\nFilipino Food Options:\n" + "\n".join(filipino_recipes)
 
-    # Prompt template
-    prompt = f"""
-    Generate a meal plan for a child using the following details:
-    Age: {child_data.get('age', '')}
-    Weight: {child_data.get('weight', '')}
-    Height: {child_data.get('height', '')}
-    BMI: {child_data.get('bmi', '')}
-    Allergies: {child_data.get('allergies', '')}
-    Medical Conditions: {child_data.get('medical_conditions', '')}
-    Religion: {religion or child_data.get('religion', '')}
-    Available Ingredients: {available_ingredients}
-    Filipino Food Context: {filipino_context}
-    
-    Instructions:
-    1. Recommend a nutritionally balanced meal plan for 0-5 year old children.
-    2. Avoid foods that trigger allergies or conflict with medical conditions.
-    3. Respect religious dietary restrictions and do not recommend foods that conflict with the child's religion.
-    """
+    # Get religion from parent if not provided
+    if not religion:
+        parent_id = child_data.get('parent_id')
+        religion = data_manager.get_religion_by_parent(parent_id) if parent_id else ""
     # ...existing code...
     prompt_template = PromptTemplate(
         input_variables=["child_name", "age_months", "bmi", "bmi_category", "allergies", "medical_conditions", "weight", "height", "filipino_context", "available_ingredients", "religion"],
