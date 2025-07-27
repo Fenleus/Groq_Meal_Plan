@@ -117,42 +117,87 @@ def show_all_parents():
     st.header("👨‍👩‍👧‍👦 All Parents Overview")
     all_children = data_manager.get_children_data()
     parents_data = data_manager.get_parents_data()
-    table_rows = []
+    # Search bar for filtering
+    search_val = st.text_input("🔍 Search parents", value="", key="all_parents_search")
+
+    # Group children by parent_id
+    parent_to_children = {}
     for child in all_children.values():
         parent_id = child.get('parent_id')
+        if parent_id not in parent_to_children:
+            parent_to_children[parent_id] = []
+        parent_to_children[parent_id].append(child)
+
+    # Prepare parent rows
+    parent_rows = []
+    for parent_id, children in parent_to_children.items():
         parent_name = parents_data.get(parent_id, {}).get('name', f"Parent {parent_id}")
-        age_months = child.get('age_in_months')
-        if age_months is not None:
-            years = age_months // 12
-            months = age_months % 12
-            if years > 0 and months > 0:
-                age_str = f"{years} years, {months} months ({age_months} months)"
-            elif years > 0:
-                age_str = f"{years} years ({age_months} months)"
-            else:
-                age_str = f"{months} months"
-        else:
-            age_str = "Unknown"
-        # Get meal plans and notes count (dummy/empty for now, can be filled in if available)
-        meal_plans = []
-        notes_count = sum(len(data_manager.get_notes_for_meal_plan(plan['id'])) for plan in meal_plans)
-        table_rows.append({
+        # Aggregate info (e.g., number of children, allergies, etc.)
+        num_children = len(children)
+        all_allergies = ', '.join(sorted(set([c.get('allergies', '') for c in children if c.get('allergies', '')])))
+        all_conditions = ', '.join(sorted(set([c.get('medical_conditions', '') for c in children if c.get('medical_conditions', '')])))
+        parent_rows.append({
+            "parent_id": parent_id,
             "Parent": parent_name,
-            "Child": child.get('name', ''),
-            "Age": age_str,
-            "BMI": f"{child.get('bmi', '')} ({child.get('bmi_category', '')})",
-            "Allergies": child.get('allergies', ''),
-            "Conditions": child.get('medical_conditions', ''),
-            "Meal Plans": len(meal_plans),
-            "Your Notes": notes_count
+            "# Children": num_children,
+            "Allergies": all_allergies,
+            "Conditions": all_conditions
         })
-    if not table_rows:
-        st.info("No parents or children found in the system.")
+
+    # Filter by search
+    if search_val:
+        search_val_lower = search_val.lower()
+        parent_rows = [row for row in parent_rows if search_val_lower in row['Parent'].lower() or search_val_lower in row['parent_id'].lower()]
+
+    if not parent_rows:
+        st.info("No parents found in the system.")
         return
-    import pandas as pd
-    df = pd.DataFrame(table_rows)
-    df.index = df.index + 1
-    st.dataframe(df, use_container_width=True)
+
+    # Track which parent's children are expanded
+    if 'expanded_parent' not in st.session_state:
+        st.session_state['expanded_parent'] = None
+
+    # Render table header
+    header_cols = st.columns([1, 4, 2, 3, 3])
+    header_labels = ["No.", "Parent", "# Children", "Allergies", "Conditions"]
+    for i, label in enumerate(header_labels):
+        header_cols[i].markdown(f"**{label}**")
+
+    # Render parent rows with expanders
+    for idx, row in enumerate(parent_rows, start=1):
+        cols = st.columns([1, 4, 2, 3, 3])
+        cols[0].markdown(f"{idx}")
+        cols[1].markdown(row["Parent"])
+        cols[2].markdown(str(row["# Children"]))
+        cols[3].markdown(row["Allergies"])
+        cols[4].markdown(row["Conditions"])
+
+        with st.expander(f"Show children for {row['Parent']} ({row['# Children']} children)", expanded=False):
+            children = parent_to_children[row['parent_id']]
+            child_header = st.columns([1, 3, 2, 2, 2, 2])
+            child_labels = ["No.", "Child Name", "Age", "BMI", "Allergies", "Conditions"]
+            for i, label in enumerate(child_labels):
+                child_header[i].markdown(f"<span style='color:#388e3c;font-weight:bold'>{label}</span>", unsafe_allow_html=True)
+            for cidx, child in enumerate(children, start=1):
+                ccols = st.columns([1, 3, 2, 2, 2, 2])
+                age_months = child.get('age_in_months')
+                if age_months is not None:
+                    years = age_months // 12
+                    months = age_months % 12
+                    if years > 0 and months > 0:
+                        age_str = f"{years} years, {months} months ({age_months} months)"
+                    elif years > 0:
+                        age_str = f"{years} years ({age_months} months)"
+                    else:
+                        age_str = f"{months} months"
+                else:
+                    age_str = "Unknown"
+                ccols[0].markdown(f"{cidx}")
+                ccols[1].markdown(child.get('name', ''))
+                ccols[2].markdown(age_str)
+                ccols[3].markdown(f"{child.get('bmi', '')} ({child.get('bmi_category', '')})")
+                ccols[4].markdown(child.get('allergies', ''))
+                ccols[5].markdown(child.get('medical_conditions', ''))
 
 def show_add_notes():
     """Dedicated section for adding detailed notes to meal plans"""
