@@ -117,8 +117,16 @@ def show_all_parents():
     st.header("👨‍👩‍👧‍👦 All Parents Overview")
     all_children = data_manager.get_children_data()
     parents_data = data_manager.get_parents_data()
-    # Search bar for filtering
-    search_val = st.text_input("🔍 Search parents", value="", key="all_parents_search")
+    # Compact filter row: barangay dropdown and search bar on same line
+    barangay_list = [
+        "All",
+        "Bagong Silang", "Calendola", "Chrysanthemum", "Cuyab", "Estrella", "Fatima", "G.S.I.S", "Landayan", "Langgam", "Laram", "Magsaysay", "Maharlika", "Narra", "Nueva", "Pacita 1", "Pacita 2", "Poblacion", "Riverside", "Rosario", "Sampaguita Village", "San Antonio", "San Lorenzo Ruiz", "San Roque", "San Vicente", "Santo Niño", "United Bayanihan", "United Better Living"
+    ]
+    filter_cols = st.columns([3, 2])
+    with filter_cols[0]:
+        search_val = st.text_input("🔍 Search parents", value="", key="all_parents_search")
+    with filter_cols[1]:
+        barangay_selected = st.selectbox("🏘️ Filter by Barangay", barangay_list, key="barangay_filter")
 
     # Group children by parent_id
     parent_to_children = {}
@@ -128,22 +136,23 @@ def show_all_parents():
             parent_to_children[parent_id] = []
         parent_to_children[parent_id].append(child)
 
-    # Prepare parent rows
+    # Prepare parent rows (remove Allergies and Conditions columns)
     parent_rows = []
     for parent_id, children in parent_to_children.items():
-        parent_name = parents_data.get(parent_id, {}).get('name', f"Parent {parent_id}")
-        # Aggregate info (e.g., number of children, allergies, etc.)
+        parent_info = parents_data.get(parent_id, {})
+        parent_name = parent_info.get('name', f"Parent {parent_id}")
+        barangay = parent_info.get('barangay', '')
         num_children = len(children)
-        all_allergies = ', '.join(sorted(set([c.get('allergies', '') for c in children if c.get('allergies', '')])))
-        all_conditions = ', '.join(sorted(set([c.get('medical_conditions', '') for c in children if c.get('medical_conditions', '')])))
         parent_rows.append({
             "parent_id": parent_id,
             "Parent": parent_name,
-            "# Children": num_children,
-            "Allergies": all_allergies,
-            "Conditions": all_conditions
+            "Barangay": barangay,
+            "# Children": num_children
         })
 
+    # Filter by barangay
+    if barangay_selected and barangay_selected != "All":
+        parent_rows = [row for row in parent_rows if row["Barangay"] == barangay_selected]
     # Filter by search
     if search_val:
         search_val_lower = search_val.lower()
@@ -157,20 +166,19 @@ def show_all_parents():
     if 'expanded_parent' not in st.session_state:
         st.session_state['expanded_parent'] = None
 
-    # Render table header
-    header_cols = st.columns([1, 4, 2, 3, 3])
-    header_labels = ["No.", "Parent", "# Children", "Allergies", "Conditions"]
+    # Render table header (remove Allergies and Conditions columns)
+    header_cols = st.columns([1, 4, 3, 2])
+    header_labels = ["No.", "Parent", "Barangay", "# Children"]
     for i, label in enumerate(header_labels):
         header_cols[i].markdown(f"**{label}**")
 
-    # Render parent rows with expanders
+    # Render parent rows with expanders (remove Allergies and Conditions columns)
     for idx, row in enumerate(parent_rows, start=1):
-        cols = st.columns([1, 4, 2, 3, 3])
+        cols = st.columns([1, 4, 3, 2])
         cols[0].markdown(f"{idx}")
         cols[1].markdown(row["Parent"])
-        cols[2].markdown(str(row["# Children"]))
-        cols[3].markdown(row["Allergies"])
-        cols[4].markdown(row["Conditions"])
+        cols[2].markdown(row["Barangay"])
+        cols[3].markdown(str(row["# Children"]))
 
         with st.expander(f"Show children for {row['Parent']} ({row['# Children']} children)", expanded=False):
             children = parent_to_children[row['parent_id']]
