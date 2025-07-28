@@ -35,8 +35,5 @@ Thumbs.db
 *.swp
 *.tmp
 
-# Launchers
-*.bat
-
 # Ignore test outputs
 /test_outputs/
