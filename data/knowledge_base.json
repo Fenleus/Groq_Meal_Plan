@@ -1,9 +1,4 @@
 {
-  "nutrition_guidelines": {
-    "age_0_6_months": "Exclusive breastfeeding recommended by WHO",
-    "age_6_12_months": "Continue breastfeeding + introduce complementary foods gradually",
-    "age_1_2_years": "3 meals + 2 snacks daily. Focus on iron-rich foods",
-    "age_2_5_years": "Regular family meals with appropriate portions. Encourage variety"
-  },
+  "pdf_memories": [],
   "uploaded_pdfs": []
 }
