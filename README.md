@@ -12,7 +12,7 @@ A comprehensive nutrition management system with separate interfaces for parents
 - 👨‍👩‍👧‍👦 **For Parents**: Child meal plan management, parent recipe input
 - 👩‍⚕️ **For Nutritionists**: Client overview, meal plan notes, knowledge base management
 - 🧠 **AI-Powered**: Groq API for personalized meal recommendations
-- 📄 **Data Storage**: JSON-based storage for simplicity
+
 - 🇵🇭 **Filipino-Focused**: Built-in Filipino nutrition knowledge
 
 ## 📋 Setup Instructions
@@ -45,14 +45,10 @@ launch.bat
 - **`parent_ui.py`** - Parent interface for meal planning
 - **`nutritionist_ui.py`** - Nutritionist interface for client management
 - **`nutrition_ai.py`** - Core AI logic with Groq
-- **`data_manager.py`** - JSON data management utilities
+
 - **`launch.bat`** - Easy launcher script
-- **`data/`** - JSON storage directory
-  - `children.json` - Children profiles and BMI data
-  - `meal_plans.json` - Historical meal plans  
-  - `parent_recipes.json` - Parent-uploaded recipes
-  - `nutritionist_notes.json` - Nutritionist notes on plans
-  - `knowledge_base.json` - Filipino nutrition knowledge
+
+
 - **`requirements.txt`** - Dependencies
 - **`.env`** - API keys
 

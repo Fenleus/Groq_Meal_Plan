@@ -3,7 +3,7 @@ import os
 from nutrition_ai import ChildNutritionAI
 from data_manager import data_manager
 from datetime import datetime, timedelta
-import json
+
 import pdfplumber
 from io import BytesIO
 import math
@@ -131,20 +131,20 @@ def show_all_parents():
     # Group children by parent_id
     parent_to_children = {}
     for child in all_children.values():
-        parent_id = child.get('parent_id')
+        parent_id = str(child.get('parent_id'))
         if parent_id not in parent_to_children:
             parent_to_children[parent_id] = []
         parent_to_children[parent_id].append(child)
 
-    # Prepare parent rows (remove Allergies and Conditions columns)
+    # Prepare parent rows: show all parents, even those with no children
     parent_rows = []
-    for parent_id, children in parent_to_children.items():
-        parent_info = parents_data.get(parent_id, {})
-        parent_name = parent_info.get('name', f"Parent {parent_id}")
+    for parent_id, parent_info in parents_data.items():
+        children = parent_to_children.get(str(parent_id), [])
+        parent_name = parent_info.get('full_name', f"Parent {parent_id}")
         barangay = parent_info.get('barangay', '')
         num_children = len(children)
         parent_rows.append({
-            "parent_id": parent_id,
+            "parent_id": str(parent_id),
             "Parent": parent_name,
             "Barangay": barangay,
             "# Children": num_children
@@ -201,7 +201,8 @@ def show_all_parents():
                 else:
                     age_str = "Unknown"
                 ccols[0].markdown(f"{cidx}")
-                ccols[1].markdown(child.get('name', ''))
+                child_name = f"{child.get('first_name', '')} {child.get('last_name', '')}".strip()
+                ccols[1].markdown(child_name)
                 ccols[2].markdown(age_str)
                 ccols[3].markdown(f"{child.get('bmi', '')} ({child.get('bmi_category', '')})")
                 ccols[4].markdown(child.get('allergies', ''))
@@ -215,12 +216,11 @@ def show_add_notes():
     col1, col2 = st.columns(2)
     
     with col1:
-        # Parent filter
-        parent_options = {
-            "all": "All Parents",
-            "parent_001": "Santos Parent", 
-            "parent_002": "Cruz Parent"
-        }
+        # Parent filter (dynamic)
+        parents_data = data_manager.get_parents_data()
+        parent_options = {"all": "All Parents"}
+        for pid, pdata in parents_data.items():
+            parent_options[pid] = pdata.get('full_name', f"Parent {pid}")
         selected_parent = st.selectbox("Filter by Parent", 
                                      options=list(parent_options.keys()),
                                      format_func=lambda x: parent_options[x])
@@ -230,59 +230,61 @@ def show_add_notes():
         days_back = st.selectbox("Show plans from last:", [7, 14, 30, 60], index=2)
     
     # Get meal plans based on filters
-    all_plans = {}
+    # Get meal plans based on filters
+    all_plans = data_manager.get_meal_plans()
     filtered_plans = []
-    
     cutoff_date = datetime.now() - timedelta(days=days_back)
-    
     for plan in all_plans.values():
-        plan_date = datetime.fromisoformat(plan['created_at'])
+        plan_date = datetime.strptime(plan['created_at'], "%Y-%m-%d %H:%M:%S")
         if plan_date >= cutoff_date:
-            if selected_parent == "all" or plan['parent_id'] == selected_parent:
-                # Add child info for display
-                child_data = data_manager.get_child_by_id(plan['child_id'])
-                plan['child_name'] = child_data['name'] if child_data else "Unknown"
-                plan['child_age'] = child_data['age'] if child_data else "Unknown"
+            # Get child data
+            child_data = data_manager.get_child_by_id(plan['patient_id'])
+            plan['child_name'] = f"{child_data['first_name']} {child_data['last_name']}" if child_data else "Unknown"
+            age_months = child_data['age_in_months'] if child_data and 'age_in_months' in child_data else None
+            if age_months is not None:
+                years = age_months // 12
+                months = age_months % 12
+                if years > 0 and months > 0:
+                    plan['child_age'] = f"{years} years, {months} months ({age_months} months)"
+                elif years > 0:
+                    plan['child_age'] = f"{years} years ({age_months} months)"
+                else:
+                    plan['child_age'] = f"{months} months"
+            else:
+                plan['child_age'] = "Unknown"
+            # Filter by parent
+            if selected_parent == "all" or (child_data and child_data.get('parent_id') == selected_parent):
                 filtered_plans.append(plan)
-    
     # Sort by date (newest first)
     filtered_plans.sort(key=lambda x: x['created_at'], reverse=True)
-    
     if not filtered_plans:
         st.info("No meal plans found for the selected criteria.")
         return
-    
     # Display meal plans for note-taking
     for plan in filtered_plans:
-        plan_date = datetime.fromisoformat(plan['created_at']).strftime("%B %d, %Y")
-        
+        plan_date = datetime.strptime(plan['created_at'], "%Y-%m-%d %H:%M:%S").strftime("%B %d, %Y")
         with st.container():
-            st.subheader(f"📋 {plan['child_name']} ({plan['child_age']} years) - {plan_date}")
-            
+            st.subheader(f"📋 {plan['child_name']} ({plan['child_age']}) - {plan_date}")
             col1, col2 = st.columns([2, 1])
-            
             with col1:
                 # Show meal plan
                 with st.expander("📖 View Full Meal Plan"):
-                    st.markdown(plan['meal_plan'])
-                
+                    st.markdown(plan['plan_details'])
                 # Add new note
                 st.write("**Add Nutritionist Note:**")
                 note_categories = ["General Feedback", "Nutrition Concern", "Recommendation", "Follow-up Required"]
-                note_category = st.selectbox("Note Category:", note_categories, key=f"cat_{plan['id']}")
-                
+                note_category = st.selectbox("Note Category:", note_categories, key=f"cat_{plan['plan_id']}")
                 note_text = st.text_area(
                     "Your professional note:",
                     placeholder="Add your professional assessment, recommendations, or concerns...",
                     height=100,
-                    key=f"detailed_note_{plan['id']}"
+                    key=f"detailed_note_{plan['plan_id']}"
                 )
-                
-                if st.button(f"💾 Save Professional Note", key=f"save_detailed_{plan['id']}"):
+                if st.button(f"💾 Save Professional Note", key=f"save_detailed_{plan['plan_id']}"):
                     if note_text:
                         full_note = f"[{note_category}] {note_text}"
                         data_manager.save_nutritionist_note(
-                            meal_plan_id=plan['id'],
+                            meal_plan_id=plan['plan_id'],
                             nutritionist_id=st.session_state.nutritionist_id,
                             note=full_note
                         )
@@ -290,25 +292,34 @@ def show_add_notes():
                         st.rerun()
                     else:
                         st.error("Please enter a note before saving.")
-            
             with col2:
                 # Show child summary and existing notes
-                child_data = data_manager.get_child_by_id(plan['child_id'])
+                child_data = data_manager.get_child_by_id(plan['patient_id'])
                 if child_data:
                     st.write("**Child Summary:**")
-                    st.write(f"Age: {child_data['age']} years")
-                    st.write(f"BMI: {child_data['bmi']} ({child_data['bmi_category']})")
-                    st.write(f"Allergies: {child_data['allergies']}")
-                    st.write(f"Conditions: {child_data['medical_conditions']}")
-                
+                    age_months = child_data.get('age_in_months')
+                    if age_months is not None:
+                        years = age_months // 12
+                        months = age_months % 12
+                        if years > 0 and months > 0:
+                            age_str = f"{years} years, {months} months ({age_months} months)"
+                        elif years > 0:
+                            age_str = f"{years} years ({age_months} months)"
+                        else:
+                            age_str = f"{months} months"
+                    else:
+                        age_str = "Unknown"
+                    st.write(f"Age: {age_str}")
+                    st.write(f"BMI: {child_data.get('bmi', '')} ({child_data.get('bmi_category', '')})")
+                    st.write(f"Allergies: {child_data.get('allergies', '')}")
+                    st.write(f"Conditions: {child_data.get('medical_conditions', '')}")
                 # Show existing notes
-                existing_notes = data_manager.get_notes_for_meal_plan(plan['id'])
+                existing_notes = data_manager.get_notes_for_meal_plan(plan['plan_id'])
                 if existing_notes:
                     st.write("**Previous Notes:**")
                     for note in existing_notes:
-                        note_date = datetime.fromisoformat(note['created_at']).strftime("%b %d")
+                        note_date = datetime.strptime(note['created_at'], "%Y-%m-%d %H:%M:%S").strftime("%b %d")
                         st.info(f"**{note_date}:** {note['note']}")
-            
             st.markdown("---")
 
 def show_knowledge_base():
@@ -430,171 +441,159 @@ def show_knowledge_base():
 
 def show_recipe_database():
     st.header("Food Database")
-    DATA_PATH = os.path.join("data", "food_info.json")
-    def load_food_data():
-        if not os.path.exists(DATA_PATH):
-            return []
-        with open(DATA_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-
-    food_data = load_food_data()
-    if not food_data:
+    # Load food data from MySQL via data_manager
+    foods = data_manager.get_foods_data()  # Should return a list of dicts, one per food
+    if not foods:
         st.info("No food data available.")
-    else:
-        # Search bar
-        if 'food_db_search' not in st.session_state:
-            st.session_state['food_db_search'] = ''
-        prev_search = st.session_state['food_db_search']
-        search_val = st.text_input(
-            "🔍 Search food database",
-            value=prev_search,
-            key='food_db_search',
-        )
-        if search_val != prev_search:
-            st.session_state['food_db_search'] = search_val
-            st.rerun()
-        def filter_foods(data, query):
-            if not query:
-                return data
-            query = query.lower()
-            filtered = []
-            for item in data:
-                for col in ["food_id", "food_name_and_description", "scientific_name", "alternate_common_names", "edible_portion"]:
-                    val = item.get(col, '')
-                    if isinstance(val, list):
-                        val = ', '.join(val)
-                    if query in str(val).lower():
-                        filtered.append(item)
-                        break
-            return filtered
+        return
 
-        filtered_food_data = filter_foods(food_data, search_val)
-
-        # Pagination setup
-        records_per_page = 10
-        total_records = len(filtered_food_data)
-        total_pages = (total_records - 1) // records_per_page + 1
-        page = st.session_state.get('food_db_page', 1)
-        def set_page(new_page):
-            st.session_state['food_db_page'] = new_page
-        # Pagination controls
-        pag_row = st.columns([0.18,0.82])
-        with pag_row[0]:
-            btn_cols = st.columns([1,1])
-            btn_cols[0].button('Previous', key='prev_page', on_click=lambda: set_page(page-1), disabled=(page==1))
-            btn_cols[1].button('Next', key='next_page', on_click=lambda: set_page(page+1), disabled=(page==total_pages))
-        start_idx = (page-1)*records_per_page
-        end_idx = min(start_idx+records_per_page, total_records)
-        st.caption(f"Showing {start_idx+1} to {end_idx} of {total_records} rows | {records_per_page} records per page")
-
-        columns = [
-            "No.",
-            "food_id",
-            "food_name_and_description",
-            "scientific_name",
-            "alternate_common_names",
-            "edible_portion",
-            "Options"
-        ]
-
-        # Render column headers
-        header_cols = st.columns([1,2,4,3,3,2,2])
-        header_labels = [
-            "No.",
-            "Food ID",
-            "Food Name and Description",
-            "Scientific Name",
-            "Alternate Common Names",
-            "Edible Portion",
-            "Options"
-        ]
-        for i, label in enumerate(header_labels):
-            header_cols[i].markdown(f"**{label}**")
-
-        # Prepare table data
-        table_rows = []
-        for idx, item in enumerate(filtered_food_data[start_idx:end_idx], start=start_idx+1):
-            row = {
-                "No.": idx,
-                "food_id": item.get("food_id", ""),
-                "food_name_and_description": item.get("food_name_and_description", item.get("food_name", "")),
-                "scientific_name": item.get("scientific_name", ""),
-                "alternate_common_names": ", ".join(item.get("alternate_common_names", item.get("alternate_names", []))) if isinstance(item.get("alternate_common_names", item.get("alternate_names", [])), list) else item.get("alternate_common_names", item.get("alternate_names", "")),
-                "edible_portion": item.get("edible_portion", ""),
-                "Options": ""
-            }
-            table_rows.append(row)
-
-        # Notification when a food is selected (styled banner like admin UI)
-        if st.session_state.get('show_nutrition_notice'):
-            food_idx = st.session_state.get('show_nutrition_section', None)
-            food_data_list = food_data if food_idx else []
-            food_name = ""
-            if food_idx and 0 < food_idx <= len(food_data_list):
-                food = food_data_list[food_idx-1]
-                food_name = food.get('food_name_and_description', food.get('food_name', ''))
-            st.markdown(f"""
-                <div style='background:#2196F3;color:white;padding:0.75rem 1.5rem;border-radius:8px;font-weight:bold;margin-bottom:0.5rem;font-size:1.1rem;'>
-                    The nutrition data is shown below.<br>
-                    <span style='font-size:1rem;font-weight:normal;'>You are now viewing nutrition data for: <b>{food_name}</b></span>
-                </div>
-            """, unsafe_allow_html=True)
-            st.session_state['show_nutrition_notice'] = False
-
-        # Render table (no edit button)
-        for row_idx, row in enumerate(table_rows):
-            col_widths = [1,2,4,3,3,2,2]
-            cols = st.columns(col_widths)
-            cols[0].markdown(f"{row['No.']}")
-            for i, col in enumerate(columns[1:-1], start=1):
-                cols[i].markdown(row[col])
-            # Options: Only Data button, no Edit
-            btn_cols = cols[len(columns)-1].columns([1])
-            data_btn = btn_cols[0].button("Data", key=f"data_{row['No.']}" )
-            if data_btn:
-                st.session_state['show_nutrition_section'] = row['No.']
-                st.session_state['scroll_to_nutrition'] = True
-                st.session_state['show_nutrition_notice'] = True
-                st.rerun()
-
-        # Nutrition data section with tabbed info
-        if st.session_state.get('show_nutrition_section'):
-            # Show nutrition section
-            if st.session_state.get('scroll_to_nutrition'):
-                st.session_state['scroll_to_nutrition'] = False
-            i = st.session_state['show_nutrition_section']-1
-            food = food_data[i]
-            section_title = food.get('food_name_and_description', food.get('food_name', ''))
-            st.markdown(f"<div class='nutrition-section-container'><h2 id='nutrition_data'>{section_title}</h2>", unsafe_allow_html=True)
-            # Nutrition data
-            tab_keys = [
-                ("proximates", "Proximates"),
-                ("other_carbohydrates", "Other Carbohydrate"),
-                ("minerals", "Minerals"),
-                ("vitamins", "Vitamins"),
-                ("lipids", "Lipids")
-            ]
-            nutrition = None
-            for k in ["composition", "composition_per100g"]:
-                if k in food and isinstance(food[k], dict) and food[k]:
-                    nutrition = food[k]
+    # Search bar
+    if 'food_db_search' not in st.session_state:
+        st.session_state['food_db_search'] = ''
+    prev_search = st.session_state['food_db_search']
+    search_val = st.text_input(
+        "🔍 Search food database",
+        value=prev_search,
+        key='food_db_search',
+    )
+    if search_val != prev_search:
+        st.session_state['food_db_search'] = search_val
+        st.rerun()
+    def filter_foods(data, query):
+        if not query:
+            return data
+        query = query.lower()
+        filtered = []
+        for item in data:
+            for col in ["food_id", "food_name_and_description", "scientific_name", "alternate_common_names", "edible_portion"]:
+                val = item.get(col, '')
+                if val and query in str(val).lower():
+                    filtered.append(item)
                     break
-            if not nutrition:
-                nutrition = food
-            tabs = st.tabs([tab for _, tab in tab_keys])
-            for idx, (nut_key, tab_name) in enumerate(tab_keys):
-                with tabs[idx]:
-                    nut_data = nutrition.get(nut_key, {})
-                    if nut_data:
-                        st.markdown(f"<div style='background:#2196F3;color:white;padding:0.5rem 1rem;border-radius:6px;font-weight:bold;margin-bottom:0.5rem;'>"
-                                    f"{tab_name} <span style='float:right;'>Amount per 100 g E.P.</span></div>", unsafe_allow_html=True)
-                        for k, v in nut_data.items():
-                            pretty_k = k.replace('_g', ' (g)').replace('_mg', ' (mg)').replace('_µg', ' (µg)').replace('_ug', ' (µg)').replace('_', ' ').capitalize()
-                            display_val = v if (v is not None and str(v).strip() != "") else "-"
-                            st.markdown(f"<div style='display:flex;justify-content:space-between;padding:0.5rem 0.2rem;border-bottom:1px solid #eee;'><span>{pretty_k}</span><span style='font-weight:bold'>{display_val}</span></div>", unsafe_allow_html=True)
-                    else:
-                        st.info(f"No {tab_name.lower()} data available.")
-            st.markdown("</div>", unsafe_allow_html=True)
+        return filtered
+
+    filtered_foods = filter_foods(foods, search_val)
+    # Pagination setup
+    records_per_page = 10
+    total_records = len(filtered_foods)
+    total_pages = (total_records - 1) // records_per_page + 1
+    page = st.session_state.get('food_db_page', 1)
+    def set_page(new_page):
+        st.session_state['food_db_page'] = new_page
+
+    # Pagination controls
+    pag_row = st.columns([0.18,0.82])
+    with pag_row[0]:
+        btn_cols = st.columns([1,1])
+        btn_cols[0].button('Previous', key='prev_page', on_click=lambda: set_page(page-1), disabled=(page==1))
+        btn_cols[1].button('Next', key='next_page', on_click=lambda: set_page(page+1), disabled=(page==total_pages))
+
+    # Notification when a food is selected (styled banner like admin UI)
+    if st.session_state.get('show_nutrition_notice'):
+        food_idx = st.session_state.get('show_nutrition_section', None)
+        food_data_list = filtered_foods if food_idx else []
+        food_name = ""
+        if food_idx and 0 < food_idx <= len(food_data_list):
+            food = food_data_list[food_idx-1]
+            food_name = food.get('food_name_and_description', '')
+        st.markdown(f"""
+            <div style='background:#2196F3;color:white;padding:0.75rem 1.5rem;border-radius:8px;font-weight:bold;margin-bottom:0.5rem;font-size:1.1rem;'>
+                The nutrition data is shown below.<br>
+                <span style='font-size:1rem;font-weight:normal;'>You are now viewing nutrition data for: <b>{food_name}</b></span>
+            </div>
+        """, unsafe_allow_html=True)
+        st.session_state['show_nutrition_notice'] = False
+
+    start_idx = (page-1)*records_per_page
+    end_idx = min(start_idx+records_per_page, total_records)
+    st.caption(f"Showing {start_idx+1} to {end_idx} of {total_records} rows | {records_per_page} records per page")
+
+    columns = [
+        "No.",
+        "food_id",
+        "food_name_and_description",
+        "scientific_name",
+        "alternate_common_names",
+        "edible_portion",
+        "Options"
+    ]
+    # Render column headers
+    header_cols = st.columns([1,2,4,3,3,2,2])
+    header_labels = [
+        "No.",
+        "Food ID",
+        "Food Name and Description",
+        "Scientific Name",
+        "Alternate Common Names",
+        "Edible Portion",
+        "Options"
+    ]
+    for i, label in enumerate(header_labels):
+        header_cols[i].markdown(f"**{label}**")
+
+    # Prepare table data
+    table_rows = []
+    for idx, item in enumerate(filtered_foods[start_idx:end_idx], start=start_idx+1):
+        row = {
+            "No.": idx,
+            "food_id": item.get("food_id", ""),
+            "food_name_and_description": item.get("food_name_and_description", ""),
+            "scientific_name": item.get("scientific_name", ""),
+            "alternate_common_names": item.get("alternate_common_names", ""),
+            "edible_portion": item.get("edible_portion", ""),
+            "Options": ""
+        }
+        table_rows.append(row)
+
+    # Render table (no edit button)
+    for row_idx, row in enumerate(table_rows):
+        col_widths = [1,2,4,3,3,2,2]
+        cols = st.columns(col_widths)
+        cols[0].markdown(f"{row['No.']}")
+        for i, col in enumerate(columns[1:-1], start=1):
+            cols[i].markdown(row[col])
+        # Options: Only Data button, no Edit
+        btn_cols = cols[len(columns)-1].columns([1])
+        data_btn = btn_cols[0].button("Data", key=f"data_{row['No.']}" )
+        if data_btn:
+            st.session_state['show_nutrition_section'] = row['No.']
+            st.session_state['scroll_to_nutrition'] = True
+            st.session_state['show_nutrition_notice'] = True
+            st.rerun()
+
+    # Nutrition data section with tabbed info
+    if st.session_state.get('show_nutrition_section'):
+        # Show nutrition section
+        if st.session_state.get('scroll_to_nutrition'):
+            st.session_state['scroll_to_nutrition'] = False
+        i = st.session_state['show_nutrition_section']-1
+        food = filtered_foods[i]
+        section_title = food.get('food_name_and_description', '')
+        st.markdown(f"<div class='nutrition-section-container'><h2 id='nutrition_data'>{section_title}</h2>", unsafe_allow_html=True)
+        # Nutrition data
+        tab_keys = [
+            ("proximates", "Proximates"),
+            ("other_carbohydrates", "Other Carbohydrate"),
+            ("minerals", "Minerals"),
+            ("vitamins", "Vitamins"),
+            ("lipids", "Lipids")
+        ]
+        # Get nutrition data for this food from data_manager
+        nutrition = data_manager.get_food_nutrition(food['food_id'])
+        tabs = st.tabs([tab for _, tab in tab_keys])
+        for idx, (nut_key, tab_name) in enumerate(tab_keys):
+            with tabs[idx]:
+                nut_data = nutrition.get(nut_key, {})
+                if nut_data:
+                    st.markdown(f"<div style='background:#2196F3;color:white;padding:0.5rem 1rem;border-radius:6px;font-weight:bold;margin-bottom:0.5rem;'>"
+                                f"{tab_name} <span style='float:right;'>Amount per 100 g E.P.</span></div>", unsafe_allow_html=True)
+                    for k, v in nut_data.items():
+                        pretty_k = k.replace('_g', ' (g)').replace('_mg', ' (mg)').replace('_µg', ' (µg)').replace('_ug', ' (µg)').replace('_', ' ').capitalize()
+                        display_val = v if (v is not None and str(v).strip() != "") else "-"
+                        st.markdown(f"<div style='display:flex;justify-content:space-between;padding:0.5rem 0.2rem;border-bottom:1px solid #eee;'><span>{pretty_k}</span><span style='font-weight:bold'>{display_val}</span></div>", unsafe_allow_html=True)
+                else:
+                    st.info(f"No {tab_name.lower()} data available.")
+        st.markdown("</div>", unsafe_allow_html=True)
     
 
 if __name__ == "__main__":
