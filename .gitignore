@@ -35,5 +35,8 @@ Thumbs.db
 *.swp
 *.tmp
 
+# Local database connection file
+db.py
+
 # Ignore test outputs
 /test_outputs/
