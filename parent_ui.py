@@ -124,12 +124,12 @@ def show_children_overview():
                 age_str = "Unknown"
             st.markdown(f"""
             <div class="child-card">
-                <h3>👶 {child['name']}</h3>
+                <h3>👶 {child['first_name']} {child['last_name']}</h3>
                 <p><strong>Age:</strong> {age_str}</p>
-                <p><strong>BMI:</strong> {child['bmi']} ({child['bmi_category']})</p>
-                <p><strong>Weight:</strong> {child['weight']} kg | <strong>Height:</strong> {child['height']} cm</p>
-                <p><strong>Allergies:</strong> {child['allergies']}</p>
-                <p><strong>Medical Conditions:</strong> {child['medical_conditions']}</p>
+                <p><strong>BMI:</strong> {child.get('bmi', 'N/A')} ({child.get('bmi_category', 'N/A')})</p>
+                <p><strong>Weight:</strong> {child.get('weight', 'N/A')} kg | <strong>Height:</strong> {child.get('height', 'N/A')} cm</p>
+                <p><strong>Allergies:</strong> {child.get('allergies', 'N/A')}</p>
+                <p><strong>Medical Conditions:</strong> {child.get('medical_conditions', 'N/A')}</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -146,7 +146,7 @@ def show_meal_plan_generator():
         return
     
     # Child selection
-    child_options = {child['id']: f"{child['name']}" for child in children}
+    child_options = {child['id']: f"{child['first_name']} {child['last_name']}" for child in children}
     selected_child_id = st.selectbox(
         "Select Child",
         options=list(child_options.keys()),
@@ -156,7 +156,7 @@ def show_meal_plan_generator():
     if selected_child_id:
         child_data = data_manager.get_child_by_id(selected_child_id)
         st.subheader("👶 Child Summary")
-        st.write(f"**Name:** {child_data['name']}")
+        st.write(f"**Name:** {child_data['first_name']} {child_data['last_name']}")
         # Age in months only
         age_months = child_data.get('age_in_months')
         st.write(f"**Age:** {age_months if age_months is not None else 'Unknown'} months")
