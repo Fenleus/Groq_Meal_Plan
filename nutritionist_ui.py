@@ -82,7 +82,7 @@ def main():
         st.info("Make sure your GROQ_API_KEY is set in the .env file")
         return
     
-    # st.success("✅ Connected to Nutrition AI")
+
     
     # Sidebar for nutritionist info
     with st.sidebar:
@@ -117,7 +117,7 @@ def show_all_parents():
     st.header("👨‍👩‍👧‍👦 All Parents Overview")
     all_children = data_manager.get_children_data()
     parents_data = data_manager.get_parents_data()
-    # Compact filter row: barangay dropdown and search bar on same line
+    # Barangay dropdown and search bar
     barangay_list = [
         "All",
         "Bagong Silang", "Calendola", "Chrysanthemum", "Cuyab", "Estrella", "Fatima", "G.S.I.S", "Landayan", "Langgam", "Laram", "Magsaysay", "Maharlika", "Narra", "Nueva", "Pacita 1", "Pacita 2", "Poblacion", "Riverside", "Rosario", "Sampaguita Village", "San Antonio", "San Lorenzo Ruiz", "San Roque", "San Vicente", "Santo Niño", "United Bayanihan", "United Better Living"
@@ -136,7 +136,6 @@ def show_all_parents():
             parent_to_children[parent_id] = []
         parent_to_children[parent_id].append(child)
 
-    # Prepare parent rows: show all parents, even those with no children
     parent_rows = []
     for parent_id, parent_info in parents_data.items():
         children = parent_to_children.get(str(parent_id), [])
@@ -162,17 +161,14 @@ def show_all_parents():
         st.info("No parents found in the system.")
         return
 
-    # Track which parent's children are expanded
     if 'expanded_parent' not in st.session_state:
         st.session_state['expanded_parent'] = None
 
-    # Render table header (remove Allergies and Conditions columns)
     header_cols = st.columns([1, 4, 3, 2])
     header_labels = ["No.", "Parent", "Barangay", "# Children"]
     for i, label in enumerate(header_labels):
         header_cols[i].markdown(f"**{label}**")
 
-    # Render parent rows with expanders (remove Allergies and Conditions columns)
     for idx, row in enumerate(parent_rows, start=1):
         cols = st.columns([1, 4, 3, 2])
         cols[0].markdown(f"{idx}")
@@ -216,7 +212,7 @@ def show_add_notes():
     col1, col2 = st.columns(2)
     
     with col1:
-        # Parent filter (dynamic)
+        # Parent filter
         parents_data = data_manager.get_parents_data()
         parent_options = {"all": "All Parents"}
         for pid, pdata in parents_data.items():
@@ -229,7 +225,6 @@ def show_add_notes():
         # Date range
         days_back = st.selectbox("Show plans from last:", [7, 14, 30, 60], index=2)
     
-    # Get meal plans based on filters
     # Get meal plans based on filters
     all_plans = data_manager.get_meal_plans()
     filtered_plans = []
@@ -353,7 +348,7 @@ def show_knowledge_base():
                 st.write(f"- {pdf_name}")
             with col_del:
                 delete_btn = st.button("🗑️", key=f"delete_pdf_{idx}", help=f"Delete {pdf_name}")
-            # If delete button is clicked, set pending_delete_pdf_idx
+
             if delete_btn:
                 st.session_state['pending_delete_pdf_idx'] = idx
                 st.session_state['pending_delete_pdf_name'] = pdf_name
@@ -368,17 +363,17 @@ def show_knowledge_base():
                 with confirm_col2:
                     confirm_no = st.button("Cancel", key=f"cancel_delete_{idx}")
                 if confirm_yes:
-                    # Remove from uploaded_pdfs
-                    knowledge_base = data_manager.get_knowledge_base()  # reload in case of changes
-                    # Remove from uploaded_pdfs by name and uploaded_at
+
+                    knowledge_base = data_manager.get_knowledge_base() 
+
                     uploaded_pdfs_new = [p for p in knowledge_base.get('uploaded_pdfs', []) if not (p.get('name') == pdf_name and p.get('uploaded_at') == pdf.get('uploaded_at'))]
                     knowledge_base['uploaded_pdfs'] = uploaded_pdfs_new
-                    # Remove from pdf_memories by name and uploaded_at if present
+
                     if 'pdf_memories' in knowledge_base:
                         pdf_memories_new = [m for m in knowledge_base['pdf_memories'] if not (m.get('name') == pdf_name and m.get('uploaded_at', None) == pdf.get('uploaded_at', None))]
                         knowledge_base['pdf_memories'] = pdf_memories_new
                     data_manager.save_knowledge_base(knowledge_base)
-                    # Clear pending delete state
+
                     st.session_state['pending_delete_pdf_idx'] = None
                     st.session_state['pending_delete_pdf_name'] = None
                     st.session_state['pending_delete_pdf_uploaded_at'] = None
@@ -391,7 +386,7 @@ def show_knowledge_base():
                     st.rerun()
     
     with col2:
-        # PDF upload and processing with submit button and duplicate prevention
+
         import pdfplumber
         from io import BytesIO
         import math
@@ -405,7 +400,7 @@ def show_knowledge_base():
             st.info(f"Ready to upload: {st.session_state['pending_pdf_file'].name}")
             if st.button("Submit PDF to Knowledge Base", key="submit_pdf_knowledge"):
                 try:
-                    # Check for duplicate by name in knowledge_base
+
                     knowledge_base = data_manager.get_knowledge_base()
                     existing_names = set()
                     if 'pdf_memories' in knowledge_base:
@@ -441,8 +436,8 @@ def show_knowledge_base():
 
 def show_recipe_database():
     st.header("Food Database")
-    # Load food data from MySQL via data_manager
-    foods = data_manager.get_foods_data()  # Should return a list of dicts, one per food
+
+    foods = data_manager.get_foods_data()
     if not foods:
         st.info("No food data available.")
         return
@@ -488,7 +483,6 @@ def show_recipe_database():
         btn_cols[0].button('Previous', key='prev_page', on_click=lambda: set_page(page-1), disabled=(page==1))
         btn_cols[1].button('Next', key='next_page', on_click=lambda: set_page(page+1), disabled=(page==total_pages))
 
-    # Notification when a food is selected (styled banner like admin UI)
     if st.session_state.get('show_nutrition_notice'):
         food_idx = st.session_state.get('show_nutrition_section', None)
         food_data_list = filtered_foods if food_idx else []
@@ -545,14 +539,14 @@ def show_recipe_database():
         }
         table_rows.append(row)
 
-    # Render table (no edit button)
+    # Render table
     for row_idx, row in enumerate(table_rows):
         col_widths = [1,2,4,3,3,2,2]
         cols = st.columns(col_widths)
         cols[0].markdown(f"{row['No.']}")
         for i, col in enumerate(columns[1:-1], start=1):
             cols[i].markdown(row[col])
-        # Options: Only Data button, no Edit
+
         btn_cols = cols[len(columns)-1].columns([1])
         data_btn = btn_cols[0].button("Data", key=f"data_{row['No.']}" )
         if data_btn:

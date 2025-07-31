@@ -53,7 +53,7 @@ def get_meal_plan_with_langchain(child_id, available_ingredients=None, religion=
     relevant_pdf_chunks = get_relevant_pdf_chunks(query, k=4)
     pdf_context = ""
     if relevant_pdf_chunks:
-        # Use as background knowledge, do not mention source
+
         pdf_context = "\nBACKGROUND KNOWLEDGE (for your reference only, do NOT mention or cite this in your response):\n" + "\n---\n".join(relevant_pdf_chunks)
 
     # Build the refined prompt string
@@ -89,7 +89,7 @@ def get_meal_plan_with_langchain(child_id, available_ingredients=None, religion=
         "religion": religion if religion else ""
     }
 
-    # Groq LLM for LangChain
+
     llm = ChatGroq(
         groq_api_key=api_key,
         model_name="meta-llama/llama-4-scout-17b-16e-instruct",
@@ -102,6 +102,6 @@ def get_meal_plan_with_langchain(child_id, available_ingredients=None, religion=
         prompt=prompt_template
     )
 
-    # Run chain and return result
+
     result = chain.run(**prompt_inputs)
     return result

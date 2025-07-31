@@ -6,15 +6,12 @@ import mysql.connector
 import os
 LOG_PATH = os.path.join("data", "admin_logs.json")
 
-
-# Configure page
 st.set_page_config(
     page_title="🛠️ Admin Dashboard",
     page_icon="🛠️",
     layout="wide"
 )
 
-# Show a styled header with subtitle (like parent UI)
 st.markdown("""
 <div class='main-header'>
     <span style='font-size:2.2rem;'>🛠️</span><br>
@@ -23,15 +20,13 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-
-# Move load_logs definition above sidebar usage
 def load_logs():
-    # Load from MySQL admin_logs table
+
     conn = data_manager.data_manager.conn
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT log_id, timestamp, action, details FROM admin_logs ORDER BY timestamp DESC")
     rows = cursor.fetchall()
-    # Parse details JSON
+
     import json
     for row in rows:
         if isinstance(row.get('details'), str):
@@ -41,13 +36,12 @@ def load_logs():
                 pass
     return rows
 
-# Sidebar: Admin info and quick stats
 with st.sidebar:
     st.header("🛠️ Admin Login")
     st.info("Logged in as: System Administrator")
     st.write("ID: admin")
     st.subheader("📊 Quick Stats")
-    # Food count
+
     try:
         food_count = len(data_manager.data_manager.get_foods_data())
     except Exception:
@@ -109,7 +103,7 @@ def load_logs():
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT log_id, timestamp, action, details FROM admin_logs ORDER BY timestamp DESC")
     rows = cursor.fetchall()
-    # Parse details JSON
+
     import json
     for row in rows:
         if isinstance(row.get('details'), str):
@@ -179,7 +173,6 @@ with main_tab:
         start_idx = (page-1)*records_per_page
         end_idx = min(start_idx+records_per_page, total_records)
 
-        # Notification when a food is selected (styled banner like nutritionist UI)
         if st.session_state.get('show_nutrition_notice'):
             food_idx = st.session_state.get('show_nutrition_section', None)
             food_data_list = filtered_food_data if food_idx else []
@@ -235,7 +228,6 @@ with main_tab:
             }
             table_rows.append(row)
 
-        # Edit state (disabled for now, as editing is not implemented for SQL)
         if 'edit_row' not in st.session_state:
             st.session_state['edit_row'] = None
         if 'edit_data' not in st.session_state:
@@ -246,14 +238,14 @@ with main_tab:
             col_widths = [1,2,4,3,3,2,2]
             cols = st.columns(col_widths)
             cols[0].markdown(f"{row['No.']}")
-            # No editing for SQL version
+
             for i, col in enumerate(columns[1:-1], start=1):
                 cols[i].markdown(row[col])
-            # Options: Data only
+
             btn_cols = cols[len(columns)-1].columns([1,0.1,1])
             data_btn = btn_cols[0].button("Data", key=f"data_{row['No.']}" )
             btn_cols[1].markdown("", unsafe_allow_html=True) 
-            # No Edit button for SQL version
+
             if data_btn:
                 st.session_state['show_nutrition_section'] = row['No.']
                 st.session_state['scroll_to_nutrition'] = True
@@ -298,7 +290,7 @@ with main_tab:
 with logs_tab:
     st.header("📜 Admin Logs")
     logs = load_logs()
-    # Always show a table, even if empty
+
     columns = ['timestamp', 'action', 'details']
     if logs:
         log_df = pd.DataFrame(logs)
@@ -310,7 +302,7 @@ with logs_tab:
             log_df['details'] = log_df['details'].apply(flatten_details)
         st.dataframe(log_df[columns], use_container_width=True)
     else:
-        # Show empty table with correct columns
+
         empty_df = pd.DataFrame([], columns=columns)
         st.dataframe(empty_df, use_container_width=True)
         st.info("No logs available.")

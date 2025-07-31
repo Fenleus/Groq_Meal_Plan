@@ -73,12 +73,12 @@ def main():
         st.info("Make sure your GROQ_API_KEY is set in the .env file")
         return
         
-    # Sidebar for parent selection (for demo)
+    # Sidebar for parent selection
     with st.sidebar:
         st.header("👤 Parent Login")
-        # Dynamically load parent names from the database (parents table)
+
         parents_data = data_manager.get_parents_data()
-        # parents_data now keyed by parent_id
+
         parent_options = {str(pdata.get('parent_id', pid)): pdata.get('full_name', str(pdata.get('parent_id', pid))) for pid, pdata in parents_data.items()}
         selected_parent = st.selectbox(
             "Select Parent Account",
@@ -89,7 +89,7 @@ def main():
         st.session_state.parent_id = selected_parent
         st.info(f"Logged in as: {parent_options[selected_parent]}")
 
-        # (Debug output removed)
+
     
     # Main tabs
     tab1, tab2 = st.tabs(["👶 My Children", "🍽️ Generate Meal Plan"])
@@ -112,7 +112,7 @@ def show_children_overview():
     
     for child in children:
         with st.container():
-            # Calculate age from date_of_birth if age_in_months is missing
+
             age_months = child.get('age_in_months')
             if age_months is None and child.get('date_of_birth'):
                 dob = child['date_of_birth']
@@ -156,7 +156,6 @@ def show_meal_plan_generator():
         st.warning("No children found. Please check with your account administrator.")
         return
     
-    # Child selection
     child_options = {child['patient_id']: f"{child['first_name']} {child['last_name']}" for child in children}
     selected_child_id = st.selectbox(
         "Select Child",
@@ -168,7 +167,7 @@ def show_meal_plan_generator():
         child_data = data_manager.get_child_by_id(selected_child_id)
         st.subheader("👶 Child Summary")
         st.write(f"**Name:** {child_data['first_name']} {child_data['last_name']}")
-        # Age in months only
+
         age_months = child_data.get('age_in_months')
         st.write(f"**Age:** {age_months if age_months is not None else 'Unknown'} months")
         st.write(f"**BMI:** {child_data['bmi']} ({child_data['bmi_category']})")
