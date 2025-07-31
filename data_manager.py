@@ -31,7 +31,7 @@ class DataManager:
         """Get all foods from the foods table, with basic info."""
         self.cursor.execute("SELECT food_id, food_name_and_description, scientific_name, alternate_common_names, edible_portion FROM foods")
         rows = self.cursor.fetchall()
-        # Convert alternate_common_names to string if needed
+
         for row in rows:
             if isinstance(row.get('alternate_common_names'), (list, tuple)):
                 row['alternate_common_names'] = ', '.join(row['alternate_common_names'])
@@ -72,9 +72,8 @@ class DataManager:
     def __init__(self):
         self.conn = get_connection()
         self.cursor = self.conn.cursor(dictionary=True)
-    # Parents Data Management
 
-    # ...existing code...
+    # Parents Data Management
 
     def get_parents_data(self) -> Dict:
         """Get all parents data from MySQL, including all columns as per schema."""
@@ -156,7 +155,7 @@ class DataManager:
         return self.cursor.fetchall()
 
     # Parent Recipes Management
-    # (Assuming parent_recipes table: id, parent_id, name, description, created_at)
+
     def get_parent_recipes(self) -> Dict:
         self.cursor.execute("SELECT id, parent_id, name, description, created_at FROM parent_recipes")
         rows = self.cursor.fetchall()
@@ -209,7 +208,4 @@ class DataManager:
         self.conn.commit()
         return str(self.cursor.lastrowid)
 
-    # Add more methods for foods, vitamins, minerals, lipids, proximates, other_carbohydrates as needed
-
-# Global instance for import
 data_manager = DataManager()

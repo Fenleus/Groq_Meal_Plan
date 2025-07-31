@@ -45,7 +45,7 @@ class ChildNutritionAI:
         filipino_context = ""
         if filipino_foods:
             filipino_recipes = []
-            for recipe in list(filipino_foods.values())[:5]:  # Limit to 5 recipes
+            for recipe in filipino_foods.values():
                 filipino_recipes.append(f"- {recipe['name']}: {recipe['nutrition_facts']}")
             filipino_context = f"\n\nFilipino Food Options:\n" + "\n".join(filipino_recipes)
         
