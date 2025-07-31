@@ -21,7 +21,7 @@ def get_relevant_pdf_chunks(query, k=4):
 def get_meal_plan_with_langchain(child_id, available_ingredients=None, religion=None):
     """
     Use LangChain to generate a meal plan for a child using Groq LLM and a nutritionist-style prompt.
-    Uses knowledge_base.json and retrieves relevant PDF knowledge via vector memory.
+
     Optionally includes available ingredients provided by the parent.
     """
     api_key = os.getenv('GROQ_API_KEY')
@@ -58,7 +58,7 @@ def get_meal_plan_with_langchain(child_id, available_ingredients=None, religion=
 
     # Build the refined prompt string
     prompt_str = (
-        "You are a pediatric nutrition expert. Using only the foods and ingredients listed in the provided JSON database, generate a general list of suitable foods or food combinations for a Filipino child (0-5 years old) with the following profile:\n"
+        "You are a pediatric nutrition expert. Using only the foods and ingredients listed in the provided food database, generate a general list of suitable foods or food combinations for a Filipino child (0-5 years old) with the following profile:\n"
         f"\n- Age (months): {{age_in_months}}"
         f"\n- BMI Category: {{bmi_category}}"
         f"\n- Allergies: {{allergies}}"
@@ -68,7 +68,7 @@ def get_meal_plan_with_langchain(child_id, available_ingredients=None, religion=
     if available_ingredients:
         prompt_str += f"\nOnly use these available ingredients: {{available_ingredients}}\n"
     prompt_str += (
-        "\nStrictly do not use or mention any foods, ingredients, or recipes that are not found in the JSON database. Do not invent or assume any foods. Avoid all allergens and respect all medical and religious restrictions."
+        "\nStrictly do not use or mention any foods, ingredients, or recipes that are not found in the food database. Do not invent or assume any foods. Avoid all allergens and respect all medical and religious restrictions."
         "\nDo not organize the output by breakfast, lunch, or dinner. Instead, provide a concise, general list of recommended foods or food combinations, and a brief explanation for your choices."
         "\nDo not include the child's name or any sensitive information."
         "\nIf you use any background knowledge provided, do NOT mention or cite the source, file, or that you used a document. Present all recommendations as your own expertise."

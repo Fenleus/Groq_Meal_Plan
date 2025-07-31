@@ -76,9 +76,10 @@ def main():
     # Sidebar for parent selection (for demo)
     with st.sidebar:
         st.header("👤 Parent Login")
-        # Dynamically load parent names from parents.json
+        # Dynamically load parent names from the database (parents table)
         parents_data = data_manager.get_parents_data()
-        parent_options = {pid: pdata.get('name', pid) for pid, pdata in parents_data.items()}
+        # parents_data now keyed by parent_id
+        parent_options = {str(pdata.get('parent_id', pid)): pdata.get('full_name', str(pdata.get('parent_id', pid))) for pid, pdata in parents_data.items()}
         selected_parent = st.selectbox(
             "Select Parent Account",
             options=list(parent_options.keys()),
@@ -87,6 +88,8 @@ def main():
         )
         st.session_state.parent_id = selected_parent
         st.info(f"Logged in as: {parent_options[selected_parent]}")
+
+        # (Debug output removed)
     
     # Main tabs
     tab1, tab2 = st.tabs(["👶 My Children", "🍽️ Generate Meal Plan"])
@@ -109,8 +112,16 @@ def show_children_overview():
     
     for child in children:
         with st.container():
-            # Calculate age in months
+            # Calculate age from date_of_birth if age_in_months is missing
             age_months = child.get('age_in_months')
+            if age_months is None and child.get('date_of_birth'):
+                dob = child['date_of_birth']
+                if isinstance(dob, str):
+                    dob = datetime.strptime(dob, "%Y-%m-%d").date()
+                today = datetime.today().date()
+                age_months = (today.year - dob.year) * 12 + (today.month - dob.month)
+                if today.day < dob.day:
+                    age_months -= 1
             if age_months is not None:
                 years = age_months // 12
                 months = age_months % 12
@@ -122,12 +133,12 @@ def show_children_overview():
                     age_str = f"{months} months old"
             else:
                 age_str = "Unknown"
+
             st.markdown(f"""
             <div class="child-card">
                 <h3>👶 {child['first_name']} {child['last_name']}</h3>
                 <p><strong>Age:</strong> {age_str}</p>
                 <p><strong>BMI:</strong> {child.get('bmi', 'N/A')} ({child.get('bmi_category', 'N/A')})</p>
-                <p><strong>Weight:</strong> {child.get('weight', 'N/A')} kg | <strong>Height:</strong> {child.get('height', 'N/A')} cm</p>
                 <p><strong>Allergies:</strong> {child.get('allergies', 'N/A')}</p>
                 <p><strong>Medical Conditions:</strong> {child.get('medical_conditions', 'N/A')}</p>
             </div>
@@ -146,7 +157,7 @@ def show_meal_plan_generator():
         return
     
     # Child selection
-    child_options = {child['id']: f"{child['first_name']} {child['last_name']}" for child in children}
+    child_options = {child['patient_id']: f"{child['first_name']} {child['last_name']}" for child in children}
     selected_child_id = st.selectbox(
         "Select Child",
         options=list(child_options.keys()),
