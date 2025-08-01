@@ -116,9 +116,9 @@ class DataManager:
         return [str(row['patient_id']) for row in rows]
 
 
-    def get_child_by_id(self, child_id: str) -> Optional[Dict]:
-        """Get specific child data from MySQL, all columns."""
-        self.cursor.execute("SELECT patient_id, first_name, last_name, date_of_birth, age_in_months, gender, bmi, bmi_category, allergies, medical_conditions, address, contact_number, created_at, updated_at, parent_id FROM patients WHERE patient_id = %s", (child_id,))
+    def get_patient_by_id(self, patient_id: str) -> Optional[Dict]:
+        """Get specific patient data from MySQL, all columns."""
+        self.cursor.execute("SELECT patient_id, first_name, last_name, date_of_birth, age_in_months, gender, bmi, bmi_category, allergies, medical_conditions, address, contact_number, created_at, updated_at, parent_id FROM patients WHERE patient_id = %s", (patient_id,))
         row = self.cursor.fetchone()
         return row
 
@@ -129,23 +129,23 @@ class DataManager:
         rows = self.cursor.fetchall()
         return {str(row['plan_id']): row for row in rows}
 
-    def save_meal_plan(self, child_id: str, meal_plan: str, duration_days: int, parent_id: str) -> str:
+    def save_meal_plan(self, patient_id: str, meal_plan: str, duration_days: int, parent_id: str) -> str:
         """Save a new meal plan to MySQL"""
         sql = """
             INSERT INTO meal_plans (patient_id, plan_details, created_at)
             VALUES (%s, %s, %s)
         """
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self.cursor.execute(sql, (child_id, meal_plan, now))
+        self.cursor.execute(sql, (patient_id, meal_plan, now))
         self.conn.commit()
         return str(self.cursor.lastrowid)
 
-    def get_meal_plans_by_child(self, child_id: str, months_back: int = 6) -> List[Dict]:
-        """Get meal plans for a child within the last X months from MySQL, all columns."""
+    def get_meal_plans_by_patient(self, patient_id: str, months_back: int = 6) -> List[Dict]:
+        """Get meal plans for a patient within the last X months from MySQL, all columns."""
         cutoff_date = (datetime.now() - timedelta(days=months_back * 30)).strftime('%Y-%m-%d %H:%M:%S')
         self.cursor.execute(
             "SELECT plan_id, patient_id, plan_details, created_at FROM meal_plans WHERE patient_id = %s AND created_at >= %s ORDER BY created_at DESC",
-            (child_id, cutoff_date)
+            (patient_id, cutoff_date)
         )
         return self.cursor.fetchall()
 

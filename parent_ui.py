@@ -156,25 +156,25 @@ def show_meal_plan_generator():
         st.warning("No children found. Please check with your account administrator.")
         return
     
-    child_options = {child['patient_id']: f"{child['first_name']} {child['last_name']}" for child in children}
-    selected_child_id = st.selectbox(
+    patient_options = {child['patient_id']: f"{child['first_name']} {child['last_name']}" for child in children}
+    selected_patient_id = st.selectbox(
         "Select Child",
-        options=list(child_options.keys()),
-        format_func=lambda x: child_options[x]
+        options=list(patient_options.keys()),
+        format_func=lambda x: patient_options[x]
     )
 
-    if selected_child_id:
-        child_data = data_manager.get_child_by_id(selected_child_id)
+    if selected_patient_id:
+        patient_data = data_manager.get_patient_by_id(selected_patient_id)
         st.subheader("👶 Child Summary")
-        st.write(f"**Name:** {child_data['first_name']} {child_data['last_name']}")
+        st.write(f"**Name:** {patient_data['first_name']} {patient_data['last_name']}")
 
-        age_months = child_data.get('age_in_months')
+        age_months = patient_data.get('age_in_months')
         st.write(f"**Age:** {age_months if age_months is not None else 'Unknown'} months")
-        st.write(f"**BMI:** {child_data['bmi']} ({child_data['bmi_category']})")
-        st.write(f"**Allergies:** {child_data['allergies']}")
-        st.write(f"**Conditions:** {child_data['medical_conditions']}")
+        st.write(f"**BMI:** {patient_data['bmi']} ({patient_data['bmi_category']})")
+        st.write(f"**Allergies:** {patient_data['allergies']}")
+        st.write(f"**Conditions:** {patient_data['medical_conditions']}")
         # Religion
-        parent_id = child_data.get('parent_id')
+        parent_id = patient_data.get('parent_id')
         religion = data_manager.get_religion_by_parent(parent_id) if parent_id else "Unknown"
         st.write(f"**Religion:** {religion if religion else 'Unknown'}")
         # Input for available ingredients
@@ -185,15 +185,15 @@ def show_meal_plan_generator():
 
     # Generate button
     if st.button("🚀 Generate Meal Plan", type="primary"):
-        if not selected_child_id:
+        if not selected_patient_id:
             st.error("Please select a child first!")
             return
         from nutrition_chain import get_meal_plan_with_langchain
         with st.spinner(f"🔥 Generating meal plan (LangChain)..."):
             try:
                 meal_plan = get_meal_plan_with_langchain(
-                    child_id=selected_child_id,
-                    available_ingredients=available_ingredients.strip() if selected_child_id else "",
+                    patient_id=selected_patient_id,
+                    available_ingredients=available_ingredients.strip() if selected_patient_id else "",
                     religion=religion if religion else ""
                 )
                 st.success(f"✅ Meal plan generated successfully!")

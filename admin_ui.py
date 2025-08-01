@@ -83,7 +83,7 @@ def log_action(action, details):
             'child_name', 'parent_name', 'name', 'address', 'contact', 'email', 'phone',
             'children', 'parents', 'profile', 'bmi', 'bmi_category', 'age', 'age_in_months',
             'medical_conditions', 'allergies', 'religion', 'weight', 'height', 'notes',
-            'history', 'meal_plans', 'recipes', 'password', 'token', 'id', 'user_id', 'parent_id', 'child_id'
+            'history', 'meal_plans', 'recipes', 'password', 'token', 'id', 'user_id', 'parent_id', 'patient_id'
         ]
         filtered_details = {k: v for k, v in details.items() if k not in sensitive_keys}
     else:
