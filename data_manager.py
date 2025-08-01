@@ -5,6 +5,23 @@ from typing import Dict, List, Optional
 import uuid
 
 class DataManager:
+    def update_food_nutrition(self, food_id, category, field, value):
+        """Update a single nutrition fact for a food entry."""
+        # Map category to table name
+        table_map = {
+            'proximates': 'proximates',
+            'other_carbohydrates': 'other_carbohydrates',
+            'minerals': 'minerals',
+            'vitamins': 'vitamins',
+            'lipids': 'lipids'
+        }
+        table = table_map.get(category)
+        if not table:
+            raise ValueError(f"Unknown nutrition category: {category}")
+        # Compose SQL
+        sql = f"UPDATE {table} SET {field} = %s WHERE food_id = %s"
+        self.cursor.execute(sql, (value, food_id))
+        self.conn.commit()
     # Admin Logs Management
     def save_admin_log(self, action: str, details):
         """Insert a new admin log into the admin_logs table."""
@@ -66,6 +83,25 @@ class DataManager:
         if row:
             nutrition['lipids'] = row
         return nutrition
+
+    def update_food(self, food_id, food_name_and_description, scientific_name, alternate_common_names, edible_portion):
+        """Update a food entry in the foods table."""
+        sql = """
+            UPDATE foods
+            SET food_name_and_description = %s,
+                scientific_name = %s,
+                alternate_common_names = %s,
+                edible_portion = %s
+            WHERE food_id = %s
+        """
+        self.cursor.execute(sql, (
+            food_name_and_description,
+            scientific_name,
+            alternate_common_names,
+            edible_portion,
+            food_id
+        ))
+        self.conn.commit()
     """
     Manages MySQL-based data storage for the nutrition system
     """
