@@ -291,7 +291,7 @@ with logs_tab:
     st.header("📜 Admin Logs")
     logs = load_logs()
 
-    columns = ['Action', 'Details', 'Timestamp']
+    columns = ['action', 'details', 'timestamp']
     if logs:
         log_df = pd.DataFrame(logs)
         def flatten_details(details):
