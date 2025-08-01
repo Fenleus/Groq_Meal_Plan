@@ -170,8 +170,27 @@ with main_tab:
             btn_cols[0].button('Previous', key='prev_page', on_click=lambda: set_page(page-1), disabled=(page==1))
             btn_cols[1].button('Next', key='next_page', on_click=lambda: set_page(page+1), disabled=(page==total_pages))
 
+
         start_idx = (page-1)*records_per_page
         end_idx = min(start_idx+records_per_page, total_records)
+
+        # Edit error and indication banners (above table, below pagination)
+        if st.session_state.get('edit_row'):
+            if st.session_state.get('show_edit_error'):
+                st.markdown(f"""
+                    <div style='background:#FFCDD2;color:#B71C1C;padding:0.75rem 1.5rem;border-radius:8px;font-weight:bold;margin-bottom:0.5rem;font-size:1.1rem;'>
+                        You are currently editing a food entry. Please finish or cancel editing before viewing nutrition data.
+                    </div>
+                """, unsafe_allow_html=True)
+                st.session_state['show_edit_error'] = False
+            edit_data = st.session_state.get('edit_data', {})
+            food_name = edit_data.get('food_name_and_description', '')
+            st.markdown(f"""
+                <div style='background:#FF9800;color:white;padding:0.75rem 1.5rem;border-radius:8px;font-weight:bold;margin-bottom:0.5rem;font-size:1.1rem;'>
+                    You are about to edit food entry <b>{food_name}</b>.<br>
+                    <span style='font-size:1rem;font-weight:normal;'>Edit form is shown <b>below</b>.</span>
+                </div>
+            """, unsafe_allow_html=True)
 
         if st.session_state.get('show_nutrition_notice'):
             food_idx = st.session_state.get('show_nutrition_section', None)
@@ -234,6 +253,7 @@ with main_tab:
             st.session_state['edit_data'] = {}
 
         # Render table
+
         for row_idx, row in enumerate(table_rows):
             col_widths = [1,2,4,3,3,2,2]
             cols = st.columns(col_widths)
@@ -244,16 +264,146 @@ with main_tab:
 
             btn_cols = cols[len(columns)-1].columns([1,0.1,1])
             data_btn = btn_cols[0].button("Data", key=f"data_{row['No.']}" )
-            btn_cols[1].markdown("", unsafe_allow_html=True) 
+            edit_btn = btn_cols[2].button("Edit", key=f"edit_{row['No.']}" )
 
             if data_btn:
-                st.session_state['show_nutrition_section'] = row['No.']
-                st.session_state['scroll_to_nutrition'] = True
-                st.session_state['show_nutrition_notice'] = True
+                if st.session_state.get('edit_row'):
+                    st.session_state['show_edit_error'] = True
+                    st.rerun()
+                else:
+                    st.session_state['show_nutrition_section'] = row['No.']
+                    st.session_state['scroll_to_nutrition'] = True
+                    st.session_state['show_nutrition_notice'] = True
+                    st.rerun()
+
+            if edit_btn:
+                st.session_state['edit_row'] = row['No.']
+                st.session_state['edit_data'] = row
+                st.rerun()
+
+        # Edit form section with nutrition facts
+        if st.session_state.get('edit_row'):
+            edit_data = st.session_state.get('edit_data', {})
+            st.markdown("<div style='background:#FFEB3B;padding:1rem 2rem;border-radius:8px;margin:1rem 0;'><b>Edit Food Entry</b></div>", unsafe_allow_html=True)
+            # Fetch nutrition data for this food
+            nutrition = data_manager.data_manager.get_food_nutrition(edit_data.get("food_id", ""))
+            with st.form(key='edit_food_form'):
+                food_id = st.text_input("Food ID", value=edit_data.get("food_id", ""), disabled=True)
+                food_name_and_description = st.text_input("Food Name and Description", value=edit_data.get("food_name_and_description", ""))
+                scientific_name = st.text_input("Scientific Name", value=edit_data.get("scientific_name", ""))
+                alternate_common_names = st.text_input("Alternate Common Names", value=edit_data.get("alternate_common_names", ""))
+                edible_portion = st.text_input("Edible Portion", value=edit_data.get("edible_portion", ""))
+
+                st.markdown("<hr><b>Edit Nutrition Facts</b>", unsafe_allow_html=True)
+                nutrition_inputs = {}
+                tab_keys = [
+                    ("proximates", "Proximates"),
+                    ("other_carbohydrates", "Other Carbohydrate"),
+                    ("minerals", "Minerals"),
+                    ("vitamins", "Vitamins"),
+                    ("lipids", "Lipids")
+                ]
+                for nut_key, tab_name in tab_keys:
+                    st.subheader(tab_name)
+                    nut_data = nutrition.get(nut_key, {})
+                    nutrition_inputs[nut_key] = {}
+                    for k, v in nut_data.items():
+                        pretty_k = k.replace('_g', ' (g)').replace('_mg', ' (mg)').replace('_µg', ' (µg)').replace('_ug', ' (µg)').replace('_', ' ').capitalize()
+                        nutrition_inputs[nut_key][k] = st.text_input(f"{tab_name}: {pretty_k}", value=str(v) if v is not None else "")
+
+                submit = st.form_submit_button("Save Changes")
+                cancel = st.form_submit_button("Cancel")
+            if submit:
+                # Compare old and new values to log only changed columns
+                try:
+                    original_data = edit_data.copy()
+                    changed_fields = {"food_id": food_id}
+                    # Compare main food fields and log old/new
+                    if food_name_and_description != original_data.get("food_name_and_description", ""):
+                        changed_fields["food_name_and_description"] = {
+                            "old": original_data.get("food_name_and_description", ""),
+                            "new": food_name_and_description
+                        }
+                    if scientific_name != original_data.get("scientific_name", ""):
+                        changed_fields["scientific_name"] = {
+                            "old": original_data.get("scientific_name", ""),
+                            "new": scientific_name
+                        }
+                    if alternate_common_names != original_data.get("alternate_common_names", ""):
+                        changed_fields["alternate_common_names"] = {
+                            "old": original_data.get("alternate_common_names", ""),
+                            "new": alternate_common_names
+                        }
+                    if edible_portion != original_data.get("edible_portion", ""):
+                        changed_fields["edible_portion"] = {
+                            "old": original_data.get("edible_portion", ""),
+                            "new": edible_portion
+                        }
+
+                    # Update food in DB
+                    data_manager.data_manager.update_food(
+                        food_id=food_id,
+                        food_name_and_description=food_name_and_description,
+                        scientific_name=scientific_name,
+                        alternate_common_names=alternate_common_names,
+                        edible_portion=edible_portion
+                    )
+
+                    # Compare nutrition facts
+                    original_nutrition = data_manager.data_manager.get_food_nutrition(food_id)
+                    changed_nutrition = {}
+                    for nut_key in nutrition_inputs:
+                        nut_changes = {}
+                        for k, v in nutrition_inputs[nut_key].items():
+                            val = v.strip()
+                            if val == "":
+                                val = None
+                            else:
+                                try:
+                                    val = float(val)
+                                except Exception:
+                                    val = None
+                            orig_val = original_nutrition.get(nut_key, {}).get(k)
+                            # Normalize both to string for comparison
+                            def norm(x):
+                                if x is None:
+                                    return ""
+                                try:
+                                    return f"{float(x):.6g}".rstrip("0").rstrip(".") if "." in f"{float(x):.6g}" else f"{float(x):.6g}"
+                                except Exception:
+                                    return str(x)
+                            if norm(val) != norm(orig_val):
+                                nut_changes[k] = {
+                                    "old": norm(orig_val),
+                                    "new": v
+                                }
+                            # Update DB regardless
+                            data_manager.data_manager.update_food_nutrition(food_id, nut_key, k, val)
+                        if nut_changes:
+                            changed_nutrition[nut_key] = nut_changes
+                    # Only log nutrition_facts if any nutrition subfield changed
+                    if any(changed_nutrition.values()):
+                        changed_fields["nutrition_facts"] = changed_nutrition
+
+                    # Log only changed fields
+                    log_action(
+                        action="edit_food_entry",
+                        details=changed_fields
+                    )
+                    st.success("Food entry and nutrition facts updated successfully.")
+                    st.session_state['edit_row'] = None
+                    st.session_state['edit_data'] = {}
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to update food entry or nutrition facts: {e}")
+            if cancel:
+                st.session_state['edit_row'] = None
+                st.session_state['edit_data'] = {}
                 st.rerun()
 
         # Nutrition data section with tabbed info
-        if st.session_state.get('show_nutrition_section'):
+        # Only show nutrition section if not editing
+        if st.session_state.get('show_nutrition_section') and not st.session_state.get('edit_row'):
             # Show nutrition section
             if st.session_state.get('scroll_to_nutrition'):
                 st.session_state['scroll_to_nutrition'] = False
