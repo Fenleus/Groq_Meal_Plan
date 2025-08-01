@@ -291,7 +291,7 @@ with logs_tab:
     st.header("📜 Admin Logs")
     logs = load_logs()
 
-    columns = ['timestamp', 'action', 'details']
+    columns = ['Action', 'Details', 'Timestamp']
     if logs:
         log_df = pd.DataFrame(logs)
         def flatten_details(details):
@@ -302,8 +302,6 @@ with logs_tab:
             log_df['details'] = log_df['details'].apply(flatten_details)
         st.dataframe(log_df[columns], use_container_width=True)
     else:
-
         empty_df = pd.DataFrame([], columns=columns)
         st.dataframe(empty_df, use_container_width=True)
-        st.info("No logs available.")
 
