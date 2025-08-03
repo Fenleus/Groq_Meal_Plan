@@ -5,6 +5,15 @@ from typing import Dict, List, Optional
 import uuid
 
 class DataManager:
+    def get_meal_plan_by_id(self, plan_id: int) -> Optional[Dict]:
+        """Get a single meal plan by its plan_id."""
+        self.cursor.execute("SELECT plan_id, patient_id, plan_details, created_at FROM meal_plans WHERE plan_id = %s", (plan_id,))
+        return self.cursor.fetchone()
+
+    def get_nutritionist_notes_by_patient(self, patient_id: int) -> List[Dict]:
+        """Get all nutritionist notes for a given patient_id."""
+        self.cursor.execute("SELECT note_id, nutritionist_id, patient_id, note, created_at FROM nutritionist_notes WHERE patient_id = %s", (patient_id,))
+        return self.cursor.fetchall()
     def update_food_nutrition(self, food_id, category, field, value):
         """Update a single nutrition fact for a food entry."""
         # Map category to table name

@@ -6,13 +6,9 @@ from data_manager import data_manager
 from nutrition_chain import get_meal_plan_with_langchain
 from typing import List, Optional
 
+
 app = FastAPI(title="Nutritionist LLM API", description="API for LLM-powered nutrition functions", version="1.0")
-
-# Instantiate the AI model
 nutrition_ai = ChildNutritionAI()
-
-
-
 class MealPlanRequest(BaseModel):
     patient_id: int
     available_foods: Optional[str] = None
@@ -20,11 +16,8 @@ class MealPlanRequest(BaseModel):
 class NutritionQuestionRequest(BaseModel):
     question: str
 
-class FoodNutritionRequest(BaseModel):
-    food_id: str
 
 class ChildrenByParentRequest(BaseModel):
-
     parent_id: int
 
 
@@ -36,14 +29,10 @@ class SaveMealPlanRequest(BaseModel):
 
 class MealPlansByChildRequest(BaseModel):
     patient_id: int
-    months_back: int = 6
 
 class SaveAdminLogRequest(BaseModel):
     action: str
     details: dict
-
-
-
 
 @app.post("/generate_meal_plan")
 def generate_meal_plan(request: MealPlanRequest):
@@ -83,20 +72,17 @@ def generate_meal_plan(request: MealPlanRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# Combined endpoint: returns all foods with nutrition facts
 @app.post("/get_foods_data")
 def get_foods_data():
     try:
         foods = data_manager.get_foods_data()
+        # For each food, add nutrition facts
+        for food in foods:
+            food_id = food.get("food_id")
+            nutrition = data_manager.get_food_nutrition(food_id)
+            food["nutrition_facts"] = nutrition
         return {"foods": foods}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/get_food_nutrition")
-def get_food_nutrition(request: FoodNutritionRequest):
-    try:
-        nutrition = data_manager.get_food_nutrition(request.food_id)
-        return {"nutrition": nutrition}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -108,39 +94,45 @@ def get_children_by_parent(request: ChildrenByParentRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/save_meal_plan")
-def save_meal_plan(request: SaveMealPlanRequest):
-    try:
-        plan_id = data_manager.save_meal_plan(
-            patient_id=request.patient_id,
-            meal_plan=request.meal_plan,
-            duration_days=request.duration_days,
-            parent_id=request.parent_id
-        )
-        return {"plan_id": plan_id}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/get_meal_plans_by_child")
 def get_meal_plans_by_child(request: MealPlansByChildRequest):
     try:
-        plans = data_manager.get_meal_plans_by_patient(request.patient_id, months_back=request.months_back)
+        plans = data_manager.get_meal_plans_by_patient(request.patient_id)
         return {"meal_plans": plans}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/save_admin_log")
-def save_admin_log(request: SaveAdminLogRequest):
+
+class KnowledgeBaseRequest(BaseModel):
+    pass  # No parameters needed for get_knowledge_base
+
+@app.post("/get_knowledge_base")
+def get_knowledge_base(request: KnowledgeBaseRequest):
     try:
-        data_manager.save_admin_log(request.action, request.details)
-        return {"status": "success"}
+        kb = data_manager.get_knowledge_base()
+        return {"knowledge_base": kb}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/get_admin_logs")
-def get_admin_logs():
+class MealPlanDetailRequest(BaseModel):
+    plan_id: int
+
+@app.post("/get_meal_plan_detail")
+def get_meal_plan_detail(request: MealPlanDetailRequest):
     try:
-        logs = data_manager.get_admin_logs()
-        return {"admin_logs": logs}
+        plan = data_manager.get_meal_plan_by_id(request.plan_id)
+        return {"meal_plan": plan}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class NutritionistNotesRequest(BaseModel):
+    patient_id: int
+
+@app.post("/get_nutritionist_notes")
+def get_nutritionist_notes(request: NutritionistNotesRequest):
+    try:
+        notes = data_manager.get_nutritionist_notes_by_patient(request.patient_id)
+        return {"nutritionist_notes": notes}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
