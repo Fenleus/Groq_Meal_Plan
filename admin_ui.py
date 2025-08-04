@@ -126,10 +126,13 @@ def load_logs():
     return rows
 
 
-# Tabs
-tabs = st.tabs(["🍲 Food Database", "📜 Logs"])
+import json
+
+# Tabs: Food Database, Knowledge Base, Logs
+tabs = st.tabs(["🍲 Food Database", "📚 Knowledge Base", "📜 Logs"])
 main_tab = tabs[0]
-logs_tab = tabs[1]
+kb_tab = tabs[1]
+logs_tab = tabs[2]
 
 
 with main_tab:
@@ -447,6 +450,93 @@ with main_tab:
                         else:
                             st.info(f"No {tab_name.lower()} data available.")
                 st.markdown("</div>", unsafe_allow_html=True)
+
+
+# Knowledge Base Tab
+
+with kb_tab:
+    st.header("📚 Knowledge Base")
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.subheader("Knowledge Base Table")
+        kb_entries = data_manager.data_manager.get_knowledge_base()
+        conn = data_manager.data_manager.conn
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT admin_id, full_name FROM admins")
+        admins = {str(row['admin_id']): row['full_name'] for row in cursor.fetchall()}
+        cursor.execute("SELECT nutritionist_id, full_name FROM nutritionists")
+        nutritionists = {str(row['nutritionist_id']): row['full_name'] for row in cursor.fetchall()}
+        # Use a set to avoid duplicate (kb_id, file name) pairs
+        seen_files = set()
+        table_rows = []
+        if isinstance(kb_entries, dict):
+            for kb in kb_entries.values():
+                kb_id = kb.get('kb_id', '')
+                pdf_names = kb.get('pdf_name', [])
+                if isinstance(pdf_names, str):
+                    try:
+                        pdf_names = json.loads(pdf_names)
+                    except Exception:
+                        pdf_names = [pdf_names]
+                if not isinstance(pdf_names, list):
+                    pdf_names = [pdf_names]
+                uploaded_by_id = str(kb.get('uploaded_by_id', ''))
+                uploaded_by_role = kb.get('uploaded_by', '')
+                if uploaded_by_role == 'admin':
+                    full_name = admins.get(uploaded_by_id, 'Unknown Admin')
+                elif uploaded_by_role == 'nutritionist':
+                    full_name = nutritionists.get(uploaded_by_id, 'Unknown Nutritionist')
+                else:
+                    full_name = 'Unknown'
+                for pdf_name in pdf_names:
+                    if isinstance(pdf_name, dict):
+                        pdf_name_str = pdf_name.get('name', str(pdf_name))
+                    else:
+                        pdf_name_str = str(pdf_name)
+                    file_key = (kb_id, pdf_name_str)
+                    if file_key not in seen_files:
+                        seen_files.add(file_key)
+                        table_rows.append({
+                            "id": kb_id,
+                            "file name": pdf_name_str,
+                            "uploaded by (full name)": full_name,
+                            "uploaded by (role)": uploaded_by_role.capitalize() if uploaded_by_role else "Unknown"
+                        })
+        if table_rows:
+            df = pd.DataFrame(table_rows)
+            st.dataframe(df, use_container_width=True, hide_index=True)
+        else:
+            st.info("No knowledge base entries found.")
+    with col2:
+        st.subheader("Upload Knowledge Base PDF")
+        uploaded_file = st.file_uploader("Choose PDF file", type="pdf", key="admin_pdf_upload")
+        if uploaded_file is not None:
+            st.info(f"Ready to upload: {uploaded_file.name}")
+            if st.button("Submit PDF to Knowledge Base", key="submit_admin_pdf_knowledge"):
+                try:
+                    import pdfplumber
+                    from io import BytesIO
+                    with pdfplumber.open(BytesIO(uploaded_file.read())) as pdf:
+                        all_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+                    chunk_size = 1000
+                    chunks = [all_text[i:i+chunk_size] for i in range(0, len(all_text), chunk_size)]
+                    pdf_entry = {
+                        'name': uploaded_file.name,
+                        'chunks': chunks,
+                        'uploaded_at': datetime.now().isoformat(),
+                        'source': 'pdf_upload',
+                    }
+                    # Save to knowledge base as admin
+                    data_manager.data_manager.save_knowledge_base(
+                        pdf_memories=[pdf_entry],
+                        pdf_name=[uploaded_file.name],
+                        uploaded_by='admin',
+                        uploaded_by_id=st.session_state.admin_id
+                    )
+                    st.success(f"PDF '{uploaded_file.name}' processed and added to knowledge base!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to process PDF: {e}")
 
 # Logs Tab
 with logs_tab:
