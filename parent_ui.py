@@ -196,6 +196,15 @@ def show_meal_plan_generator():
                     available_ingredients=available_ingredients.strip() if selected_patient_id else "",
                     religion=religion if religion else ""
                 )
+                import json
+                # Save meal plan to database as valid JSON
+                meal_plan_json = json.dumps({"text": meal_plan})
+                data_manager.save_meal_plan(
+                    patient_id=str(selected_patient_id),
+                    meal_plan=meal_plan_json,
+                    duration_days=7,
+                    parent_id=str(parent_id)
+                )
                 st.success(f"✅ Meal plan generated successfully!")
                 st.markdown("### 📋 Your Child's Personalized Meal Plan")
                 st.markdown(meal_plan)

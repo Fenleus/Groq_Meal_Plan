@@ -224,18 +224,18 @@ class DataManager:
         rows = self.cursor.fetchall()
         return {str(row['note_id']): row for row in rows}
 
-    def save_nutritionist_note(self, meal_plan_id: str, nutritionist_id: str, note: str) -> str:
+    def save_nutritionist_note(self, plan_id: str, nutritionist_id: str, note: str) -> str:
         sql = """
-            INSERT INTO nutritionist_notes (meal_plan_id, nutritionist_id, note, created_at)
+            INSERT INTO nutritionist_notes (plan_id, nutritionist_id, note, created_at)
             VALUES (%s, %s, %s, %s)
         """
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self.cursor.execute(sql, (meal_plan_id, nutritionist_id, note, now))
+        self.cursor.execute(sql, (plan_id, nutritionist_id, note, now))
         self.conn.commit()
         return str(self.cursor.lastrowid)
 
-    def get_notes_for_meal_plan(self, meal_plan_id: str) -> List[Dict]:
-        self.cursor.execute("SELECT note_id, nutritionist_id, patient_id, note, created_at FROM nutritionist_notes WHERE meal_plan_id = %s", (meal_plan_id,))
+    def get_notes_for_meal_plan(self, plan_id: str) -> List[Dict]:
+        self.cursor.execute("SELECT note_id, nutritionist_id, patient_id, note, created_at FROM nutritionist_notes WHERE plan_id = %s", (plan_id,))
         return self.cursor.fetchall()
 
     # Knowledge Base Management

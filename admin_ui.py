@@ -129,7 +129,7 @@ def load_logs():
 import json
 
 # Tabs: Food Database, Knowledge Base, Meal Plans Overview, Logs
-main_tab, kb_tab, mealplans_tab, logs_tab = st.tabs(["🍲 Food Database", "📚 Knowledge Base", "� Meal Plans Overview", "📜 Logs"])
+main_tab, kb_tab, mealplans_tab, logs_tab = st.tabs(["🍲 Food Database", "📚 Knowledge Base", "🍲 Meal Plans Overview", "📜 Logs"])
 
 
 with main_tab:
@@ -573,7 +573,12 @@ with mealplans_tab:
         plan_id = plan['plan_id']
         patient_id = plan['patient_id']
         full_name = patients.get(patient_id, "Unknown")
-        plan_details = plan['plan_details']
+        import json
+        try:
+            plan_details_obj = json.loads(plan['plan_details'])
+            plan_details = plan_details_obj.get('text', plan['plan_details'])
+        except Exception:
+            plan_details = plan['plan_details']
         generated_at = plan['generated_at']
         nut_notes = "\n".join(notes_by_patient.get(patient_id, []))
         table_rows.append({
