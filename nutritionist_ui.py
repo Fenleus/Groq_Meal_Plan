@@ -217,115 +217,49 @@ def show_all_parents():
 def show_add_notes():
     """Dedicated section for adding detailed notes to meal plans"""
     st.header("📝 Add Notes to Meal Plans")
-    
-    # Search/filter options
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Parent filter
-        parents_data = data_manager.get_parents_data()
-        parent_options = {"all": "All Parents"}
-        for pid, pdata in parents_data.items():
-            parent_options[pid] = pdata.get('full_name', f"Parent {pid}")
-        selected_parent = st.selectbox("Filter by Parent", 
-                                     options=list(parent_options.keys()),
-                                     format_func=lambda x: parent_options[x])
-    
-    with col2:
-        # Date range
-        days_back = st.selectbox("Show plans from last:", [7, 14, 30, 60], index=2)
-    
-    # Get meal plans based on filters
+    # Parent filter only
+    parents_data = data_manager.get_parents_data()
+    parent_options = {"all": "All Parents"}
+    for pid, pdata in parents_data.items():
+        parent_options[pid] = pdata.get('full_name', f"Parent {pid}")
+    selected_parent = st.selectbox("Filter by Parent", 
+                                 options=list(parent_options.keys()),
+                                 format_func=lambda x: parent_options[x])
+
+    # Get meal plans based on parent filter
     all_plans = data_manager.get_meal_plans()
-    filtered_plans = []
-    cutoff_date = datetime.now() - timedelta(days=days_back)
+    table_rows = []
     for plan in all_plans.values():
-        plan_date = datetime.strptime(plan['added_at'], "%Y-%m-%d %H:%M:%S")
-        if plan_date >= cutoff_date:
-            # Get child data
-            child_data = data_manager.get_child_by_id(plan['patient_id'])
-            plan['child_name'] = f"{child_data['first_name']} {child_data['last_name']}" if child_data else "Unknown"
-            age_months = child_data['age_in_months'] if child_data and 'age_in_months' in child_data else None
-            if age_months is not None:
-                years = age_months // 12
-                months = age_months % 12
-                if years > 0 and months > 0:
-                    plan['child_age'] = f"{years} years, {months} months ({age_months} months)"
-                elif years > 0:
-                    plan['child_age'] = f"{years} years ({age_months} months)"
-                else:
-                    plan['child_age'] = f"{months} months"
-            else:
-                plan['child_age'] = "Unknown"
-            # Filter by parent
-            if selected_parent == "all" or (child_data and child_data.get('parent_id') == selected_parent):
-                filtered_plans.append(plan)
+        child_data = data_manager.get_child_by_id(plan['patient_id'])
+        child_name = f"{child_data['first_name']} {child_data['last_name']}" if child_data else "Unknown"
+        age_months = child_data['age_in_months'] if child_data and 'age_in_months' in child_data else None
+        child_age = f"{age_months//12}y {age_months%12}m" if age_months is not None else "-"
+        parent_id = child_data.get('parent_id') if child_data else None
+        if selected_parent == "all" or (parent_id == selected_parent):
+            # Get existing notes for this plan
+            notes = data_manager.get_notes_for_meal_plan(plan.get('plan_id', ''))
+            notes_str = "\n".join([f"[{datetime.strptime(note['added_at'], '%Y-%m-%d %H:%M:%S').strftime('%b %d')}] {note['note']}" for note in notes]) if notes else ""
+            table_rows.append({
+                "Plan ID": plan.get('plan_id', ''),
+                "Child Name": child_name,
+                "Child Age": child_age,
+                "Parent": parents_data.get(parent_id, {}).get('full_name', f"Parent {parent_id}") if parent_id else "Unknown",
+                "Added At": plan.get('added_at', ''),
+                "Plan Details": plan.get('plan_details', ''),
+                "Notes": notes_str
+            })
+
     # Sort by date (newest first)
-    filtered_plans.sort(key=lambda x: x['added_at'], reverse=True)
-    if not filtered_plans:
-        st.info("No meal plans found for the selected criteria.")
-        return
-    # Display meal plans for note-taking
-    for plan in filtered_plans:
-        plan_date = datetime.strptime(plan['added_at'], "%Y-%m-%d %H:%M:%S").strftime("%B %d, %Y")
-        with st.container():
-            st.subheader(f"📋 {plan['child_name']} ({plan['child_age']}) - {plan_date}")
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                # Show meal plan
-                with st.expander("📖 View Full Meal Plan"):
-                    st.markdown(plan['plan_details'])
-                # Add new note
-                st.write("**Add Nutritionist Note:**")
-                note_categories = ["General Feedback", "Nutrition Concern", "Recommendation", "Follow-up Required"]
-                note_category = st.selectbox("Note Category:", note_categories, key=f"cat_{plan['plan_id']}")
-                note_text = st.text_area(
-                    "Your professional note:",
-                    placeholder="Add your professional assessment, recommendations, or concerns...",
-                    height=100,
-                    key=f"detailed_note_{plan['plan_id']}"
-                )
-                if st.button(f"💾 Save Professional Note", key=f"save_detailed_{plan['plan_id']}"):
-                    if note_text:
-                        full_note = f"[{note_category}] {note_text}"
-                        data_manager.save_nutritionist_note(
-                            meal_plan_id=plan['plan_id'],
-                            nutritionist_id=st.session_state.nutritionist_id,
-                            note=full_note
-                        )
-                        st.success("Professional note saved successfully!")
-                        st.rerun()
-                    else:
-                        st.error("Please enter a note before saving.")
-            with col2:
-                # Show child summary and existing notes
-                child_data = data_manager.get_child_by_id(plan['patient_id'])
-                if child_data:
-                    st.write("**Child Summary:**")
-                    age_months = child_data.get('age_in_months')
-                    if age_months is not None:
-                        years = age_months // 12
-                        months = age_months % 12
-                        if years > 0 and months > 0:
-                            age_str = f"{years} years, {months} months ({age_months} months)"
-                        elif years > 0:
-                            age_str = f"{years} years ({age_months} months)"
-                        else:
-                            age_str = f"{months} months"
-                    else:
-                        age_str = "Unknown"
-                    st.write(f"Age: {age_str}")
-                    st.write(f"BMI: {child_data.get('bmi', '')} ({child_data.get('bmi_category', '')})")
-                    st.write(f"Allergies: {child_data.get('allergies', '')}")
-                    st.write(f"Conditions: {child_data.get('medical_conditions', '')}")
-                # Show existing notes
-                existing_notes = data_manager.get_notes_for_meal_plan(plan['plan_id'])
-                if existing_notes:
-                    st.write("**Previous Notes:**")
-                    for note in existing_notes:
-                        note_date = datetime.strptime(note['added_at'], "%Y-%m-%d %H:%M:%S").strftime("%b %d")
-                        st.info(f"**{note_date}:** {note['note']}")
-            st.markdown("---")
+    table_rows.sort(key=lambda x: x['Added At'], reverse=True)
+    columns = ["Plan ID", "Child Name", "Child Age", "Parent", "Added At", "Plan Details", "Notes"]
+    if table_rows:
+        import pandas as pd
+        df = pd.DataFrame(table_rows, columns=columns)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    else:
+        import pandas as pd
+        empty_df = pd.DataFrame([], columns=columns)
+        st.dataframe(empty_df, use_container_width=True, hide_index=True)
 
 def show_knowledge_base():
     """Manage Filipino nutrition knowledge base"""
