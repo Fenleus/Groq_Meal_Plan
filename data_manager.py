@@ -240,20 +240,19 @@ class DataManager:
 
     # Knowledge Base Management
     def get_knowledge_base(self) -> Dict:
-        self.cursor.execute("SELECT kb_id, pdf_memories, uploaded_pdfs, uploaded_by, created_at, uploaded_by_admin_id, uploaded_by_nutritionist_id FROM knowledge_base")
+        self.cursor.execute("SELECT kb_id, pdf_memories, pdf_name, uploaded_by, added_at, uploaded_by_id FROM knowledge_base")
         rows = self.cursor.fetchall()
         return {str(row['kb_id']): row for row in rows}
 
-    def save_knowledge_base(self, pdf_memories, uploaded_pdfs, uploaded_by=None, uploaded_by_admin_id=None, uploaded_by_nutritionist_id=None):
-        sql = "INSERT INTO knowledge_base (pdf_memories, uploaded_pdfs, uploaded_by, created_at, uploaded_by_admin_id, uploaded_by_nutritionist_id) VALUES (%s, %s, %s, %s, %s, %s)"
+    def save_knowledge_base(self, pdf_memories, pdf_name, uploaded_by=None, uploaded_by_id=None):
+        sql = "INSERT INTO knowledge_base (pdf_memories, pdf_name, uploaded_by, added_at, uploaded_by_id) VALUES (%s, %s, %s, %s, %s)"
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.cursor.execute(sql, (
             json.dumps(pdf_memories),
-            json.dumps(uploaded_pdfs),
+            json.dumps(pdf_name),
             uploaded_by,
             now,
-            uploaded_by_admin_id,
-            uploaded_by_nutritionist_id
+            uploaded_by_id
         ))
         self.conn.commit()
         return str(self.cursor.lastrowid)
