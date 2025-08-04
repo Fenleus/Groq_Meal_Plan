@@ -61,13 +61,17 @@ def initialize_session_state():
             st.session_state.nutrition_ai = None
             st.session_state.api_working = False
             st.session_state.api_error = str(e)
-    
     if 'nutritionist_id' not in st.session_state:
-        st.session_state.nutritionist_id = "nutritionist_001" 
+        # Nutritionist dropdown options (static for now)
+        nutritionist_options = {
+            '1': 'Anna Cruz',
+            '2': 'Juan dela Paz'
+        }
+        st.session_state.nutritionist_options = nutritionist_options
+        st.session_state.nutritionist_id = list(nutritionist_options.keys())[0]
 
 def main():
     initialize_session_state()
-    
     # Header
     st.markdown("""
     <div class="main-header">
@@ -75,21 +79,27 @@ def main():
         <p>Monitor and guide children's nutrition across all families</p>
     </div>
     """, unsafe_allow_html=True)
-    
     # Check API status
     if not st.session_state.api_working:
         st.error(f"❌ API Error: {st.session_state.get('api_error', 'Unknown error')}")
         st.info("Make sure your GROQ_API_KEY is set in the .env file")
         return
-    
-
-    
     # Sidebar for nutritionist info
     with st.sidebar:
         st.header("👩‍⚕️ Nutritionist Login")
-        st.info(f"Logged in as: Dr. Maria Rodriguez")
-        st.write(f"ID: {st.session_state.nutritionist_id}")
-        
+        nutritionist_options = st.session_state.get('nutritionist_options', {
+            '1': 'Anna Cruz',
+            '2': 'Juan dela Paz'
+        })
+        selected_nutritionist = st.selectbox(
+            "Select Nutritionist Account",
+            options=list(nutritionist_options.keys()),
+            format_func=lambda x: nutritionist_options[x],
+            index=0
+        )
+        st.session_state.nutritionist_id = selected_nutritionist
+        st.info(f"Logged in as: {nutritionist_options[selected_nutritionist]}")
+        st.write(f"ID: {selected_nutritionist}")
         # Quick stats
         st.subheader("📊 Quick Stats")
         all_children = data_manager.get_children_data()
