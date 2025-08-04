@@ -335,23 +335,42 @@ def show_knowledge_base():
     
     with col1:
         st.subheader("📚 Current Knowledge Base")
-        knowledge_base = data_manager.get_knowledge_base()
-        filipino_foods = knowledge_base.get('filipino_foods', {})
+        # Aggregate all PDFs uploaded by this nutritionist
+        knowledge_base_raw = data_manager.get_knowledge_base()
+        import json
+        def parse_json_field(field):
+            if isinstance(field, str):
+                try:
+                    return json.loads(field)
+                except Exception:
+                    return []
+            return field if field is not None else []
+        all_uploaded_pdfs = []
+        all_pdf_memories = []
+        # Only include rows uploaded by this nutritionist
+        if isinstance(knowledge_base_raw, dict):
+            for kb in knowledge_base_raw.values():
+                if kb.get('uploaded_by') == 'nutritionist' and str(kb.get('uploaded_by_nutritionist_id')) == str(st.session_state.nutritionist_id):
+                    all_uploaded_pdfs.extend(parse_json_field(kb.get('uploaded_pdfs', [])))
+                    all_pdf_memories.extend(parse_json_field(kb.get('pdf_memories', [])))
+        # Optionally, aggregate filipino_foods if needed (currently only showing from latest)
+        filipino_foods = {}
+        if isinstance(knowledge_base_raw, dict) and knowledge_base_raw:
+            latest_kb = max(knowledge_base_raw.values(), key=lambda x: x.get('kb_id', 0))
+            filipino_foods = parse_json_field(latest_kb.get('filipino_foods', {}))
         if filipino_foods:
             st.write(f"**Filipino Foods Database: {len(filipino_foods)} recipes**")
             for food_id, food_data in list(filipino_foods.items())[:3]:
                 with st.expander(f"🍽️ {food_data['name']}"):
                     st.write(f"**Ingredients:** {food_data['ingredients']}")
                     st.write(f"**Nutrition Facts:** {food_data['nutrition_facts']}")
-                    st.write(f"**Instructions:** {food_data['instructions']}")
+                    st.write(f"**Instructions:** {food_data['instructions']}" )
 
-        # Show uploaded PDFs with delete option
-        uploaded_pdfs = knowledge_base.get('uploaded_pdfs', [])
-        # Use a session state variable to track which PDF is pending deletion
+        # Show all uploaded PDFs with delete option
         if 'pending_delete_pdf_idx' not in st.session_state:
             st.session_state['pending_delete_pdf_idx'] = None
-        st.write(f"**Uploaded PDFs: {len(uploaded_pdfs)} documents**")
-        for idx, pdf in enumerate(uploaded_pdfs):
+        st.write(f"**Uploaded PDFs: {len(all_uploaded_pdfs)} documents**")
+        for idx, pdf in enumerate(all_uploaded_pdfs):
             pdf_name = pdf.get('name', 'Unknown document')
             col_pdf, col_del = st.columns([8,1])
             with col_pdf:
@@ -373,22 +392,33 @@ def show_knowledge_base():
                 with confirm_col2:
                     confirm_no = st.button("Cancel", key=f"cancel_delete_{idx}")
                 if confirm_yes:
-
-                    knowledge_base = data_manager.get_knowledge_base() 
-
-                    uploaded_pdfs_new = [p for p in knowledge_base.get('uploaded_pdfs', []) if not (p.get('name') == pdf_name and p.get('uploaded_at') == pdf.get('uploaded_at'))]
-                    knowledge_base['uploaded_pdfs'] = uploaded_pdfs_new
-
-                    if 'pdf_memories' in knowledge_base:
-                        pdf_memories_new = [m for m in knowledge_base['pdf_memories'] if not (m.get('name') == pdf_name and m.get('uploaded_at', None) == pdf.get('uploaded_at', None))]
-                        knowledge_base['pdf_memories'] = pdf_memories_new
-                    data_manager.save_knowledge_base(knowledge_base)
-
-                    st.session_state['pending_delete_pdf_idx'] = None
-                    st.session_state['pending_delete_pdf_name'] = None
-                    st.session_state['pending_delete_pdf_uploaded_at'] = None
-                    st.success(f"Deleted '{pdf_name}' from knowledge base.")
-                    st.rerun()
+                    # Find and delete from the correct knowledge_base row
+                    kb_to_update = None
+                    for kb in knowledge_base_raw.values():
+                        if kb.get('uploaded_by') == 'nutritionist' and str(kb.get('uploaded_by_nutritionist_id')) == str(st.session_state.nutritionist_id):
+                            pdfs = parse_json_field(kb.get('uploaded_pdfs', []))
+                            for p in pdfs:
+                                if p.get('name') == pdf_name and p.get('uploaded_at') == pdf.get('uploaded_at'):
+                                    kb_to_update = kb
+                                    break
+                            if kb_to_update:
+                                break
+                    if kb_to_update:
+                        # Remove PDF from this kb row
+                        new_pdfs = [p for p in parse_json_field(kb_to_update.get('uploaded_pdfs', [])) if not (p.get('name') == pdf_name and p.get('uploaded_at') == pdf.get('uploaded_at'))]
+                        new_memories = [m for m in parse_json_field(kb_to_update.get('pdf_memories', [])) if not (m.get('name') == pdf_name and m.get('uploaded_at', None) == pdf.get('uploaded_at', None))]
+                        data_manager.save_knowledge_base(
+                            new_memories,
+                            new_pdfs,
+                            uploaded_by='nutritionist',
+                            uploaded_by_admin_id=None,
+                            uploaded_by_nutritionist_id=st.session_state.nutritionist_id
+                        )
+                        st.session_state['pending_delete_pdf_idx'] = None
+                        st.session_state['pending_delete_pdf_name'] = None
+                        st.session_state['pending_delete_pdf_uploaded_at'] = None
+                        st.success(f"Deleted '{pdf_name}' from knowledge base.")
+                        st.rerun()
                 elif confirm_no:
                     st.session_state['pending_delete_pdf_idx'] = None
                     st.session_state['pending_delete_pdf_name'] = None
@@ -404,9 +434,12 @@ def show_knowledge_base():
         if 'pending_pdf_file' not in st.session_state:
             st.session_state['pending_pdf_file'] = None
         uploaded_file = st.file_uploader("Choose PDF file", type="pdf", key="pdf_upload")
+        # If the file uploader is cleared (cross clicked), remove pending_pdf_file
+        if uploaded_file is None and st.session_state.get('pending_pdf_file') is not None:
+            st.session_state['pending_pdf_file'] = None
         if uploaded_file is not None:
             st.session_state['pending_pdf_file'] = uploaded_file
-        if st.session_state['pending_pdf_file'] is not None:
+        if st.session_state.get('pending_pdf_file') is not None:
             st.info(f"Ready to upload: {st.session_state['pending_pdf_file'].name}")
             if st.button("Submit PDF to Knowledge Base", key="submit_pdf_knowledge"):
                 try:
@@ -437,7 +470,17 @@ def show_knowledge_base():
                         if 'uploaded_pdfs' not in knowledge_base:
                             knowledge_base['uploaded_pdfs'] = []
                         knowledge_base['uploaded_pdfs'].append({'name': st.session_state['pending_pdf_file'].name, 'uploaded_at': datetime.now().isoformat()})
-                        data_manager.save_knowledge_base(knowledge_base)
+                        # Determine uploader type and set fields accordingly
+                        uploader_type = 'nutritionist'
+                        uploader_nutritionist_id = st.session_state.get('nutritionist_id', None)
+                        uploader_admin_id = None
+                        data_manager.save_knowledge_base(
+                            knowledge_base.get('pdf_memories', []),
+                            knowledge_base.get('uploaded_pdfs', []),
+                            uploaded_by=uploader_type,
+                            uploaded_by_admin_id=uploader_admin_id,
+                            uploaded_by_nutritionist_id=uploader_nutritionist_id
+                        )
                         st.success(f"PDF '{st.session_state['pending_pdf_file'].name}' processed and added to knowledge base!")
                         st.session_state['pending_pdf_file'] = None
                         st.rerun()

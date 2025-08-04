@@ -1,13 +1,13 @@
-
 from db import get_connection
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import uuid
+import json
 
 class DataManager:
     def get_meal_plan_by_id(self, plan_id: int) -> Optional[Dict]:
         """Get a single meal plan by its plan_id."""
-        self.cursor.execute("SELECT plan_id, patient_id, plan_details, created_at FROM meal_plans WHERE plan_id = %s", (plan_id,))
+        self.cursor.execute("SELECT plan_id, patient_id, plan_details, generated_at FROM meal_plans WHERE plan_id = %s", (plan_id,))
         return self.cursor.fetchone()
 
     def get_nutritionist_notes_by_patient(self, patient_id: int) -> List[Dict]:
@@ -34,7 +34,6 @@ class DataManager:
     # Admin Logs Management
     def save_admin_log(self, action: str, details):
         """Insert a new admin log into the admin_logs table."""
-        import json
         sql = "INSERT INTO admin_logs (timestamp, action, details) VALUES (%s, %s, %s)"
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.cursor.execute(sql, (now, action, json.dumps(details)))
@@ -44,7 +43,6 @@ class DataManager:
         """Fetch all admin logs from the admin_logs table."""
         self.cursor.execute("SELECT log_id, timestamp, action, details FROM admin_logs ORDER BY timestamp DESC")
         rows = self.cursor.fetchall()
-        import json
         for row in rows:
             if isinstance(row.get('details'), str):
                 try:
@@ -170,14 +168,14 @@ class DataManager:
     # Meal Plans Management
     def get_meal_plans(self) -> Dict:
         """Get all meal plans from MySQL, all columns."""
-        self.cursor.execute("SELECT plan_id, patient_id, plan_details, created_at FROM meal_plans")
+        self.cursor.execute("SELECT plan_id, patient_id, plan_details, generated_at FROM meal_plans")
         rows = self.cursor.fetchall()
         return {str(row['plan_id']): row for row in rows}
 
     def save_meal_plan(self, patient_id: str, meal_plan: str, duration_days: int, parent_id: str) -> str:
         """Save a new meal plan to MySQL"""
         sql = """
-            INSERT INTO meal_plans (patient_id, plan_details, created_at)
+            INSERT INTO meal_plans (patient_id, plan_details, generated_at)
             VALUES (%s, %s, %s)
         """
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -189,14 +187,14 @@ class DataManager:
         """Get meal plans for a patient within the last X months from MySQL, all columns."""
         cutoff_date = (datetime.now() - timedelta(days=months_back * 30)).strftime('%Y-%m-%d %H:%M:%S')
         self.cursor.execute(
-            "SELECT plan_id, patient_id, plan_details, created_at FROM meal_plans WHERE patient_id = %s AND created_at >= %s ORDER BY created_at DESC",
+            "SELECT plan_id, patient_id, plan_details, generated_at FROM meal_plans WHERE patient_id = %s AND generated_at >= %s ORDER BY generated_at DESC",
             (patient_id, cutoff_date)
         )
         return self.cursor.fetchall()
 
     def get_meal_plans_by_parent(self, parent_id: str) -> List[Dict]:
         """Get all recent meal plans for a parent's children from MySQL, all columns."""
-        self.cursor.execute("SELECT plan_id, patient_id, plan_details, created_at FROM meal_plans WHERE patient_id IN (SELECT id FROM patients WHERE parent_id = %s) ORDER BY created_at DESC", (parent_id,))
+        self.cursor.execute("SELECT plan_id, patient_id, plan_details, generated_at FROM meal_plans WHERE patient_id IN (SELECT id FROM patients WHERE parent_id = %s) ORDER BY generated_at DESC", (parent_id,))
         return self.cursor.fetchall()
 
     # Parent Recipes Management
@@ -242,14 +240,21 @@ class DataManager:
 
     # Knowledge Base Management
     def get_knowledge_base(self) -> Dict:
-        self.cursor.execute("SELECT kb_id, pdf_memories, uploaded_pdfs, created_at FROM knowledge_base")
+        self.cursor.execute("SELECT kb_id, pdf_memories, uploaded_pdfs, uploaded_by, created_at, uploaded_by_admin_id, uploaded_by_nutritionist_id FROM knowledge_base")
         rows = self.cursor.fetchall()
         return {str(row['kb_id']): row for row in rows}
 
-    def save_knowledge_base(self, pdf_memories, uploaded_pdfs):
-        sql = "INSERT INTO knowledge_base (pdf_memories, uploaded_pdfs, created_at) VALUES (%s, %s, %s)"
+    def save_knowledge_base(self, pdf_memories, uploaded_pdfs, uploaded_by=None, uploaded_by_admin_id=None, uploaded_by_nutritionist_id=None):
+        sql = "INSERT INTO knowledge_base (pdf_memories, uploaded_pdfs, uploaded_by, created_at, uploaded_by_admin_id, uploaded_by_nutritionist_id) VALUES (%s, %s, %s, %s, %s, %s)"
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self.cursor.execute(sql, (pdf_memories, uploaded_pdfs, now))
+        self.cursor.execute(sql, (
+            json.dumps(pdf_memories),
+            json.dumps(uploaded_pdfs),
+            uploaded_by,
+            now,
+            uploaded_by_admin_id,
+            uploaded_by_nutritionist_id
+        ))
         self.conn.commit()
         return str(self.cursor.lastrowid)
 
