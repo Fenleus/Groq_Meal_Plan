@@ -38,8 +38,20 @@ def load_logs():
 
 with st.sidebar:
     st.header("🛠️ Admin Login")
-    st.info("Logged in as: System Administrator")
-    st.write("ID: admin")
+    # Admin dropdown options (static for now)
+    admin_options = {
+        '1': 'Joel Santiago',
+        '2': 'Karen Reyes'
+    }
+    selected_admin = st.selectbox(
+        "Select Admin Account",
+        options=list(admin_options.keys()),
+        format_func=lambda x: admin_options[x],
+        index=0
+    )
+    st.session_state.admin_id = selected_admin
+    st.info(f"Logged in as: {admin_options[selected_admin]}")
+    st.write(f"ID: {selected_admin}")
     st.subheader("📊 Quick Stats")
 
     try:
