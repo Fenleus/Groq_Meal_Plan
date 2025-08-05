@@ -189,7 +189,7 @@ def show_meal_plan_generator():
             st.error("Please select a child first!")
             return
         from nutrition_chain import get_meal_plan_with_langchain
-        with st.spinner(f"🔥 Generating meal plan (LangChain)..."):
+        with st.spinner(f"🔥 Generating meal plan ..."):
             try:
                 meal_plan = get_meal_plan_with_langchain(
                     patient_id=selected_patient_id,
