@@ -379,13 +379,13 @@ def show_add_notes():
                     preview_len = 0  # Show only first 100 characters when minimized
                     if not is_expanded and isinstance(val, str) and len(val) > preview_len:
                         preview = val[:preview_len]
-                        btn_label = "⌄ Show Plan Details"
+                        btn_label = "Show Plan Details"
                         val_cols[i].markdown(preview, unsafe_allow_html=True)
                         if val_cols[i].button(btn_label, key=f"expand_{plan_id}"):
                             st.session_state[expand_key] = True
                             st.rerun()
                     else:
-                        btn_label = "^ Minimize"
+                        btn_label = "Minimize"
                         val_cols[i].markdown(val, unsafe_allow_html=True)
                         if isinstance(val, str) and len(val) > preview_len:
                             if val_cols[i].button(btn_label, key=f"minimize_{plan_id}"):
