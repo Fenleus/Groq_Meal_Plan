@@ -129,7 +129,7 @@ def load_logs():
 import json
 
 # Tabs: Food Database, Knowledge Base, Meal Plans Overview, Logs
-main_tab, kb_tab, mealplans_tab, logs_tab = st.tabs(["🍲 Food Database", "📚 Knowledge Base", "🍲 Meal Plans Overview", "📜 Logs"])
+main_tab, kb_tab, logs_tab = st.tabs(["🍲 Food Database", "📚 Knowledge Base", "📜 Logs"])
 
 
 with main_tab:
@@ -542,58 +542,6 @@ with kb_tab:
 # Logs Tab
 
 # Meal Plans Overview Tab
-with mealplans_tab:
-    st.header("📋 Generated Meal Plans Overview")
-    # Query all meal plans
-    conn = data_manager.data_manager.conn
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT plan_id, patient_id, plan_details, generated_at FROM meal_plans ORDER BY generated_at DESC")
-    meal_plans = cursor.fetchall()
-    # Get all patients for full name lookup
-    cursor.execute("SELECT patient_id, first_name, last_name FROM patients")
-    patients = {row['patient_id']: f"{row['first_name']} {row['last_name']}" for row in cursor.fetchall()}
-    # Get all nutritionist notes
-
-    cursor.execute("SELECT note_id, patient_id, nutritionist_id, note, created_at FROM nutritionist_notes")
-    notes = cursor.fetchall()
-    # Get all nutritionists for full name lookup
-    cursor.execute("SELECT nutritionist_id, full_name FROM nutritionists")
-    nutritionists = {str(row['nutritionist_id']): row['full_name'] for row in cursor.fetchall()}
-
-    # Map notes to patient_id
-    notes_by_patient = {}
-    for note in notes:
-        nut_name = nutritionists.get(str(note['nutritionist_id']), "Unknown")
-        note_text = f"{nut_name}: {note['note']}"
-        notes_by_patient.setdefault(note['patient_id'], []).append(note_text)
-
-    # Prepare table rows
-    table_rows = []
-    for plan in meal_plans:
-        plan_id = plan['plan_id']
-        patient_id = plan['patient_id']
-        full_name = patients.get(patient_id, "Unknown")
-        import json
-        try:
-            plan_details_obj = json.loads(plan['plan_details'])
-            plan_details = plan_details_obj.get('text', plan['plan_details'])
-        except Exception:
-            plan_details = plan['plan_details']
-        generated_at = plan['generated_at']
-        nut_notes = "\n".join(notes_by_patient.get(patient_id, []))
-        table_rows.append({
-            "ID": plan_id,
-            "Patient ID": patient_id,
-            "Full Name": full_name,
-            "Plan Details": plan_details,
-            "Nutritionist Notes": nut_notes,
-            "Generated At": generated_at
-        })
-
-    columns = ["ID", "Patient ID", "Full Name", "Plan Details", "Nutritionist Notes", "Generated At"]
-    df = pd.DataFrame(table_rows, columns=columns)
-    st.dataframe(df, use_container_width=True, hide_index=True)
-    # ...removed info message...
 
 with logs_tab:
     st.header("📜 Admin Logs")
