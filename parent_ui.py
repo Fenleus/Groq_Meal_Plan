@@ -92,13 +92,125 @@ def main():
 
     
     # Main tabs
-    tab1, tab2 = st.tabs(["👶 My Children", "🍽️ Generate Meal Plan"])
+    tab1, tab2, tab3 = st.tabs(["👶 My Children", "🍽️ Generate Meal Plan", "📝 Generated Meal Plans"])
 
     with tab1:
         show_children_overview()
 
     with tab2:
         show_meal_plan_generator()
+
+    with tab3:
+        show_generated_meal_plans()
+def show_generated_meal_plans():
+    """Show all generated meal plans and nutritionist notes for this parent's children"""
+    st.header("📝 Generated Meal Plans & Nutritionist Notes")
+    children = data_manager.get_children_by_parent(st.session_state.parent_id)
+    if not children:
+        st.info("No children found for this parent account.")
+        return
+    # Dropdown filter for children
+    child_options = {child['patient_id']: f"{child['first_name']} {child['last_name']}" for child in children}
+    selected_child_id = st.selectbox("Filter by Child", options=[None] + list(child_options.keys()), format_func=lambda x: child_options[x] if x else "All Children", index=0)
+    # Get all plan_ids for these children
+    child_ids = [child['patient_id'] for child in children]
+    all_plans = data_manager.get_meal_plans()
+    # Only show plans for this parent's children
+    plans = [plan for plan in all_plans.values() if plan['patient_id'] in child_ids]
+    if selected_child_id:
+        plans = [plan for plan in plans if plan['patient_id'] == selected_child_id]
+    # Get all nutritionist notes for these plans
+    notes_by_plan = {}
+    for plan in plans:
+        plan_id = plan.get('plan_id')
+        notes = data_manager.get_notes_for_meal_plan(plan_id)
+        notes_by_plan[plan_id] = notes
+    # Get nutritionist names
+    nutritionists = data_manager.get_nutritionists()
+    nutritionist_map = {str(n['nutritionist_id']): n.get('full_name', f"Nutritionist {n['nutritionist_id']}") for n in nutritionists}
+    # Table rows
+    table_rows = []
+    for plan in plans:
+        child = next((c for c in children if c['patient_id'] == plan['patient_id']), None)
+        child_name = f"{child['first_name']} {child['last_name']}" if child else "Unknown"
+        age_months = child.get('age_in_months') if child else None
+        child_age = f"{age_months//12}y {age_months%12}m" if age_months is not None else "-"
+        plan_details = plan.get('plan_details', '')
+        # Clean plan_details
+        import json
+        def clean_note(note_val):
+            if isinstance(note_val, str):
+                try:
+                    parsed = json.loads(note_val)
+                    if isinstance(parsed, dict) and 'text' in parsed:
+                        return parsed['text']
+                except Exception:
+                    pass
+                note_val = note_val.replace('\r\n', '  \n').replace('\n', '  \n').replace('/n', '  \n')
+            return note_val
+        plan_details_clean = clean_note(plan_details)
+        generated_at_val = plan.get('generated_at', '')
+        # Format generated_at robustly
+        generated_at_val_fmt = generated_at_val
+        if generated_at_val:
+            val_str = str(generated_at_val).strip()
+            try:
+                dt = datetime.strptime(val_str, "%Y-%m-%d %H:%M:%S")
+                month = dt.strftime('%B')
+                day = dt.strftime('%d')
+                year = dt.strftime('%Y')
+                hour = dt.strftime('%I').lstrip('0') or '0'
+                minute = dt.strftime('%M')
+                ampm = dt.strftime('%p').lower()
+                generated_at_val_fmt = f"{month} {day}, {year} {hour}:{minute} {ampm}"
+            except Exception:
+                pass
+        notes = notes_by_plan.get(plan.get('plan_id'), [])
+        notes_str = "<br>".join([
+            f"Noted by {nutritionist_map.get(str(note.get('nutritionist_id')), str(note.get('nutritionist_id')))}: {clean_note(note.get('note', ''))}" for note in notes
+        ]) if notes else "No notes yet"
+        table_rows.append({
+            "Child Name": child_name,
+            "Child Age": child_age,
+            "Plan Details": plan_details_clean,
+            "Generated at": generated_at_val_fmt,
+            "Notes": notes_str
+        })
+    columns = ["Child Name", "Child Age", "Plan Details", "Generated at", "Notes"]
+    if table_rows:
+        cols = st.columns(len(columns))
+        for i, col in enumerate(columns):
+            cols[i].markdown(f"**{col}**")
+        for row in table_rows:
+            vals = [row[col] for col in columns]
+            val_cols = st.columns(len(columns))
+            for i, val in enumerate(vals):
+                if columns[i] == "Plan Details":
+                    expand_key = f"plan_details_expanded_{row.get('Generated at','')}_{row.get('Child Name','')}"
+                    if expand_key not in st.session_state:
+                        st.session_state[expand_key] = False
+                    is_expanded = st.session_state[expand_key]
+                    preview_len = 0
+                    if not is_expanded and isinstance(val, str) and len(val) > preview_len:
+                        val_cols[i].markdown(val[:preview_len], unsafe_allow_html=True)
+                        if val_cols[i].button("Show Details", key=f"show_details_{expand_key}"):
+                            st.session_state[expand_key] = True
+                            st.rerun()
+                    else:
+                        val_cols[i].markdown(val, unsafe_allow_html=True)
+                        if is_expanded and val_cols[i].button("Hide Details", key=f"hide_details_{expand_key}"):
+                            st.session_state[expand_key] = False
+                            st.rerun()
+                elif columns[i] == "Notes":
+                    val_cols[i].markdown(val, unsafe_allow_html=True)
+                else:
+                    val_cols[i].markdown(val)
+    else:
+        if selected_child_id:
+            child_name = child_options.get(selected_child_id, "this child")
+            st.info(f"No meal plans found for {child_name}.")
+        else:
+            st.info("No meal plans found for your children.")
 
 def show_children_overview():
     """Display children overview with their basic info and recent meal plans"""

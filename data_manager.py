@@ -5,6 +5,10 @@ import uuid
 import json
 
 class DataManager:
+    def get_nutritionists(self) -> list:
+        """Get all nutritionists from MySQL, all columns."""
+        self.cursor.execute("SELECT nutritionist_id, username, full_name, created_at FROM nutritionists")
+        return self.cursor.fetchall()
     def get_meal_plan_by_id(self, plan_id: int) -> Optional[Dict]:
         """Get a single meal plan by its plan_id."""
         self.cursor.execute("SELECT plan_id, patient_id, plan_details, generated_at FROM meal_plans WHERE plan_id = %s", (plan_id,))
