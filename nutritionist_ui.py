@@ -217,16 +217,10 @@ def show_all_parents():
 def show_add_notes():
     """Dedicated section for adding detailed notes to meal plans"""
     st.header("📝 Add Notes to Meal Plans")
-    # Parent filter only
+    # ...existing code...
     parents_data = data_manager.get_parents_data()
-    parent_options = {"all": "All Parents"}
-    for pid, pdata in parents_data.items():
-        parent_options[pid] = pdata.get('full_name', f"Parent {pid}")
-    selected_parent = st.selectbox("Filter by Parent", 
-                                 options=list(parent_options.keys()),
-                                 format_func=lambda x: parent_options[x])
 
-    # Get meal plans based on parent filter
+    # Get all meal plans and show notes for all
     all_plans = data_manager.get_meal_plans()
     table_rows = []
     for plan in all_plans.values():
@@ -235,29 +229,124 @@ def show_add_notes():
         age_months = child_data['age_in_months'] if child_data and 'age_in_months' in child_data else None
         child_age = f"{age_months//12}y {age_months%12}m" if age_months is not None else "-"
         parent_id = child_data.get('parent_id') if child_data else None
-        if selected_parent == "all" or (parent_id == selected_parent):
-            # Get existing notes for this plan
-            notes = data_manager.get_notes_for_meal_plan(plan.get('plan_id', ''))
-            notes_str = "\n".join([f"[{datetime.strptime(note['added_at'], '%Y-%m-%d %H:%M:%S').strftime('%b %d')}] {note['note']}" for note in notes]) if notes else ""
-            table_rows.append({
-                "Plan ID": plan.get('plan_id', ''),
-                "Child Name": child_name,
-                "Child Age": child_age,
-                "Parent": parents_data.get(parent_id, {}).get('full_name', f"Parent {parent_id}") if parent_id else "Unknown",
-                "Added At": plan.get('added_at', ''),
-                "Plan Details": plan.get('plan_details', ''),
-                "Notes": notes_str
-            })
+        # Always show all plans, even if there are no notes
+        notes = data_manager.get_notes_for_meal_plan(plan.get('plan_id', ''))
+        def format_created_at(val):
+            if isinstance(val, str):
+                try:
+                    dt = datetime.strptime(val, '%Y-%m-%d %H:%M:%S')
+                except Exception:
+                    return val
+            elif isinstance(val, datetime):
+                dt = val
+            else:
+                return str(val)
+            return dt.strftime('%b %d')
+        import json
+        def clean_note(note_val):
+            # If note is a JSON string with 'text', extract it
+            if isinstance(note_val, str):
+                try:
+                    parsed = json.loads(note_val)
+                    if isinstance(parsed, dict) and 'text' in parsed:
+                        note_val = parsed['text']
+                except Exception:
+                    pass
+            # Replace all newline variants with markdown line breaks
+            if isinstance(note_val, str):
+                note_val = note_val.replace('\r\n', '  \n').replace('\n', '  \n').replace('/n', '  \n')
+            return note_val
+        if notes:
+            # Get nutritionist name from id
+            nutritionist_name = st.session_state.nutritionist_options.get(str(st.session_state.nutritionist_id), "Nutritionist")
+            notes_str = "<br>".join([f"Noted by {nutritionist_name}: {clean_note(note['note'])}" for note in notes])
+        else:
+            notes_str = "No notes yet"  # Show grammatically correct placeholder if no notes yet
+        parent_full_name = "Unknown"
+        if parent_id is not None:
+            parent_info = parents_data.get(str(parent_id))
+            if parent_info and parent_info.get('full_name'):
+                parent_full_name = parent_info['full_name']
+            else:
+                parent_full_name = f"Parent {parent_id}"
+        plan_details_clean = clean_note(plan.get('plan_details', ''))
+        generated_at_val = plan.get('generated_at', '')
+        table_rows.append({
+            "Plan ID": plan.get('plan_id', ''),
+            "Child Name": child_name,
+            "Child Age": child_age,
+            "Parent": parent_full_name,
+            "Plan Details": plan_details_clean,
+            "Generated at": generated_at_val,
+            "Notes": notes_str
+        })
 
-    # Sort by date (newest first)
-    table_rows.sort(key=lambda x: x['Added At'], reverse=True)
-    columns = ["Plan ID", "Child Name", "Child Age", "Parent", "Added At", "Plan Details", "Notes"]
+    # Sort by plan (newest first if possible)
+    table_rows.sort(key=lambda x: x.get('Plan ID', ''), reverse=True)
+    columns = ["Plan ID", "Child Name", "Child Age", "Parent", "Plan Details", "Generated at", "Notes"]
+    import pandas as pd
     if table_rows:
-        import pandas as pd
-        df = pd.DataFrame(table_rows, columns=columns)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        # Add Note button and input at the top
+        plan_ids = [row['Plan ID'] for row in table_rows]
+        selected_plan_id = st.selectbox("Select Meal Plan to Add Note", plan_ids, format_func=lambda pid: f"Plan {pid}")
+        if st.button("Add Note", key="add_note_top"):
+            st.session_state["show_note_input_top"] = True
+        if st.session_state.get("show_note_input_top"):
+            new_note = st.text_area("Enter note for selected plan:", key="note_input_top")
+            if st.button("Save Note", key="save_note_top"):
+                data_manager.save_nutritionist_note(selected_plan_id, st.session_state.nutritionist_id, new_note)
+                st.success("Note added!")
+                st.session_state["show_note_input_top"] = False
+                st.rerun()
+        # Render table header
+        cols = st.columns(len(columns))
+        for i, col in enumerate(columns):
+            cols[i].markdown(f"**{col}**")
+        # Render table rows
+        for row in table_rows:
+            plan_id = row.get("Plan ID")
+            gen_at_val = row.get("Generated at")
+            if gen_at_val:
+                if isinstance(gen_at_val, str):
+                    try:
+                        gen_at_val_fmt = datetime.strptime(gen_at_val, "%Y-%m-%d %H:%M:%S").strftime("%b %d, %Y %I:%M %p")
+                    except Exception:
+                        gen_at_val_fmt = gen_at_val
+                elif isinstance(gen_at_val, datetime):
+                    gen_at_val_fmt = gen_at_val.strftime("%b %d, %Y %I:%M %p")
+                else:
+                    gen_at_val_fmt = str(gen_at_val)
+            else:
+                gen_at_val_fmt = "-"
+            vals = [row[col] if col != "Generated at" else gen_at_val_fmt for col in columns]
+            val_cols = st.columns(len(columns))
+            for i, val in enumerate(vals):
+                if columns[i] == "Plan Details":
+                    # Minimize/maximize logic
+                    expand_key = f"plan_details_expanded_{plan_id}"
+                    if expand_key not in st.session_state:
+                        st.session_state[expand_key] = False
+                    is_expanded = st.session_state[expand_key]
+                    preview_len = 0  # Show only first 100 characters when minimized
+                    if not is_expanded and isinstance(val, str) and len(val) > preview_len:
+                        preview = val[:preview_len]
+                        btn_label = "⌄ Show Plan Details"
+                        val_cols[i].markdown(preview, unsafe_allow_html=True)
+                        if val_cols[i].button(btn_label, key=f"expand_{plan_id}"):
+                            st.session_state[expand_key] = True
+                            st.rerun()
+                    else:
+                        btn_label = "^ Minimize"
+                        val_cols[i].markdown(val, unsafe_allow_html=True)
+                        if isinstance(val, str) and len(val) > preview_len:
+                            if val_cols[i].button(btn_label, key=f"minimize_{plan_id}"):
+                                st.session_state[expand_key] = False
+                                st.rerun()
+                elif columns[i] == "Notes":
+                    val_cols[i].markdown(val, unsafe_allow_html=True)
+                else:
+                    val_cols[i].markdown(val)
     else:
-        import pandas as pd
         empty_df = pd.DataFrame([], columns=columns)
         st.dataframe(empty_df, use_container_width=True, hide_index=True)
 
