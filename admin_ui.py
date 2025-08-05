@@ -129,9 +129,12 @@ def load_logs():
 import json
 
 # Tabs: Food Database, Knowledge Base, Meal Plans Overview, Logs
-main_tab, kb_tab, logs_tab = st.tabs(["🍲 Food Database", "📚 Knowledge Base", "📜 Logs"])
-
-
+main_tab, kb_tab, meal_plans_tab, logs_tab = st.tabs([
+    "🍲 Food Database", 
+    "📚 Knowledge Base", 
+    "📝 Meal Plans Overview", 
+    "📜 Logs"
+])
 with main_tab:
     st.header("🍲 Food Database Management")
     # Load food data from MySQL
@@ -540,8 +543,164 @@ with kb_tab:
                     st.error(f"Failed to process PDF: {e}")
 
 # Logs Tab
+with meal_plans_tab:
+    st.header("📝 Meal Plans Overview")
+    parents_data = data_manager.data_manager.get_parents_data()
+    # --- FILTERS ---
+    filter_cols = st.columns([2,2,2,2])
+    with filter_cols[0]:
+        search_val = st.text_input("🔍 Search by child, parent, or plan ID", value=st.session_state.get("add_notes_search", ""), key="add_notes_search")
+    barangay_list = ["All"] + sorted({parent.get('barangay', '-') for parent in parents_data.values() if parent.get('barangay')})
+    with filter_cols[1]:
+        barangay_selected = st.selectbox("🏘️ Filter by Barangay", barangay_list, key="add_notes_barangay")
+    with filter_cols[2]:
+        notes_filter = st.selectbox("🗒️ Filter by Notes", ["All", "Has Notes", "No Notes"], key="add_notes_notes_filter")
+    with filter_cols[3]:
+        sort_recent = st.checkbox("Sort by Most Recent", value=True, key="add_notes_sort_recent")
 
-# Meal Plans Overview Tab
+    # --- GET AND PREPARE MEAL PLANS ---
+    all_plans = data_manager.data_manager.get_meal_plans()
+    table_rows = []
+    for plan in all_plans.values():
+        child_data = data_manager.data_manager.get_patient_by_id(plan['patient_id'])
+        child_name = f"{child_data['first_name']} {child_data['last_name']}" if child_data else "Unknown"
+        age_months = child_data['age_in_months'] if child_data and 'age_in_months' in child_data else None
+        child_age = f"{age_months//12}y {age_months%12}m" if age_months is not None else "-"
+        parent_id = child_data.get('parent_id') if child_data else None
+        notes = data_manager.data_manager.get_notes_for_meal_plan(plan.get('plan_id', ''))
+        def format_created_at(val):
+            if isinstance(val, str):
+                return val
+            if isinstance(val, datetime):
+                return val.strftime('%b %d, %Y %I:%M %p')
+            return str(val)
+        def clean_note(note_val):
+            if isinstance(note_val, str):
+                try:
+                    parsed = json.loads(note_val)
+                    if isinstance(parsed, dict) and 'text' in parsed:
+                        return parsed['text']
+                except Exception:
+                    pass
+                # Replace newlines for markdown rendering
+                note_val = note_val.replace('\r\n', '  \n').replace('\n', '  \n').replace('/n', '  \n')
+            return note_val
+        if notes:
+            nutritionist_options = {
+                '1': 'Anna Cruz',
+                '2': 'Juan dela Paz'
+            }
+            def get_nutritionist_name(nutritionist_id):
+                return nutritionist_options.get(str(nutritionist_id), str(nutritionist_id))
+            notes_str = "\n".join([
+                f"Noted by {get_nutritionist_name(note.get('nutritionist_id'))}: {note.get('note', '')}" for note in notes
+            ])
+        else:
+            notes_str = ""
+        parent_full_name = "Unknown"
+        barangay_val = "-"
+        religion_val = "-"
+        if parent_id is not None:
+            parent_info = parents_data.get(str(parent_id))
+            if parent_info:
+                parent_full_name = parent_info.get('full_name', 'Unknown')
+                barangay_val = parent_info.get('barangay', '-')
+                religion_val = parent_info.get('religion', '-')
+        plan_details_clean = clean_note(plan.get('plan_details', ''))
+        generated_at_val = format_created_at(plan.get('generated_at', ''))
+        # Diet Restrictions
+        medical_conditions = child_data.get('medical_conditions', '-') if child_data else '-'
+        allergies = child_data.get('allergies', '-') if child_data else '-'
+        diet_restrictions = f"Medical Condition: {medical_conditions}  \nAllergy: {allergies}  \nReligion: {religion_val}"
+        table_rows.append({
+            "Plan ID": plan.get('plan_id', ''),
+            "Child Name": child_name,
+            "Child Age": child_age,
+            "Parent": parent_full_name,
+            "Barangay": barangay_val,
+            "Diet Restrictions": diet_restrictions,
+            "Plan Details": plan_details_clean,
+            "Generated at": generated_at_val,
+            "Notes": notes_str,
+            "_has_notes": bool(notes),
+            "_raw_notes": notes,
+            "_raw_child_name": child_name,
+            "_raw_parent_name": parent_full_name,
+            "_raw_plan_id": str(plan.get('plan_id', '')),
+        })
+
+    # --- APPLY FILTERS ---
+    filtered_rows = table_rows
+    # Search filter
+    if search_val:
+        search_val_lower = search_val.lower()
+        filtered_rows = [row for row in filtered_rows if search_val_lower in row['_raw_child_name'].lower() or search_val_lower in row['_raw_parent_name'].lower() or search_val_lower in row['_raw_plan_id'].lower()]
+    # Barangay filter
+    if barangay_selected and barangay_selected != "All":
+        filtered_rows = [row for row in filtered_rows if row["Barangay"] == barangay_selected]
+    # Notes filter
+    if notes_filter == "Has Notes":
+        filtered_rows = [row for row in filtered_rows if row["_has_notes"]]
+    elif notes_filter == "No Notes":
+        filtered_rows = [row for row in filtered_rows if not row["_has_notes"]]
+    # Sort by most recent
+    if sort_recent:
+        def get_dt(row):
+            val = row.get('Generated at', '')
+            try:
+                return datetime.strptime(val, '%b %d, %Y %I:%M %p')
+            except Exception:
+                return datetime.min
+        filtered_rows.sort(key=get_dt, reverse=True)
+    else:
+        # Sort by plan ID ascending (as int)
+        filtered_rows.sort(key=lambda x: int(x.get('Plan ID', 0)))
+
+    columns = ["Plan ID", "Child Name", "Child Age", "Parent", "Barangay", "Diet Restrictions", "Plan Details", "Generated at", "Notes"]
+    if filtered_rows:
+        # Render table header
+        cols = st.columns(len(columns))
+        for i, col in enumerate(columns):
+            cols[i].markdown(f"**{col}**")
+        # Render table rows
+        for row in filtered_rows:
+            plan_id = row.get("Plan ID")
+            gen_at_val = row.get("Generated at")
+            if gen_at_val:
+                if isinstance(gen_at_val, str):
+                    gen_at_val_fmt = gen_at_val
+                elif isinstance(gen_at_val, datetime):
+                    gen_at_val_fmt = gen_at_val.strftime("%b %d, %Y %I:%M %p")
+                else:
+                    gen_at_val_fmt = str(gen_at_val)
+            else:
+                gen_at_val_fmt = "-"
+            vals = [row[col] if col != "Generated at" else gen_at_val_fmt for col in columns]
+            val_cols = st.columns(len(columns))
+            for i, val in enumerate(vals):
+                if columns[i] == "Plan Details":
+                    expand_key = f"plan_details_expanded_{plan_id}"
+                    if expand_key not in st.session_state:
+                        st.session_state[expand_key] = False
+                    is_expanded = st.session_state[expand_key]
+                    preview_len = 0
+                    if not is_expanded and isinstance(val, str) and len(val) > preview_len:
+                        val_cols[i].markdown(val[:preview_len], unsafe_allow_html=True)
+                        if val_cols[i].button("Show Details", key=f"show_details_{plan_id}"):
+                            st.session_state[expand_key] = True
+                            st.rerun()
+                    else:
+                        val_cols[i].markdown(val, unsafe_allow_html=True)
+                        if is_expanded and val_cols[i].button("Minimize", key=f"hide_details_{plan_id}"):
+                            st.session_state[expand_key] = False
+                            st.rerun()
+                elif columns[i] == "Notes":
+                    val_cols[i].markdown(val, unsafe_allow_html=True)
+                else:
+                    val_cols[i].markdown(val)
+    else:
+        empty_df = pd.DataFrame([], columns=columns)
+        st.dataframe(empty_df, use_container_width=True, hide_index=True)
 
 with logs_tab:
     st.header("📜 Admin Logs")
