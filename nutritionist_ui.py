@@ -53,6 +53,21 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def load_nutritionist_options():
+    """Load nutritionist options from database"""
+    try:
+        nutritionists = data_manager.get_nutritionists()
+        options = {}
+        for nutritionist in nutritionists:
+            nutritionist_id = str(nutritionist['nutritionist_id'])
+            full_name = nutritionist['full_name']
+            options[nutritionist_id] = full_name
+        return options
+    except Exception as e:
+        st.error(f"Error loading nutritionists: {e}")
+        # Fallback to empty dict
+        return {}
+
 def initialize_session_state():
     """Initialize session state variables"""
     if 'nutrition_ai' not in st.session_state:
@@ -64,13 +79,13 @@ def initialize_session_state():
             st.session_state.api_working = False
             st.session_state.api_error = str(e)
     if 'nutritionist_id' not in st.session_state:
-        # Nutritionist dropdown options (static for now)
-        nutritionist_options = {
-            '1': 'Anna Cruz',
-            '2': 'Juan dela Paz'
-        }
+        # Load nutritionist options from database
+        nutritionist_options = load_nutritionist_options()
         st.session_state.nutritionist_options = nutritionist_options
-        st.session_state.nutritionist_id = list(nutritionist_options.keys())[0]
+        if nutritionist_options:
+            st.session_state.nutritionist_id = list(nutritionist_options.keys())[0]
+        else:
+            st.session_state.nutritionist_id = None
 
 def main():
     initialize_session_state()
@@ -89,10 +104,11 @@ def main():
     # Sidebar for nutritionist info
     with st.sidebar:
         st.header("👩‍⚕️ Nutritionist Login")
-        nutritionist_options = st.session_state.get('nutritionist_options', {
-            '1': 'Anna Cruz',
-            '2': 'Juan dela Paz'
-        })
+        nutritionist_options = st.session_state.get('nutritionist_options', {})
+        if not nutritionist_options:
+            st.error("No nutritionists found in database")
+            return
+        
         selected_nutritionist = st.selectbox(
             "Select Nutritionist Account",
             options=list(nutritionist_options.keys()),
@@ -266,10 +282,7 @@ def show_add_notes():
                 note_val = note_val.replace('\r\n', '  \n').replace('\n', '  \n').replace('/n', '  \n')
             return note_val
         if notes:
-            nutritionist_options = st.session_state.nutritionist_options if 'nutritionist_options' in st.session_state else {
-                '1': 'Anna Cruz',
-                '2': 'Juan dela Paz'
-            }
+            nutritionist_options = st.session_state.nutritionist_options if 'nutritionist_options' in st.session_state else load_nutritionist_options()
             def get_nutritionist_name(nutritionist_id):
                 return nutritionist_options.get(str(nutritionist_id), f"Nutritionist {nutritionist_id}")
             notes_str = "<br>".join([

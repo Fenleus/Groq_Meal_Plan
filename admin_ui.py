@@ -37,13 +37,29 @@ def load_logs():
                 pass
     return rows
 
+def load_admin_options():
+    """Load admin options from database"""
+    try:
+        conn = data_manager.data_manager.conn
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT admin_id, full_name FROM admins ORDER BY admin_id")
+        admin_rows = cursor.fetchall()
+        return {str(row['admin_id']): row['full_name'] for row in admin_rows}
+    except Exception as e:
+        st.error(f"Failed to load admin data: {e}")
+        # Fallback to prevent app crash
+        return {'1': 'Admin 1', '2': 'Admin 2'}
+
 with st.sidebar:
     st.header("🛠️ Admin Login")
-    # Admin dropdown options (static for now)
-    admin_options = {
-        '1': 'Joel Santiago',
-        '2': 'Karen Reyes'
-    }
+    
+    # Load admin options from database
+    admin_options = load_admin_options()
+    
+    if not admin_options:
+        st.error("No admin accounts found in database")
+        admin_options = {'1': 'Admin 1'}
+    
     selected_admin = st.selectbox(
         "Select Admin Account",
         options=list(admin_options.keys()),
@@ -579,12 +595,18 @@ with meal_plans_tab:
                 note_val = note_val.replace('\r\n', '  \n').replace('\n', '  \n').replace('/n', '  \n')
             return note_val
         if notes:
-            nutritionist_options = {
-                '1': 'Anna Cruz',
-                '2': 'Juan dela Paz'
-            }
+            # Load nutritionist names from database
+            try:
+                conn = data_manager.data_manager.conn
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute("SELECT nutritionist_id, full_name FROM nutritionists")
+                nutritionist_rows = cursor.fetchall()
+                nutritionist_options = {str(row['nutritionist_id']): row['full_name'] for row in nutritionist_rows}
+            except Exception:
+                nutritionist_options = {}
+            
             def get_nutritionist_name(nutritionist_id):
-                return nutritionist_options.get(str(nutritionist_id), str(nutritionist_id))
+                return nutritionist_options.get(str(nutritionist_id), f"Nutritionist {nutritionist_id}")
             notes_str = "\n".join([
                 f"Noted by {get_nutritionist_name(note.get('nutritionist_id'))}: {note.get('note', '')}" for note in notes
             ])
