@@ -21,10 +21,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def load_logs():
-
+    # Load from MySQL admin_logs table filtered by current admin
+    admin_id = st.session_state.get('admin_id', '1')  # Default to admin 1 if not set
     conn = data_manager.data_manager.conn
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT log_id, timestamp, action, details FROM admin_logs ORDER BY timestamp DESC")
+    cursor.execute("SELECT log_id, timestamp, action, details FROM admin_logs WHERE admin_id = %s ORDER BY timestamp DESC", (admin_id,))
     rows = cursor.fetchall()
 
     import json
@@ -49,7 +50,14 @@ with st.sidebar:
         format_func=lambda x: admin_options[x],
         index=0
     )
-    st.session_state.admin_id = selected_admin
+    
+    # Check if admin changed and clear cache if needed
+    if 'admin_id' not in st.session_state or st.session_state.admin_id != selected_admin:
+        st.session_state.admin_id = selected_admin
+        # Clear any cached data that should refresh when admin changes
+        if 'cached_logs' in st.session_state:
+            del st.session_state['cached_logs']
+    
     st.info(f"Logged in as: {admin_options[selected_admin]}")
     st.write(f"ID: {selected_admin}")
     st.subheader("📊 Quick Stats")
@@ -100,30 +108,15 @@ def log_action(action, details):
         filtered_details = {k: v for k, v in details.items() if k not in sensitive_keys}
     else:
         filtered_details = details
-    # Save to MySQL admin_logs table
+    # Save to MySQL admin_logs table with admin_id
     import json
     conn = data_manager.data_manager.conn
     cursor = conn.cursor()
-    sql = "INSERT INTO admin_logs (timestamp, action, details) VALUES (%s, %s, %s)"
+    sql = "INSERT INTO admin_logs (timestamp, action, details, admin_id) VALUES (%s, %s, %s, %s)"
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    cursor.execute(sql, (now, action, json.dumps(filtered_details)))
+    admin_id = st.session_state.get('admin_id', '1')  # Default to admin 1 if not set
+    cursor.execute(sql, (now, action, json.dumps(filtered_details), admin_id))
     conn.commit()
-
-def load_logs():
-    # Load from MySQL admin_logs table
-    conn = data_manager.data_manager.conn
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT log_id, timestamp, action, details FROM admin_logs ORDER BY timestamp DESC")
-    rows = cursor.fetchall()
-
-    import json
-    for row in rows:
-        if isinstance(row.get('details'), str):
-            try:
-                row['details'] = json.loads(row['details'])
-            except Exception:
-                pass
-    return rows
 
 
 import json
@@ -704,6 +697,10 @@ with meal_plans_tab:
 
 with logs_tab:
     st.header("📜 Admin Logs")
+    
+    # Get current admin info for table keys
+    current_admin_id = st.session_state.get('admin_id', '1')
+    
     logs = load_logs()
 
     columns = ['action', 'details', 'timestamp']
@@ -715,8 +712,8 @@ with logs_tab:
             return str(details)
         if 'details' in log_df.columns:
             log_df['details'] = log_df['details'].apply(flatten_details)
-        st.dataframe(log_df[columns], use_container_width=True)
+        st.dataframe(log_df[columns], use_container_width=True, key=f"logs_table_{current_admin_id}")
     else:
         empty_df = pd.DataFrame([], columns=columns)
-        st.dataframe(empty_df, use_container_width=True)
+        st.dataframe(empty_df, use_container_width=True, key=f"empty_logs_table_{current_admin_id}")
 
