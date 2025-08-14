@@ -73,23 +73,45 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
     else:
         food_list_str = ''
 
-    # Build the refined prompt string, including the food list from the database
+    # --- Nutrition analysis integration ---
+    from nutrition_ai import ChildNutritionAI
+    nutrition_analysis = ""
+    try:
+        nutrition_ai = ChildNutritionAI()
+        name = f"{patient_data.get('first_name', '')} {patient_data.get('last_name', '')}".strip()
+        analysis_result = nutrition_ai.analyze_child_nutrition(
+            name=name,
+            age_in_months=patient_data.get('age_in_months'),
+            bmi=patient_data.get('bmi'),
+            allergies=patient_data.get('allergies'),
+            medical_conditions=patient_data.get('medical_conditions'),
+            parent_id=patient_data.get('parent_id')
+        )
+        nutrition_analysis = f"\nNUTRITION ANALYSIS FOR THIS CHILD:\n{analysis_result}\n"
+    except Exception as e:
+        nutrition_analysis = ""
+
     prompt_str = (
         "You are a pediatric nutrition expert. You must ONLY recommend foods and ingredients that are present in the provided food database below. Do NOT recommend, mention, or invent any foods, ingredients, or recipes that are not found in the food database. If you are unsure if a food is in the database, do not include it. If you cannot recommend any foods from the database, say 'No suitable foods available.' IMPORTANT: Do NOT recommend or mention generic food groups (like 'fruits', 'vegetables', 'protein sources', 'iron-rich foods', 'complex carbohydrates', 'healthy fats', etc). ONLY list specific food names from the database. Do not output any generic categories.\n"
         + food_list_str
-        + "Generate a general list of suitable foods or food combinations for a Filipino child (0-5 years old) with the following profile:\n"
+        + "Create a 7-day meal plan for a Filipino child (0-5 years old) with the following profile. For each day, provide: Breakfast, Mid-morning Snack, Lunch, Afternoon Snack, Dinner, and (if age-appropriate) Before-bed Snack. For each meal, specify the Filipino dish name, portion size, and a brief explanation of its nutritional benefit. Focus on traditional Filipino dishes that are practical for parents to prepare.\n"
         + f"\n- Age (months): {{age_in_months}}"
         + f"\n- BMI Category: {{bmi_category}}"
         + f"\n- Allergies: {{allergies}}"
         + f"\n- Medical Conditions: {{medical_conditions}}"
         + f"\n- Religion: {{religion}}\n"
-        + "\nIf the child's age is less than 6 months, do NOT recommend any solid foods. Follow best pediatric nutrition guidelines for infants under 6 months."
-        + (f"\nOnly use these available ingredients: {{available_ingredients}}\n" if available_ingredients else "")
-        + "\nStrictly avoid all allergens and respect all medical and religious restrictions."
-        + "\nDo not organize the output by breakfast, lunch, or dinner. Instead, provide a concise, general list of recommended foods or food combinations, and a brief explanation for your choices."
-        + "\nDo not include the child's name or any sensitive information."
-        + "\nIf you use any background knowledge provided, do NOT mention or cite the source, file, or that you used a document. Present all recommendations as your own expertise."
-    # End of prompt_str assignment
+        + nutrition_analysis
+        + filipino_context
+        + (f"\nAVAILABLE INGREDIENTS AT HOME: {{available_ingredients}}\n" if available_ingredients else "")
+        + "\nSPECIAL INSTRUCTIONS:\n"
+        + "- For DAY 1 ONLY: Prioritize using the available ingredients at home when possible, but you can still use other foods from the database to create complete, balanced Filipino meals.\n"
+        + "- For DAYS 2-7: Create varied Filipino meals using ANY foods from the database. Do NOT limit yourself to only the available ingredients.\n"
+        + "- Each day should have DIFFERENT meals - avoid repeating the same dishes.\n"
+        + "- Focus on Filipino dishes like: lugaw, sopas, giniling, adobo, sinigang, pancit, lumpia, etc. (only if ingredients are in database)\n"
+        + "- Create complete meal combinations, not just single ingredients.\n\n"
+        + "GUIDELINES:\n1. Follow WHO nutrition guidelines for children 0-5 years\n2. Account for BMI category, allergies, and medical conditions\n3. Strictly avoid all allergens and respect all medical and religious restrictions\n4. Provide age-appropriate textures and portions\n5. Include traditional Filipino foods and cooking methods\n6. Focus on balanced nutrition for growing children\n7. Include hydration recommendations\n8. Make each day's meals DIFFERENT from other days\n\n"
+        + "MEAL PLAN FORMAT (repeat for each day):\nDay X:\n- Breakfast: [Filipino dish name, portion, nutritional explanation]\n- Mid-morning Snack: [snack, portion, explanation]\n- Lunch: [Filipino dish name, portion, nutritional explanation]\n- Afternoon Snack: [snack, portion, explanation]\n- Dinner: [Filipino dish name, portion, nutritional explanation]\n- Before-bed Snack: [if appropriate for age]\n\n"
+        + "If the child's age is less than 6 months, do NOT recommend any solid foods.\nDo not include the child's name or any sensitive information.\nIf you use any background knowledge provided, do NOT mention or cite the source, file, or that you used a document. Present all recommendations as your own expertise."
     )
     if pdf_context:
         prompt_str += "\n" + pdf_context

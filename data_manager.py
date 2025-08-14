@@ -244,21 +244,36 @@ class DataManager:
 
     # Knowledge Base Management
     def get_knowledge_base(self) -> Dict:
-        self.cursor.execute("SELECT kb_id, pdf_memories, pdf_name, uploaded_by, added_at, uploaded_by_id FROM knowledge_base")
+        self.cursor.execute("SELECT kb_id, ai_summary, pdf_name, pdf_text, uploaded_by, added_at, uploaded_by_id FROM knowledge_base")
         rows = self.cursor.fetchall()
         return {str(row['kb_id']): row for row in rows}
 
-    def save_knowledge_base(self, pdf_memories, pdf_name, uploaded_by=None, uploaded_by_id=None):
-        sql = "INSERT INTO knowledge_base (pdf_memories, pdf_name, uploaded_by, added_at, uploaded_by_id) VALUES (%s, %s, %s, %s, %s)"
+    def save_knowledge_base(self, ai_summary, pdf_name, pdf_text=None, uploaded_by=None, uploaded_by_id=None):
+        sql = "INSERT INTO knowledge_base (ai_summary, pdf_name, pdf_text, uploaded_by, added_at, uploaded_by_id) VALUES (%s, %s, %s, %s, %s, %s)"
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Convert ai_summary to plain text if it's a list
+        if isinstance(ai_summary, list):
+            ai_summary_text = "\n".join(ai_summary)
+        else:
+            ai_summary_text = str(ai_summary) if ai_summary else ""
+            
         self.cursor.execute(sql, (
-            json.dumps(pdf_memories),
-            json.dumps(pdf_name),
+            ai_summary_text,
+            pdf_name,
+            pdf_text,
             uploaded_by,
             now,
             uploaded_by_id
         ))
         self.conn.commit()
         return str(self.cursor.lastrowid)
+
+    def delete_knowledge_base_entry(self, kb_id):
+        """Delete a knowledge base entry by its ID"""
+        sql = "DELETE FROM knowledge_base WHERE kb_id = %s"
+        self.cursor.execute(sql, (kb_id,))
+        self.conn.commit()
+        return True
 
 data_manager = DataManager()

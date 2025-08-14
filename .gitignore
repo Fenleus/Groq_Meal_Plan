@@ -40,3 +40,9 @@ db.py
 
 # Ignore test outputs
 /test_outputs/
+
+# Test files
+chatbot_test.py
+food_data_parser.py
+food_parser_ui.py
+test_all_prompts.py
