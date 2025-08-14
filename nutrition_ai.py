@@ -53,6 +53,68 @@ class ChildNutritionAI:
         
         self.client = Groq(api_key=self.api_key)
     
+    def summarize_pdf_for_nutrition_knowledge(self, pdf_text: str, pdf_name: str) -> List[str]:
+        """
+        Use LLM to extract nutrition and health information relevant to 0-5 year old children
+        Returns a list of bullet points/key insights
+        """
+        try:
+            prompt = f"""You are a pediatric nutrition expert. I'm uploading a PDF document titled "{pdf_name}" to build a knowledge base for meal planning for children aged 0-5 years.
+
+Please analyze the following text and extract ONLY information that is relevant to:
+- Nutrition for children 0-5 years old
+- Health guidelines for toddlers and preschoolers
+- Food safety for young children
+- Feeding recommendations for infants and toddlers
+- Filipino/Asian nutrition practices for children
+- Child development and nutrition
+
+TEXT TO ANALYZE:
+{pdf_text}
+
+INSTRUCTIONS:
+1. Extract key insights as bullet points (each bullet should be 1-2 sentences max)
+2. Focus ONLY on information relevant to 0-5 year old children's nutrition and health
+3. Include specific food recommendations, portion sizes, or feeding guidelines if mentioned
+4. Include any warnings or contraindications for young children
+5. If the document contains no relevant information for 0-5 year olds, return "NO_RELEVANT_CONTENT"
+6. Maximum 20 bullet points
+7. Each bullet point should be actionable or informative for meal planning
+
+Format your response as a JSON array of strings, like this:
+["• First key insight about child nutrition", "• Second insight about feeding guidelines", ...]
+
+Only return the JSON array, nothing else."""
+
+            response = self.client.chat.completions.create(
+                model="meta-llama/llama-4-scout-17b-16e-instruct",
+                messages=[
+                    {"role": "system", "content": "You are a pediatric nutrition expert specializing in children aged 0-5 years. Extract only relevant nutrition and health information for this age group."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2,
+                max_tokens=2000
+            )
+            
+            content = response.choices[0].message.content.strip()
+            
+            # Try to parse as JSON
+            import json
+            try:
+                bullet_points = json.loads(content)
+                if isinstance(bullet_points, list):
+                    return bullet_points
+                else:
+                    return [content]  # Fallback if not a list
+            except json.JSONDecodeError:
+                # If not valid JSON, return as single item
+                if content == "NO_RELEVANT_CONTENT":
+                    return []
+                return [content]
+                
+        except Exception as e:
+            return [f"Error processing PDF content: {str(e)}"]
+
     def generate_patient_meal_plan(
         self,
         patient_id: str,
@@ -67,6 +129,23 @@ class ChildNutritionAI:
         # Get knowledge base for Filipino nutrition guidelines
         knowledge_base = data_manager.get_knowledge_base()
         filipino_foods = knowledge_base.get('filipino_foods', {})
+        
+        # Get AI-processed PDF insights for enhanced recommendations
+        pdf_insights_context = ""
+        if knowledge_base:
+            all_insights = []
+            for kb in knowledge_base.values():
+                ai_summary = kb.get('ai_summary', '')
+                
+                # ai_summary is now just text, split by lines to get individual insights
+                if ai_summary:
+                    insights = [line.strip() for line in ai_summary.split('\n') if line.strip()]
+                    all_insights.extend(insights)
+            
+            if all_insights:
+                # Limit to most relevant insights to avoid token limit
+                relevant_insights = all_insights[:15]  # Use first 15 insights
+                pdf_insights_context = f"\n\nAI-Extracted Nutrition Guidelines from Knowledge Base:\n" + "\n".join(relevant_insights)
         # Prepare parent recipes context
         parent_recipes_context = ""
         if parent_recipes:
@@ -104,6 +183,7 @@ GUIDELINES:
 
 {parent_recipes_context}
 {filipino_context}
+{pdf_insights_context}
 
 MEAL PLAN FORMAT:
 For each day, provide:

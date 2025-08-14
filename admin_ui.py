@@ -529,27 +529,32 @@ with kb_tab:
                 try:
                     import pdfplumber
                     from io import BytesIO
+                    import nutrition_ai
+                    
+                    # Extract PDF text
                     with pdfplumber.open(BytesIO(uploaded_file.read())) as pdf:
                         all_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
-                    chunk_size = 1000
-                    chunks = [all_text[i:i+chunk_size] for i in range(0, len(all_text), chunk_size)]
-                    pdf_entry = {
-                        'name': uploaded_file.name,
-                        'chunks': chunks,
-                        'uploaded_at': datetime.now().isoformat(),
-                        'source': 'pdf_upload',
-                    }
-                    # Save to knowledge base as admin
+                    
+                    # Process with AI for nutrition insights
+                    nutrition_ai_instance = nutrition_ai.ChildNutritionAI()
+                    with st.spinner("Generating AI insights for nutrition knowledge..."):
+                        ai_summary = nutrition_ai_instance.summarize_pdf_for_nutrition_knowledge(all_text, uploaded_file.name)
+                    
+                    # Save to knowledge base as admin with AI summary
                     data_manager.data_manager.save_knowledge_base(
-                        pdf_memories=[pdf_entry],
-                        pdf_name=[uploaded_file.name],
+                        pdf_text=all_text,
+                        pdf_name=uploaded_file.name,
                         uploaded_by='admin',
-                        uploaded_by_id=st.session_state.admin_id
+                        uploaded_by_id=st.session_state.admin_id,
+                        ai_summary=ai_summary
                     )
-                    st.success(f"PDF '{uploaded_file.name}' processed and added to knowledge base!")
+                    st.success(f"PDF '{uploaded_file.name}' processed with AI insights and added to knowledge base!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"Failed to process PDF: {e}")
+                    # Show detailed error for debugging
+                    import traceback
+                    st.error(f"Detailed error: {traceback.format_exc()}")
 
 # Logs Tab
 with meal_plans_tab:

@@ -438,29 +438,32 @@ def show_knowledge_base():
     
     with col1:
         st.subheader("📚 Current Knowledge Base")
-        # Aggregate all PDFs uploaded by this nutritionist
+        # Get PDFs uploaded by this nutritionist
         knowledge_base_raw = data_manager.get_knowledge_base()
-        import json
-        def parse_json_field(field):
-            if isinstance(field, str):
-                try:
-                    return json.loads(field)
-                except Exception:
-                    return []
-            return field if field is not None else []
-        all_pdf_name = []
-        all_pdf_memories = []
+        nutritionist_pdfs = []
+        
         # Only include rows uploaded by this nutritionist
         if isinstance(knowledge_base_raw, dict):
             for kb in knowledge_base_raw.values():
                 if kb.get('uploaded_by') == 'nutritionist' and str(kb.get('uploaded_by_id')) == str(st.session_state.nutritionist_id):
-                    all_pdf_name.extend(parse_json_field(kb.get('pdf_name', [])))
-                    all_pdf_memories.extend(parse_json_field(kb.get('pdf_memories', [])))
+                    pdf_name = kb.get('pdf_name', '')
+                    ai_summary = kb.get('ai_summary', '')
+                    added_at = kb.get('added_at', '')
+                    
+                    if pdf_name:  # Only add if there's a PDF name
+                        nutritionist_pdfs.append({
+                            'name': pdf_name,
+                            'ai_summary': ai_summary,
+                            'added_at': added_at,
+                            'kb_id': kb.get('kb_id')
+                        })
         # Optionally, aggregate filipino_foods if needed (currently only showing from latest)
         filipino_foods = {}
         if isinstance(knowledge_base_raw, dict) and knowledge_base_raw:
             latest_kb = max(knowledge_base_raw.values(), key=lambda x: x.get('kb_id', 0))
-            filipino_foods = parse_json_field(latest_kb.get('filipino_foods', {}))
+            # filipino_foods is no longer stored in knowledge_base, so skip this for now
+            filipino_foods = {}
+            
         if filipino_foods:
             st.write(f"**Filipino Foods Database: {len(filipino_foods)} recipes**")
             for food_id, food_data in list(filipino_foods.items())[:3]:
@@ -469,23 +472,88 @@ def show_knowledge_base():
                     st.write(f"**Nutrition Facts:** {food_data['nutrition_facts']}")
                     st.write(f"**Instructions:** {food_data['instructions']}" )
 
-        # Show all uploaded PDFs with delete option
+        # Show uploaded PDFs
         if 'pending_delete_pdf_idx' not in st.session_state:
             st.session_state['pending_delete_pdf_idx'] = None
-        st.write(f"**Uploaded PDFs: {len(all_pdf_name)} documents**")
-        for idx, pdf in enumerate(all_pdf_name):
-            pdf_name = pdf if isinstance(pdf, str) else pdf.get('name', 'Unknown document')
-            col_pdf, col_del = st.columns([8,1])
+        st.write(f"**Uploaded PDFs: {len(nutritionist_pdfs)} documents**")
+        
+        # Show total text information if available
+        total_text_chars = 0
+        for kb in knowledge_base_raw.values():
+            if (kb.get('uploaded_by') == 'nutritionist' and 
+                str(kb.get('uploaded_by_id')) == str(st.session_state.nutritionist_id)):
+                pdf_text = kb.get('pdf_text', '')
+                if pdf_text:
+                    total_text_chars += len(pdf_text)
+        
+        if total_text_chars > 0:
+            text_kb = total_text_chars / 1024  # Convert to KB
+            if text_kb > 1024:
+                text_size = f"{text_kb/1024:.1f} MB"
+            else:
+                text_size = f"{text_kb:.1f} KB"
+            st.caption(f"📊 Total text content: {text_size}")
+        
+        for idx, pdf_data in enumerate(nutritionist_pdfs):
+            pdf_name = pdf_data['name']
+            ai_summary = pdf_data['ai_summary']
+            added_at = pdf_data['added_at']
+            
+            col_pdf, col_actions = st.columns([7, 2])
             with col_pdf:
-                st.write(f"- {pdf_name}")
-            with col_del:
+                st.write(f"📄 **{pdf_name}**")
+                if added_at:
+                    try:
+                        if isinstance(added_at, str):
+                            dt = datetime.strptime(added_at, '%Y-%m-%d %H:%M:%S')
+                        else:
+                            dt = added_at
+                        st.caption(f"Uploaded: {dt.strftime('%b %d, %Y')}")
+                    except:
+                        st.caption(f"Uploaded: {added_at}")
+            
+            with col_actions:
+                # Only show delete button
                 delete_btn = st.button("🗑️", key=f"delete_pdf_{idx}", help=f"Delete {pdf_name}")
+
+            # Create two columns for aligned expanders
+            exp_col1, exp_col2 = st.columns(2)
+            
+            # Show AI insights in first column (if available)
+            with exp_col1:
+                if ai_summary:
+                    with st.expander("🧠 View Insights"):
+                        st.text_area("", value=ai_summary, height=200, key=f"insights_expanded_{idx}")
+                else:
+                    st.info("No AI insights available")
+
+            # Show PDF text in second column
+            with exp_col2:
+                pdf_text_content = None
+                for kb in knowledge_base_raw.values():
+                    if (kb.get('uploaded_by') == 'nutritionist' and 
+                        str(kb.get('uploaded_by_id')) == str(st.session_state.nutritionist_id) and
+                        kb.get('pdf_name') == pdf_name):
+                        pdf_text_content = kb.get('pdf_text', '')
+                        break
+                
+                if pdf_text_content:
+                    with st.expander(f"📄 Full Text: {pdf_name}"):
+                        st.text_area(
+                            "PDF Content:",
+                            value=pdf_text_content,
+                            height=400,
+                            key=f"pdf_text_display_{idx}",
+                            help="Full extracted text from the PDF"
+                        )
+                else:
+                    st.warning("PDF text not found in database.")
 
             if delete_btn:
                 st.session_state['pending_delete_pdf_idx'] = idx
                 st.session_state['pending_delete_pdf_name'] = pdf_name
-                # st.session_state['pending_delete_pdf_uploaded_at'] = None  # No longer needed
                 st.rerun()
+            
             # Show confirmation dialog only for the selected PDF
             if st.session_state.get('pending_delete_pdf_idx') == idx:
                 confirm = st.warning(f"Are you sure you want to delete '{pdf_name}'? This will remove it from the knowledge base.", icon="⚠️")
@@ -495,36 +563,26 @@ def show_knowledge_base():
                 with confirm_col2:
                     confirm_no = st.button("Cancel", key=f"cancel_delete_{idx}")
                 if confirm_yes:
-                    # Find and delete from the correct knowledge_base row
-                    kb_to_update = None
+                    # Find and delete the knowledge base entry
+                    kb_to_delete = None
                     for kb in knowledge_base_raw.values():
-                        if kb.get('uploaded_by') == 'nutritionist' and str(kb.get('uploaded_by_id')) == str(st.session_state.nutritionist_id):
-                            pdfs = parse_json_field(kb.get('pdf_name', []))
-                            for p in pdfs:
-                                if (p == pdf_name) or (isinstance(p, dict) and p.get('name') == pdf_name):
-                                    kb_to_update = kb
-                                    break
-                            if kb_to_update:
-                                break
-                    if kb_to_update:
-                        # Remove PDF from this kb row
-                        new_pdfs = [p for p in parse_json_field(kb_to_update.get('pdf_name', [])) if not ((p == pdf_name) or (isinstance(p, dict) and p.get('name') == pdf_name))]
-                        new_memories = [m for m in parse_json_field(kb_to_update.get('pdf_memories', [])) if not (m.get('name') == pdf_name)]
-                        data_manager.save_knowledge_base(
-                            new_memories,
-                            new_pdfs,
-                            uploaded_by='nutritionist',
-                            uploaded_by_id=st.session_state.nutritionist_id
-                        )
+                        if (kb.get('uploaded_by') == 'nutritionist' and 
+                            str(kb.get('uploaded_by_id')) == str(st.session_state.nutritionist_id) and
+                            kb.get('pdf_name') == pdf_name):
+                            kb_to_delete = kb
+                            break
+                    
+                    if kb_to_delete:
+                        # Delete the entire knowledge base entry
+                        data_manager.delete_knowledge_base_entry(kb_to_delete['kb_id'])
+                        
                         st.session_state['pending_delete_pdf_idx'] = None
                         st.session_state['pending_delete_pdf_name'] = None
-                        st.session_state['pending_delete_pdf_uploaded_at'] = None
                         st.success(f"Deleted '{pdf_name}' from knowledge base.")
                         st.rerun()
                 elif confirm_no:
                     st.session_state['pending_delete_pdf_idx'] = None
                     st.session_state['pending_delete_pdf_name'] = None
-                    st.session_state['pending_delete_pdf_uploaded_at'] = None
                     st.rerun()
     
     with col2:
@@ -545,48 +603,63 @@ def show_knowledge_base():
             st.info(f"Ready to upload: {st.session_state['pending_pdf_file'].name}")
             if st.button("Submit PDF to Knowledge Base", key="submit_pdf_knowledge"):
                 try:
-
-                    knowledge_base = data_manager.get_knowledge_base()
-                    existing_names = set()
-                    if 'pdf_memories' in knowledge_base:
-                        existing_names.update(entry.get('name') for entry in knowledge_base['pdf_memories'] if 'name' in entry)
-                    if 'pdf_name' in knowledge_base:
-                        existing_names.update(pdf.get('name') for pdf in knowledge_base['pdf_name'] if 'name' in pdf)
-                    if st.session_state['pending_pdf_file'].name in existing_names:
-                        st.warning(f"PDF '{st.session_state['pending_pdf_file'].name}' is already in the knowledge base.")
-                        st.session_state['pending_pdf_file'] = None
-                    else:
-                        with pdfplumber.open(BytesIO(st.session_state['pending_pdf_file'].read())) as pdf:
-                            all_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
-                        chunk_size = 1000
-                        chunks = [all_text[i:i+chunk_size] for i in range(0, len(all_text), chunk_size)]
-                        if 'pdf_memories' not in knowledge_base:
-                            knowledge_base['pdf_memories'] = []
-                        pdf_entry = {
-                            'name': st.session_state['pending_pdf_file'].name,
-                            'chunks': chunks,
-                            'uploaded_at': datetime.now().isoformat(),
-                            'source': 'pdf_upload',
-                        }
-                        knowledge_base['pdf_memories'].append(pdf_entry)
-                        if 'pdf_name' not in knowledge_base:
-                            knowledge_base['pdf_name'] = []
-                        knowledge_base['pdf_name'].append(st.session_state['pending_pdf_file'].name)
-                        # Determine uploader type and set fields accordingly
-                        uploader_type = 'nutritionist'
-                        uploader_nutritionist_id = st.session_state.get('nutritionist_id', None)
-                        uploader_admin_id = None
-                        data_manager.save_knowledge_base(
-                            knowledge_base.get('pdf_memories', []),
-                            knowledge_base.get('pdf_name', []),
-                            uploaded_by=uploader_type,
-                            uploaded_by_id=uploader_nutritionist_id
-                        )
-                        st.success(f"PDF '{st.session_state['pending_pdf_file'].name}' processed and added to knowledge base!")
-                        st.session_state['pending_pdf_file'] = None
-                        st.rerun()
+                    with st.spinner("Processing PDF with AI..."):
+                        knowledge_base = data_manager.get_knowledge_base()
+                        existing_names = set()
+                        # Check all knowledge base entries for existing PDF names
+                        for kb in knowledge_base.values():
+                            existing_pdf_name = kb.get('pdf_name', '')
+                            if existing_pdf_name:
+                                existing_names.add(existing_pdf_name)
+                        
+                        if st.session_state['pending_pdf_file'].name in existing_names:
+                            st.warning(f"PDF '{st.session_state['pending_pdf_file'].name}' is already in the knowledge base.")
+                            st.session_state['pending_pdf_file'] = None
+                        else:
+                            # Extract text from PDF
+                            with pdfplumber.open(BytesIO(st.session_state['pending_pdf_file'].read())) as pdf:
+                                all_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+                            
+                            # Use AI to summarize nutrition-relevant content
+                            if st.session_state.nutrition_ai:
+                                st.info("🤖 Analyzing PDF content with AI for nutrition insights...")
+                                nutrition_insights = st.session_state.nutrition_ai.summarize_pdf_for_nutrition_knowledge(
+                                    all_text, 
+                                    st.session_state['pending_pdf_file'].name
+                                )
+                                
+                                if not nutrition_insights:
+                                    st.warning("⚠️ No relevant nutrition content found for 0-5 year old children in this PDF.")
+                                    st.session_state['pending_pdf_file'] = None
+                                    return
+                                
+                                # Save to knowledge base with simplified structure
+                                data_manager.save_knowledge_base(
+                                    nutrition_insights,  # Pass insights list directly
+                                    st.session_state['pending_pdf_file'].name,  # Pass filename directly
+                                    pdf_text=all_text,
+                                    uploaded_by='nutritionist',
+                                    uploaded_by_id=st.session_state.nutritionist_id
+                                )
+                                
+                                st.success(f"✅ PDF '{st.session_state['pending_pdf_file'].name}' processed successfully!")
+                                st.info(f"🧠 Extracted {len(nutrition_insights)} nutrition insights for 0-5 year old children")
+                                
+                                # Show preview of insights
+                                with st.expander("Preview of Extracted Insights", expanded=True):
+                                    for insight in nutrition_insights[:5]:  # Show first 5
+                                        st.write(insight)
+                                    if len(nutrition_insights) > 5:
+                                        st.write(f"... and {len(nutrition_insights) - 5} more insights")
+                                
+                                st.session_state['pending_pdf_file'] = None
+                                st.rerun()
+                            else:
+                                st.error("AI system not available. Cannot process PDF.")
                 except Exception as e:
                     st.error(f"Failed to process PDF: {e}")
+                    import traceback
+                    st.error(f"Details: {traceback.format_exc()}")
 
 def show_recipe_database():
     st.header("Food Database")
