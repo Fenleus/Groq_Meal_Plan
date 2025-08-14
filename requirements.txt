@@ -2,9 +2,9 @@ groq
 python-dotenv
 streamlit
 langchain
+langchain-groq
 fastapi
 uvicorn
 pydantic
 pdfplumber
-langchain-community
-sentence-transformers
+mysql-connector-python

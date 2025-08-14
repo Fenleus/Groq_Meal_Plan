@@ -8,15 +8,41 @@ from data_manager import data_manager
 load_dotenv()
 
 def get_relevant_pdf_chunks(query, k=4):
-    """Retrieve relevant PDF chunks from vector store for LLM context."""
-    from langchain.vectorstores import FAISS
-    from langchain.embeddings import HuggingFaceEmbeddings
-    if not os.path.exists("pdf_vector.index"):
+    """Retrieve relevant PDF text using simple keyword matching."""
+    try:
+        # Get PDF text directly from knowledge base
+        knowledge_base = data_manager.get_knowledge_base()
+        if not knowledge_base:
+            return []
+        
+        query_keywords = query.lower().split()
+        scored_chunks = []
+        
+        for kb in knowledge_base.values():
+            ai_summary = kb.get('ai_summary', '')
+            if ai_summary:
+                # Simple scoring based on keyword matches
+                summary_lower = ai_summary.lower()
+                score = sum(1 for keyword in query_keywords if keyword in summary_lower)
+                
+                if score > 0:
+                    # Split into smaller chunks if needed
+                    if len(ai_summary) > 500:
+                        chunks = ai_summary.split('\n')
+                        for chunk in chunks:
+                            if chunk.strip():
+                                chunk_score = sum(1 for keyword in query_keywords if keyword in chunk.lower())
+                                if chunk_score > 0:
+                                    scored_chunks.append((chunk.strip(), chunk_score))
+                    else:
+                        scored_chunks.append((ai_summary, score))
+        
+        # Sort by score and return top k
+        scored_chunks.sort(key=lambda x: x[1], reverse=True)
+        return [chunk[0] for chunk in scored_chunks[:k]]
+        
+    except Exception as e:
         return []
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    db = FAISS.load_local("pdf_vector.index", embeddings)
-    docs_and_scores = db.similarity_search_with_score(query, k=k)
-    return [doc.page_content for doc, _ in docs_and_scores]
 
 def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religion=None):
     """
