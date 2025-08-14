@@ -3,6 +3,9 @@ from groq import Groq
 from dotenv import load_dotenv
 from data_manager import data_manager
 from typing import Dict, List, Optional
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+from langchain_groq import ChatGroq
 
 # Load environment variables
 load_dotenv()
@@ -18,28 +21,40 @@ class ChildNutritionAI:
         parent_id: str = None
     ) -> str:
         """Analyze a child's nutrition profile and return a summary or recommendations."""
-        # Get child data if available, else use provided info
-        child_info = {
-            "name": name,
-            "age_in_months": age_in_months,
-            "bmi": bmi,
-            "allergies": allergies,
-            "medical_conditions": medical_conditions,
-            "parent_id": parent_id
-        }
         try:
-            prompt = f"""You are a pediatric nutrition expert. Analyze the following child's nutrition profile and provide a summary of their nutritional status, potential concerns, and general recommendations.\n\nCHILD PROFILE:\n- Name: {name}\n- Age (months): {age_in_months}\n- BMI: {bmi}\n- Allergies: {allergies}\n- Medical Conditions: {medical_conditions}\n- Parent ID: {parent_id}\n\nGive practical, parent-friendly advice and highlight any red flags or areas for improvement."""
+            # Create LangChain prompt template
+            prompt_template = PromptTemplate(
+                input_variables=["name", "age_in_months", "bmi", "allergies", "medical_conditions", "parent_id"],
+                template="""You are a pediatric nutrition expert. Analyze the following child's nutrition profile and provide a summary of their nutritional status, potential concerns, and general recommendations.
 
-            response = self.client.chat.completions.create(
-                model="meta-llama/llama-4-scout-17b-16e-instruct",
-                messages=[
-                    {"role": "system", "content": "You are a pediatric nutrition expert focused on Filipino children's health and development."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.3,
-                max_tokens=1000
+CHILD PROFILE:
+- Name: {name}
+- Age (months): {age_in_months}
+- BMI: {bmi}
+- Allergies: {allergies}
+- Medical Conditions: {medical_conditions}
+- Parent ID: {parent_id}
+
+Give practical, parent-friendly advice and highlight any red flags or areas for improvement."""
             )
-            return response.choices[0].message.content
+            
+            # Create LangChain chain
+            chain = LLMChain(
+                llm=self.llm,
+                prompt=prompt_template
+            )
+            
+            # Execute the chain
+            result = chain.run(
+                name=name,
+                age_in_months=age_in_months,
+                bmi=bmi,
+                allergies=allergies,
+                medical_conditions=medical_conditions,
+                parent_id=parent_id
+            )
+            
+            return result
         except Exception as e:
             return f"Error analyzing child nutrition: {str(e)}"
     """
@@ -52,6 +67,13 @@ class ChildNutritionAI:
             raise ValueError("GROQ_API_KEY not found in environment variables")
         
         self.client = Groq(api_key=self.api_key)
+        
+        # Initialize LangChain LLM
+        self.llm = ChatGroq(
+            groq_api_key=self.api_key,
+            model_name="meta-llama/llama-4-scout-17b-16e-instruct",
+            temperature=0.3
+        )
     
     def summarize_pdf_for_nutrition_knowledge(self, pdf_text: str, pdf_name: str) -> List[str]:
         """
@@ -59,7 +81,10 @@ class ChildNutritionAI:
         Returns a list of bullet points/key insights
         """
         try:
-            prompt = f"""You are a pediatric nutrition expert. I'm uploading a PDF document titled "{pdf_name}" to build a knowledge base for meal planning for children aged 0-5 years.
+            # Create LangChain prompt template
+            prompt_template = PromptTemplate(
+                input_variables=["pdf_name", "pdf_text"],
+                template="""You are a pediatric nutrition expert. I'm uploading a PDF document titled "{pdf_name}" to build a knowledge base for meal planning for children aged 0-5 years.
 
 Please analyze the following text and extract ONLY information that is relevant to:
 - Nutrition for children 0-5 years old
@@ -85,18 +110,21 @@ Format your response as a JSON array of strings, like this:
 ["• First key insight about child nutrition", "• Second insight about feeding guidelines", ...]
 
 Only return the JSON array, nothing else."""
-
-            response = self.client.chat.completions.create(
-                model="meta-llama/llama-4-scout-17b-16e-instruct",
-                messages=[
-                    {"role": "system", "content": "You are a pediatric nutrition expert specializing in children aged 0-5 years. Extract only relevant nutrition and health information for this age group."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.2,
-                max_tokens=2000
             )
             
-            content = response.choices[0].message.content.strip()
+            # Create LangChain chain
+            chain = LLMChain(
+                llm=self.llm,
+                prompt=prompt_template
+            )
+            
+            # Execute the chain
+            response = chain.run(
+                pdf_name=pdf_name,
+                pdf_text=pdf_text
+            )
+            
+            content = response.strip()
             
             # Try to parse as JSON
             import json
@@ -126,6 +154,7 @@ Only return the JSON array, nothing else."""
         patient_data = data_manager.get_patient_by_id(patient_id)
         if not patient_data:
             return "Error: Patient data not found"
+        
         # Get knowledge base for Filipino nutrition guidelines
         knowledge_base = data_manager.get_knowledge_base()
         filipino_foods = knowledge_base.get('filipino_foods', {})
@@ -146,10 +175,12 @@ Only return the JSON array, nothing else."""
                 # Limit to most relevant insights to avoid token limit
                 relevant_insights = all_insights[:15]  # Use first 15 insights
                 pdf_insights_context = f"\n\nAI-Extracted Nutrition Guidelines from Knowledge Base:\n" + "\n".join(relevant_insights)
+        
         # Prepare parent recipes context
         parent_recipes_context = ""
         if parent_recipes:
             parent_recipes_context = f"\n\nParent Recipes to Consider:\n" + "\n".join(parent_recipes)
+        
         # Build Filipino foods context
         filipino_context = ""
         if filipino_foods:
@@ -157,19 +188,23 @@ Only return the JSON array, nothing else."""
             for recipe in filipino_foods.values():
                 filipino_recipes.append(f"- {recipe['name']}: {recipe['nutrition_facts']}")
             filipino_context = f"\n\nFilipino Food Options:\n" + "\n".join(filipino_recipes)
+
         try:
-            prompt = f"""You are a pediatric nutrition expert specializing in Filipino children's nutrition (ages 0-5). 
+            # Create LangChain prompt template
+            prompt_template = PromptTemplate(
+                input_variables=["duration_days", "age", "bmi", "bmi_category", "allergies", "medical_conditions", "weight", "height", "parent_recipes_context", "filipino_context", "pdf_insights_context"],
+                template="""You are a pediatric nutrition expert specializing in Filipino children's nutrition (ages 0-5). 
 
 Create a {duration_days}-day meal plan for this patient:
 
 PATIENT PROFILE:
-- Age: {patient_data.get('age', 'Unknown')} years old
-- BMI: {patient_data.get('bmi', 'Unknown')}
-- BMI Category: {patient_data.get('bmi_category', 'Unknown')}
-- Allergies: {patient_data.get('allergies', 'None')}
-- Medical Conditions: {patient_data.get('medical_conditions', 'None')}
-- Current Weight: {patient_data.get('weight', 'Unknown')} kg
-- Current Height: {patient_data.get('height', 'Unknown')} cm
+- Age: {age} years old
+- BMI: {bmi}
+- BMI Category: {bmi_category}
+- Allergies: {allergies}
+- Medical Conditions: {medical_conditions}
+- Current Weight: {weight} kg
+- Current Height: {height} cm
 
 GUIDELINES:
 1. Follow WHO nutrition guidelines for children 0-5 years
@@ -206,20 +241,31 @@ SAFETY NOTES:
 - Note appropriate textures for the patient's age
 - Include hydration recommendations
 
-
 Keep recommendations practical for Filipino parents."""
-
-            response = self.client.chat.completions.create(
-                model="meta-llama/llama-4-scout-17b-16e-instruct",
-                messages=[
-                    {"role": "system", "content": "You are a pediatric nutrition expert focused on Filipino children's health and development. All nutrient values provided are based on 100 g of edible portion."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.3,
-                max_tokens=3000
+            )
+            
+            # Create LangChain chain
+            chain = LLMChain(
+                llm=self.llm,
+                prompt=prompt_template
+            )
+            
+            # Execute the chain
+            result = chain.run(
+                duration_days=duration_days,
+                age=patient_data.get('age', 'Unknown'),
+                bmi=patient_data.get('bmi', 'Unknown'),
+                bmi_category=patient_data.get('bmi_category', 'Unknown'),
+                allergies=patient_data.get('allergies', 'None'),
+                medical_conditions=patient_data.get('medical_conditions', 'None'),
+                weight=patient_data.get('weight', 'Unknown'),
+                height=patient_data.get('height', 'Unknown'),
+                parent_recipes_context=parent_recipes_context,
+                filipino_context=filipino_context,
+                pdf_insights_context=pdf_insights_context
             )
 
-            return response.choices[0].message.content
+            return result
 
         except Exception as e:
             return f"Error generating meal plan: {str(e)}"
