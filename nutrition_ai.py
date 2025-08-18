@@ -106,10 +106,7 @@ INSTRUCTIONS:
 6. Maximum 20 bullet points
 7. Each bullet point should be actionable or informative for meal planning
 
-Format your response as a JSON array of strings, like this:
-["• First key insight about child nutrition", "• Second insight about feeding guidelines", ...]
-
-Only return the JSON array, nothing else."""
+"""
             )
             
             # Create LangChain chain
@@ -207,14 +204,13 @@ PATIENT PROFILE:
 - Current Height: {height} cm
 
 GUIDELINES:
-1. Follow WHO nutrition guidelines for children 0-5 years
-2. Consider Filipino dietary patterns and available foods
-3. Account for BMI category - adjust portions and food types accordingly
-4. Strictly avoid allergens mentioned above
-5. Consider medical conditions in food recommendations
-6. Provide age-appropriate textures and portions
-7. Include traditional Filipino foods when appropriate
-8. Focus on balanced nutrition for growing children
+1. Consider Filipino dietary patterns and available foods
+2. Account for BMI category - adjust food types accordingly
+3. Strictly avoid allergens mentioned above
+4. Consider medical conditions in food recommendations
+5. Provide age-appropriate textures and portions
+6. Include traditional Filipino foods when appropriate
+7. Focus on balanced nutrition for growing children
 
 {parent_recipes_context}
 {filipino_context}
@@ -222,12 +218,11 @@ GUIDELINES:
 
 MEAL PLAN FORMAT:
 For each day, provide:
-- Breakfast (with portion size appropriate for age)
+- Breakfast
 - Mid-morning snack
-- Lunch (with portion size)
+- Lunch
 - Afternoon snack  
-- Dinner (with portion size)
-- Before-bed snack (if appropriate for age)
+- Dinner 
 
 Include:
 - Specific portion sizes for the patient's age and BMI
@@ -239,7 +234,6 @@ Include:
 SAFETY NOTES:
 - Highlight any foods to avoid due to allergies/conditions
 - Note appropriate textures for the patient's age
-- Include hydration recommendations
 
 Keep recommendations practical for Filipino parents."""
             )
