@@ -110,7 +110,11 @@ def show_generated_meal_plans():
         st.info("No children found for this parent account.")
         return
     # Dropdown filter for children
-    child_options = {child['patient_id']: f"{child.get('first_name', '')} {child.get('middle_name', '')} {child.get('last_name', '')}".strip() for child in children}
+    child_options = {child['patient_id']: data_manager.format_full_name(
+        child.get('first_name', ''),
+        child.get('middle_name', ''),
+        child.get('last_name', '')
+    ) for child in children}
     selected_child_id = st.selectbox("Filter by Child", options=[None] + list(child_options.keys()), format_func=lambda x: child_options[x] if x else "All Children", index=0)
     # Get all plan_ids for these children
     child_ids = [child['patient_id'] for child in children]
@@ -132,7 +136,11 @@ def show_generated_meal_plans():
     table_rows = []
     for plan in plans:
         child = next((c for c in children if c['patient_id'] == plan['patient_id']), None)
-        child_name = f"{child.get('first_name', '')} {child.get('middle_name', '')} {child.get('last_name', '')}".strip() if child else "Unknown"
+        child_name = data_manager.format_full_name(
+            child.get('first_name', ''),
+            child.get('middle_name', ''),
+            child.get('last_name', '')
+        ) if child else "Unknown"
         age_months = child.get('age_months') if child else None
         child_age = f"{age_months//12}y {age_months%12}m" if age_months is not None else "-"
         plan_details = plan.get('plan_details', '')
@@ -262,7 +270,7 @@ def show_children_overview():
 
             st.markdown(f"""
             <div class="child-card">
-                <h3>👶 {child.get('first_name', '')} {child.get('middle_name', '')} {child.get('last_name', '')}</h3>
+                <h3>👶 {data_manager.format_full_name(child.get('first_name', ''), child.get('middle_name', ''), child.get('last_name', ''))}</h3>
                 <p><strong>Age:</strong> {age_str}</p>
                 <p><strong>BMI:</strong> {bmi_str} ({bmi_category})</p>
                 <p><strong>Allergies:</strong> {child.get('allergies', 'N/A')}</p>
@@ -282,7 +290,11 @@ def show_meal_plan_generator():
         st.warning("No children found. Please check with your account administrator.")
         return
     
-    patient_options = {child['patient_id']: f"{child.get('first_name', '')} {child.get('middle_name', '')} {child.get('last_name', '')}".strip() for child in children}
+    patient_options = {child['patient_id']: data_manager.format_full_name(
+        child.get('first_name', ''),
+        child.get('middle_name', ''),
+        child.get('last_name', '')
+    ) for child in children}
     selected_patient_id = st.selectbox(
         "Select Child",
         options=list(patient_options.keys()),
@@ -292,7 +304,7 @@ def show_meal_plan_generator():
     if selected_patient_id:
         patient_data = data_manager.get_patient_by_id(selected_patient_id)
         st.subheader("👶 Child Summary")
-        st.write(f"**Name:** {patient_data.get('first_name', '')} {patient_data.get('middle_name', '')} {patient_data.get('last_name', '')}")
+        st.write(f"**Name:** {data_manager.format_full_name(patient_data.get('first_name', ''), patient_data.get('middle_name', ''), patient_data.get('last_name', ''))}")
 
         age_months = patient_data.get('age_months')
         st.write(f"**Age:** {age_months if age_months is not None else 'Unknown'} months")

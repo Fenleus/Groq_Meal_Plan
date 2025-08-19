@@ -582,7 +582,11 @@ with meal_plans_tab:
     table_rows = []
     for plan in all_plans.values():
         child_data = data_manager.data_manager.get_patient_by_id(plan['patient_id'])
-        child_name = f"{child_data['first_name']} {child_data['last_name']}" if child_data else "Unknown"
+        child_name = data_manager.data_manager.format_full_name(
+            child_data.get('first_name', ''),
+            child_data.get('middle_name', ''),
+            child_data.get('last_name', '')
+        ) if child_data else "Unknown"
         age_months = child_data['age_months'] if child_data and 'age_months' in child_data else None
         child_age = f"{age_months//12}y {age_months%12}m" if age_months is not None else "-"
         parent_id = child_data.get('parent_id') if child_data else None

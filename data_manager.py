@@ -138,6 +138,22 @@ class DataManager:
         except Exception:
             return {}
 
+    @staticmethod
+    def format_full_name(first_name: str = '', middle_name: str = '', last_name: str = '') -> str:
+        """Format a full name properly, excluding empty/None middle names."""
+        parts = []
+        
+        if first_name and first_name.strip():
+            parts.append(first_name.strip())
+        
+        if middle_name and middle_name.strip() and middle_name.strip().lower() not in ['none', 'null', '']:
+            parts.append(middle_name.strip())
+        
+        if last_name and last_name.strip():
+            parts.append(last_name.strip())
+        
+        return ' '.join(parts)
+
     # Parents Data Management
 
     def get_parents_data(self) -> Dict:

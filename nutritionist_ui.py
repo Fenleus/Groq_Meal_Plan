@@ -172,7 +172,11 @@ def show_all_parents():
     parent_rows = []
     for parent_id, parent_info in parents_data.items():
         children = parent_to_children.get(str(parent_id), [])
-        parent_name = f"{parent_info.get('first_name', '')} {parent_info.get('last_name', '')}".strip()
+        parent_name = data_manager.format_full_name(
+            parent_info.get('first_name', ''),
+            parent_info.get('middle_name', ''),
+            parent_info.get('last_name', '')
+        )
         # Get barangay name for first child (assuming all children in same family have same barangay)
         barangay = "-"
         if children:
@@ -235,7 +239,11 @@ def show_all_parents():
                 else:
                     age_str = "Unknown"
                 ccols[0].markdown(f"{cidx}")
-                child_name = f"{child.get('first_name', '')} {child.get('middle_name', '')} {child.get('last_name', '')}".strip()
+                child_name = data_manager.format_full_name(
+                    child.get('first_name', ''),
+                    child.get('middle_name', ''),
+                    child.get('last_name', '')
+                )
                 ccols[1].markdown(child_name)
                 ccols[2].markdown(age_str)
                 
@@ -285,7 +293,11 @@ def show_add_notes():
     table_rows = []
     for plan in all_plans.values():
         child_data = data_manager.get_patient_by_id(plan['patient_id'])
-        child_name = f"{child_data.get('first_name', '')} {child_data.get('middle_name', '')} {child_data.get('last_name', '')}".strip() if child_data else "Unknown"
+        child_name = data_manager.format_full_name(
+            child_data.get('first_name', ''),
+            child_data.get('middle_name', ''),
+            child_data.get('last_name', '')
+        ) if child_data else "Unknown"
         age_months = child_data['age_months'] if child_data and 'age_months' in child_data else None
         child_age = f"{age_months//12}y {age_months%12}m" if age_months is not None else "-"
         parent_id = child_data.get('parent_id') if child_data else None
@@ -328,18 +340,17 @@ def show_add_notes():
         if parent_id is not None:
             parent_info = parents_data.get(str(parent_id))
             if parent_info:
-                parent_full_name = f"{parent_info.get('first_name', '')} {parent_info.get('last_name', '')}".strip()
+                parent_full_name = data_manager.format_full_name(
+                    parent_info.get('first_name', ''),
+                    parent_info.get('middle_name', ''),
+                    parent_info.get('last_name', '')
+                )
                 # Get barangay name
                 barangay_id = child_data.get('barangay_id') if child_data else None
                 if barangay_id:
-                    try:
-                        conn = data_manager.data_manager.conn
-                        cursor = conn.cursor(dictionary=True)
-                        cursor.execute("SELECT barangay_name FROM barangays WHERE barangay_id = %s", (barangay_id,))
-                        barangay_row = cursor.fetchone()
-                        barangay_val = barangay_row['barangay_name'] if barangay_row else f"Barangay {barangay_id}"
-                    except Exception:
-                        barangay_val = f"Barangay {barangay_id}"
+                    barangay_val = data_manager.get_barangay_name(barangay_id)
+                else:
+                    barangay_val = "-"
                 religion_val = "-"  # Religion not available in new schema
             else:
                 parent_full_name = f"Parent {parent_id}"

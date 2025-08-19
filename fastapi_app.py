@@ -43,7 +43,11 @@ def generate_meal_plan(request: MealPlanRequest):
         if not patient_data:
             raise HTTPException(status_code=404, detail="Patient not found")
         # Extract all relevant info from patient and parent
-        name = f"{patient_data.get('first_name', '')} {patient_data.get('middle_name', '')} {patient_data.get('last_name', '')}".strip()
+        name = data_manager.format_full_name(
+            patient_data.get('first_name', ''),
+            patient_data.get('middle_name', ''),
+            patient_data.get('last_name', '')
+        )
         age_months = patient_data.get('age_months')
         weight_kg = patient_data.get('weight_kg')
         height_cm = patient_data.get('height_cm')

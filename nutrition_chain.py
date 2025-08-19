@@ -104,7 +104,11 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
     nutrition_analysis = ""
     try:
         nutrition_ai = ChildNutritionAI()
-        name = f"{patient_data.get('first_name', '')} {patient_data.get('middle_name', '')} {patient_data.get('last_name', '')}".strip()
+        name = data_manager.format_full_name(
+            patient_data.get('first_name', ''),
+            patient_data.get('middle_name', ''),
+            patient_data.get('last_name', '')
+        )
         analysis_result = nutrition_ai.analyze_child_nutrition(
             name=name,
             age_in_months=patient_data.get('age_months'),
