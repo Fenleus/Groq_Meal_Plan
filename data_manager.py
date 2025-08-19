@@ -7,7 +7,7 @@ import json
 class DataManager:
     def get_nutritionists(self) -> list:
         """Get all nutritionists from MySQL, all columns."""
-        self.cursor.execute("SELECT nutritionist_id, username, full_name, created_at FROM nutritionists")
+        self.cursor.execute("SELECT user_id, role_id, first_name, middle_name, last_name, birth_date, sex, email, email_verified_at, password, contact_number, address, is_active, remember_token, license_number, years_experience, qualifications, professional_experience, professional_id_path, verification_status, rejection_reason, verified_at, verified_by, account_status, deleted_at, created_at, updated_at FROM users WHERE role_id = (SELECT role_id FROM roles WHERE role_name = 'nutritionist')")
         return self.cursor.fetchall()
     def get_meal_plan_by_id(self, plan_id: int) -> Optional[Dict]:
         """Get a single meal plan by its plan_id."""
@@ -16,7 +16,7 @@ class DataManager:
 
     def get_nutritionist_notes_by_patient(self, patient_id: int) -> List[Dict]:
         """Get all nutritionist notes for a given patient_id."""
-        self.cursor.execute("SELECT note_id, nutritionist_id, patient_id, note, created_at FROM nutritionist_notes WHERE patient_id = %s", (patient_id,))
+        self.cursor.execute("SELECT note_id, nutritionist_id, patient_id, plan_id, note, created_at FROM nutritionist_notes WHERE patient_id = %s", (patient_id,))
         return self.cursor.fetchall()
     def update_food_nutrition(self, food_id, category, field, value):
         """Update a single nutrition fact for a food entry."""
@@ -37,20 +37,20 @@ class DataManager:
         self.conn.commit()
     # Admin Logs Management
     def save_admin_log(self, action: str, details):
-        """Insert a new admin log into the admin_logs table."""
-        sql = "INSERT INTO admin_logs (timestamp, action, details) VALUES (%s, %s, %s)"
+        """Insert a new admin log into the audit_logs table."""
+        sql = "INSERT INTO audit_logs (log_timestamp, action, description) VALUES (%s, %s, %s)"
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.cursor.execute(sql, (now, action, json.dumps(details)))
         self.conn.commit()
 
     def get_admin_logs(self):
-        """Fetch all admin logs from the admin_logs table."""
-        self.cursor.execute("SELECT log_id, timestamp, action, details FROM admin_logs ORDER BY timestamp DESC")
+        """Fetch all admin logs from the audit_logs table."""
+        self.cursor.execute("SELECT log_id, log_timestamp, action, description FROM audit_logs ORDER BY log_timestamp DESC")
         rows = self.cursor.fetchall()
         for row in rows:
-            if isinstance(row.get('details'), str):
+            if isinstance(row.get('description'), str):
                 try:
-                    row['details'] = json.loads(row['details'])
+                    row['description'] = json.loads(row['description'])
                 except Exception:
                     pass
         return rows
@@ -120,39 +120,58 @@ class DataManager:
         self.conn = get_connection()
         self.cursor = self.conn.cursor(dictionary=True)
 
+    def get_barangay_name(self, barangay_id: int) -> str:
+        """Get barangay name by barangay_id."""
+        try:
+            self.cursor.execute("SELECT barangay_name FROM barangays WHERE barangay_id = %s", (barangay_id,))
+            result = self.cursor.fetchone()
+            return result['barangay_name'] if result else f"Barangay {barangay_id}"
+        except Exception:
+            return f"Barangay {barangay_id}"
+
+    def get_all_barangays(self) -> Dict:
+        """Get all barangays as a dictionary {barangay_id: barangay_name}."""
+        try:
+            self.cursor.execute("SELECT barangay_id, barangay_name FROM barangays ORDER BY barangay_name")
+            rows = self.cursor.fetchall()
+            return {row['barangay_id']: row['barangay_name'] for row in rows}
+        except Exception:
+            return {}
+
     # Parents Data Management
 
     def get_parents_data(self) -> Dict:
         """Get all parents data from MySQL, including all columns as per schema."""
-        self.cursor.execute("SELECT parent_id, full_name, contact_number, barangay, religion, created_at, updated_at FROM parents")
+        self.cursor.execute("SELECT user_id, role_id, first_name, middle_name, last_name, birth_date, sex, email, email_verified_at, password, contact_number, address, is_active, remember_token, license_number, years_experience, qualifications, professional_experience, professional_id_path, verification_status, rejection_reason, verified_at, verified_by, account_status, deleted_at, created_at, updated_at FROM users WHERE role_id = (SELECT role_id FROM roles WHERE role_name = 'parent')")
         rows = self.cursor.fetchall()
-        return {str(row['parent_id']): row for row in rows}
+        return {str(row['user_id']): row for row in rows}
 
 
     def get_parent_by_id(self, parent_id: str) -> Optional[Dict]:
         """Get specific parent data from MySQL, all columns."""
-        self.cursor.execute("SELECT parent_id, full_name, contact_number, barangay, religion, created_at, updated_at FROM parents WHERE parent_id = %s", (parent_id,))
+        self.cursor.execute("SELECT user_id, role_id, first_name, middle_name, last_name, birth_date, sex, email, email_verified_at, password, contact_number, address, is_active, remember_token, license_number, years_experience, qualifications, professional_experience, professional_id_path, verification_status, rejection_reason, verified_at, verified_by, account_status, deleted_at, created_at, updated_at FROM users WHERE user_id = %s AND role_id = (SELECT role_id FROM roles WHERE role_name = 'parent')", (parent_id,))
         row = self.cursor.fetchone()
         return row
 
     def get_religion_by_parent(self, parent_id: str) -> Optional[str]:
         parent = self.get_parent_by_id(parent_id)
         if parent:
-            return parent.get('religion')
+            # Religion is not stored in users table, so return None for now
+            return None
         return None
 
     # Children Data Management
 
     def get_children_data(self) -> Dict:
         """Get all children data from MySQL (patients table), all columns."""
-        self.cursor.execute("SELECT patient_id, first_name, last_name, date_of_birth, age_in_months, gender, bmi, bmi_category, allergies, medical_conditions, address, contact_number, created_at, updated_at, parent_id FROM patients")
+        self.cursor.execute("SELECT patient_id, first_name, middle_name, last_name, barangay_id, contact_number, age_months, sex, date_of_admission, total_household_adults, total_household_children, total_household_twins, is_4ps_beneficiary, weight_kg, height_cm, weight_for_age, height_for_age, bmi_for_age, breastfeeding, allergies, religion, other_medical_problems, edema, created_at, updated_at, parent_id FROM patients")
         rows = self.cursor.fetchall()
         return {str(row['patient_id']): row for row in rows}
 
 
     def get_children_by_parent(self, parent_id: str) -> List[Dict]:
         """Get all children for a specific parent from MySQL, all columns."""
-        self.cursor.execute("SELECT patient_id, first_name, last_name, date_of_birth, age_in_months, gender, bmi, bmi_category, allergies, medical_conditions, address, contact_number, created_at, updated_at, parent_id FROM patients WHERE parent_id = %s", (parent_id,))
+        self.cursor.execute("SELECT patient_id, first_name, middle_name, last_name, barangay_id, contact_number, age_months, sex, date_of_admission, total_household_adults, total_household_children, total_household_twins, is_4ps_beneficiary, weight_kg, height_cm, weight_for_age, height_for_age, bmi_for_age, breastfeeding, allergies, religion, other_medical_problems, edema, created_at, updated_at, parent_id FROM patients WHERE parent_id = %s", (parent_id,))
         return self.cursor.fetchall()
 
 
@@ -165,7 +184,7 @@ class DataManager:
 
     def get_patient_by_id(self, patient_id: str) -> Optional[Dict]:
         """Get specific patient data from MySQL, all columns."""
-        self.cursor.execute("SELECT patient_id, first_name, last_name, date_of_birth, age_in_months, gender, bmi, bmi_category, allergies, medical_conditions, address, contact_number, created_at, updated_at, parent_id FROM patients WHERE patient_id = %s", (patient_id,))
+        self.cursor.execute("SELECT patient_id, first_name, middle_name, last_name, barangay_id, contact_number, age_months, sex, date_of_admission, total_household_adults, total_household_children, total_household_twins, is_4ps_beneficiary, weight_kg, height_cm, weight_for_age, height_for_age, bmi_for_age, breastfeeding, allergies, religion, other_medical_problems, edema, created_at, updated_at, parent_id FROM patients WHERE patient_id = %s", (patient_id,))
         row = self.cursor.fetchone()
         return row
 
@@ -198,7 +217,7 @@ class DataManager:
 
     def get_meal_plans_by_parent(self, parent_id: str) -> List[Dict]:
         """Get all recent meal plans for a parent's children from MySQL, all columns."""
-        self.cursor.execute("SELECT plan_id, patient_id, plan_details, generated_at FROM meal_plans WHERE patient_id IN (SELECT id FROM patients WHERE parent_id = %s) ORDER BY generated_at DESC", (parent_id,))
+        self.cursor.execute("SELECT plan_id, patient_id, plan_details, generated_at FROM meal_plans WHERE patient_id IN (SELECT patient_id FROM patients WHERE parent_id = %s) ORDER BY generated_at DESC", (parent_id,))
         return self.cursor.fetchall()
 
     # Parent Recipes Management
@@ -224,7 +243,7 @@ class DataManager:
 
     # Nutritionist Notes Management
     def get_nutritionist_notes(self) -> Dict:
-        self.cursor.execute("SELECT note_id, nutritionist_id, patient_id, note, created_at FROM nutritionist_notes")
+        self.cursor.execute("SELECT note_id, nutritionist_id, patient_id, plan_id, note, created_at FROM nutritionist_notes")
         rows = self.cursor.fetchall()
         return {str(row['note_id']): row for row in rows}
 
@@ -239,7 +258,7 @@ class DataManager:
         return str(self.cursor.lastrowid)
 
     def get_notes_for_meal_plan(self, plan_id: str) -> List[Dict]:
-        self.cursor.execute("SELECT note_id, nutritionist_id, patient_id, note, created_at FROM nutritionist_notes WHERE plan_id = %s", (plan_id,))
+        self.cursor.execute("SELECT note_id, nutritionist_id, patient_id, plan_id, note, created_at FROM nutritionist_notes WHERE plan_id = %s", (plan_id,))
         return self.cursor.fetchall()
 
     # Knowledge Base Management

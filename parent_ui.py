@@ -79,7 +79,7 @@ def main():
 
         parents_data = data_manager.get_parents_data()
 
-        parent_options = {str(pdata.get('parent_id', pid)): pdata.get('full_name', str(pdata.get('parent_id', pid))) for pid, pdata in parents_data.items()}
+        parent_options = {str(pdata.get('user_id', pid)): f"{pdata.get('first_name', '')} {pdata.get('last_name', '')}".strip() for pid, pdata in parents_data.items()}
         selected_parent = st.selectbox(
             "Select Parent Account",
             options=list(parent_options.keys()),
@@ -110,7 +110,7 @@ def show_generated_meal_plans():
         st.info("No children found for this parent account.")
         return
     # Dropdown filter for children
-    child_options = {child['patient_id']: f"{child['first_name']} {child['last_name']}" for child in children}
+    child_options = {child['patient_id']: f"{child.get('first_name', '')} {child.get('middle_name', '')} {child.get('last_name', '')}".strip() for child in children}
     selected_child_id = st.selectbox("Filter by Child", options=[None] + list(child_options.keys()), format_func=lambda x: child_options[x] if x else "All Children", index=0)
     # Get all plan_ids for these children
     child_ids = [child['patient_id'] for child in children]
@@ -127,13 +127,13 @@ def show_generated_meal_plans():
         notes_by_plan[plan_id] = notes
     # Get nutritionist names
     nutritionists = data_manager.get_nutritionists()
-    nutritionist_map = {str(n['nutritionist_id']): n.get('full_name', f"Nutritionist {n['nutritionist_id']}") for n in nutritionists}
+    nutritionist_map = {str(n['user_id']): f"{n.get('first_name', '')} {n.get('last_name', '')}".strip() or f"Nutritionist {n['user_id']}" for n in nutritionists}
     # Table rows
     table_rows = []
     for plan in plans:
         child = next((c for c in children if c['patient_id'] == plan['patient_id']), None)
-        child_name = f"{child['first_name']} {child['last_name']}" if child else "Unknown"
-        age_months = child.get('age_in_months') if child else None
+        child_name = f"{child.get('first_name', '')} {child.get('middle_name', '')} {child.get('last_name', '')}".strip() if child else "Unknown"
+        age_months = child.get('age_months') if child else None
         child_age = f"{age_months//12}y {age_months%12}m" if age_months is not None else "-"
         plan_details = plan.get('plan_details', '')
         # Clean plan_details
@@ -225,14 +225,15 @@ def show_children_overview():
     for child in children:
         with st.container():
 
-            age_months = child.get('age_in_months')
-            if age_months is None and child.get('date_of_birth'):
-                dob = child['date_of_birth']
-                if isinstance(dob, str):
-                    dob = datetime.strptime(dob, "%Y-%m-%d").date()
+            age_months = child.get('age_months')
+            if age_months is None and child.get('date_of_admission'):
+                # Calculate age from date_of_admission if age_months is not available
+                admission_date = child['date_of_admission']
+                if isinstance(admission_date, str):
+                    admission_date = datetime.strptime(admission_date, "%Y-%m-%d").date()
                 today = datetime.today().date()
-                age_months = (today.year - dob.year) * 12 + (today.month - dob.month)
-                if today.day < dob.day:
+                age_months = (today.year - admission_date.year) * 12 + (today.month - admission_date.month)
+                if today.day < admission_date.day:
                     age_months -= 1
             if age_months is not None:
                 years = age_months // 12
@@ -246,13 +247,26 @@ def show_children_overview():
             else:
                 age_str = "Unknown"
 
+            # Calculate BMI from weight and height
+            weight_kg = child.get('weight_kg')
+            height_cm = child.get('height_cm')
+            bmi_str = "N/A"
+            bmi_category = child.get('bmi_for_age', 'N/A')
+            if weight_kg and height_cm:
+                try:
+                    height_m = height_cm / 100
+                    bmi = weight_kg / (height_m ** 2)
+                    bmi_str = f"{bmi:.1f}"
+                except:
+                    bmi_str = "N/A"
+
             st.markdown(f"""
             <div class="child-card">
-                <h3>👶 {child['first_name']} {child['last_name']}</h3>
+                <h3>👶 {child.get('first_name', '')} {child.get('middle_name', '')} {child.get('last_name', '')}</h3>
                 <p><strong>Age:</strong> {age_str}</p>
-                <p><strong>BMI:</strong> {child.get('bmi', 'N/A')} ({child.get('bmi_category', 'N/A')})</p>
+                <p><strong>BMI:</strong> {bmi_str} ({bmi_category})</p>
                 <p><strong>Allergies:</strong> {child.get('allergies', 'N/A')}</p>
-                <p><strong>Medical Conditions:</strong> {child.get('medical_conditions', 'N/A')}</p>
+                <p><strong>Medical Conditions:</strong> {child.get('other_medical_problems', 'N/A')}</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -268,7 +282,7 @@ def show_meal_plan_generator():
         st.warning("No children found. Please check with your account administrator.")
         return
     
-    patient_options = {child['patient_id']: f"{child['first_name']} {child['last_name']}" for child in children}
+    patient_options = {child['patient_id']: f"{child.get('first_name', '')} {child.get('middle_name', '')} {child.get('last_name', '')}".strip() for child in children}
     selected_patient_id = st.selectbox(
         "Select Child",
         options=list(patient_options.keys()),
@@ -278,16 +292,29 @@ def show_meal_plan_generator():
     if selected_patient_id:
         patient_data = data_manager.get_patient_by_id(selected_patient_id)
         st.subheader("👶 Child Summary")
-        st.write(f"**Name:** {patient_data['first_name']} {patient_data['last_name']}")
+        st.write(f"**Name:** {patient_data.get('first_name', '')} {patient_data.get('middle_name', '')} {patient_data.get('last_name', '')}")
 
-        age_months = patient_data.get('age_in_months')
+        age_months = patient_data.get('age_months')
         st.write(f"**Age:** {age_months if age_months is not None else 'Unknown'} months")
-        st.write(f"**BMI:** {patient_data['bmi']} ({patient_data['bmi_category']})")
-        st.write(f"**Allergies:** {patient_data['allergies']}")
-        st.write(f"**Conditions:** {patient_data['medical_conditions']}")
+        
+        # Calculate BMI from weight and height
+        weight_kg = patient_data.get('weight_kg')
+        height_cm = patient_data.get('height_cm')
+        if weight_kg and height_cm:
+            try:
+                height_m = height_cm / 100
+                bmi = weight_kg / (height_m ** 2)
+                bmi_category = patient_data.get('bmi_for_age', 'Unknown')
+                st.write(f"**BMI:** {bmi:.1f} ({bmi_category})")
+            except:
+                st.write("**BMI:** Unable to calculate")
+        else:
+            st.write("**BMI:** No data available")
+            
+        st.write(f"**Allergies:** {patient_data.get('allergies', 'N/A')}")
+        st.write(f"**Conditions:** {patient_data.get('other_medical_problems', 'None')}")
         # Religion
-        parent_id = patient_data.get('parent_id')
-        religion = data_manager.get_religion_by_parent(parent_id) if parent_id else "Unknown"
+        religion = patient_data.get('religion', 'Unknown')
         st.write(f"**Religion:** {religion if religion else 'Unknown'}")
         # Input for available ingredients
         available_ingredients = st.text_area(
@@ -311,6 +338,7 @@ def show_meal_plan_generator():
                 import json
                 # Save meal plan to database as valid JSON
                 meal_plan_json = json.dumps({"text": meal_plan})
+                parent_id = patient_data.get('parent_id')
                 data_manager.save_meal_plan(
                     patient_id=str(selected_patient_id),
                     meal_plan=meal_plan_json,
