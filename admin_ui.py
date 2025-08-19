@@ -21,18 +21,18 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def load_logs():
-    # Load from MySQL admin_logs table filtered by current admin
+    # Load from MySQL audit_logs table filtered by current admin
     admin_id = st.session_state.get('admin_id', '1')  # Default to admin 1 if not set
     conn = data_manager.data_manager.conn
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT log_id, timestamp, action, details FROM admin_logs WHERE admin_id = %s ORDER BY timestamp DESC", (admin_id,))
+    cursor.execute("SELECT log_id, log_timestamp, action, description FROM audit_logs WHERE user_id = %s ORDER BY log_timestamp DESC", (admin_id,))
     rows = cursor.fetchall()
 
     import json
     for row in rows:
-        if isinstance(row.get('details'), str):
+        if isinstance(row.get('description'), str):
             try:
-                row['details'] = json.loads(row['details'])
+                row['description'] = json.loads(row['description'])
             except Exception:
                 pass
     return rows
@@ -42,9 +42,9 @@ def load_admin_options():
     try:
         conn = data_manager.data_manager.conn
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT admin_id, full_name FROM admins ORDER BY admin_id")
+        cursor.execute("SELECT user_id, CONCAT(first_name, ' ', last_name) as full_name FROM users WHERE role_id = (SELECT role_id FROM roles WHERE role_name = 'admin') ORDER BY user_id")
         admin_rows = cursor.fetchall()
-        return {str(row['admin_id']): row['full_name'] for row in admin_rows}
+        return {str(row['user_id']): row['full_name'] for row in admin_rows}
     except Exception as e:
         st.error(f"Failed to load admin data: {e}")
         # Fallback to prevent app crash
@@ -124,11 +124,11 @@ def log_action(action, details):
         filtered_details = {k: v for k, v in details.items() if k not in sensitive_keys}
     else:
         filtered_details = details
-    # Save to MySQL admin_logs table with admin_id
+    # Save to MySQL audit_logs table with user_id
     import json
     conn = data_manager.data_manager.conn
     cursor = conn.cursor()
-    sql = "INSERT INTO admin_logs (timestamp, action, details, admin_id) VALUES (%s, %s, %s, %s)"
+    sql = "INSERT INTO audit_logs (log_timestamp, action, description, user_id) VALUES (%s, %s, %s, %s)"
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     admin_id = st.session_state.get('admin_id', '1')  # Default to admin 1 if not set
     cursor.execute(sql, (now, action, json.dumps(filtered_details), admin_id))
@@ -471,10 +471,10 @@ with kb_tab:
         kb_entries = data_manager.data_manager.get_knowledge_base()
         conn = data_manager.data_manager.conn
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT admin_id, full_name FROM admins")
-        admins = {str(row['admin_id']): row['full_name'] for row in cursor.fetchall()}
-        cursor.execute("SELECT nutritionist_id, full_name FROM nutritionists")
-        nutritionists = {str(row['nutritionist_id']): row['full_name'] for row in cursor.fetchall()}
+        cursor.execute("SELECT user_id, CONCAT(first_name, ' ', last_name) as full_name FROM users WHERE role_id = (SELECT role_id FROM roles WHERE role_name = 'admin')")
+        admins = {str(row['user_id']): row['full_name'] for row in cursor.fetchall()}
+        cursor.execute("SELECT user_id, CONCAT(first_name, ' ', last_name) as full_name FROM users WHERE role_id = (SELECT role_id FROM roles WHERE role_name = 'nutritionist')")
+        nutritionists = {str(row['user_id']): row['full_name'] for row in cursor.fetchall()}
         # Use a set to avoid duplicate (kb_id, file name) pairs
         seen_files = set()
         table_rows = []
@@ -564,7 +564,12 @@ with meal_plans_tab:
     filter_cols = st.columns([2,2,2,2])
     with filter_cols[0]:
         search_val = st.text_input("🔍 Search by child, parent, or plan ID", value=st.session_state.get("add_notes_search", ""), key="add_notes_search")
-    barangay_list = ["All"] + sorted({parent.get('barangay', '-') for parent in parents_data.values() if parent.get('barangay')})
+    barangay_list = ["All"]
+    try:
+        barangays = data_manager.data_manager.get_all_barangays()
+        barangay_list.extend(sorted(barangays.values()))
+    except Exception:
+        barangay_list = ["All"]
     with filter_cols[1]:
         barangay_selected = st.selectbox("🏘️ Filter by Barangay", barangay_list, key="add_notes_barangay")
     with filter_cols[2]:
@@ -578,7 +583,7 @@ with meal_plans_tab:
     for plan in all_plans.values():
         child_data = data_manager.data_manager.get_patient_by_id(plan['patient_id'])
         child_name = f"{child_data['first_name']} {child_data['last_name']}" if child_data else "Unknown"
-        age_months = child_data['age_in_months'] if child_data and 'age_in_months' in child_data else None
+        age_months = child_data['age_months'] if child_data and 'age_months' in child_data else None
         child_age = f"{age_months//12}y {age_months%12}m" if age_months is not None else "-"
         parent_id = child_data.get('parent_id') if child_data else None
         notes = data_manager.data_manager.get_notes_for_meal_plan(plan.get('plan_id', ''))
@@ -604,9 +609,9 @@ with meal_plans_tab:
             try:
                 conn = data_manager.data_manager.conn
                 cursor = conn.cursor(dictionary=True)
-                cursor.execute("SELECT nutritionist_id, full_name FROM nutritionists")
+                cursor.execute("SELECT user_id, CONCAT(first_name, ' ', last_name) as full_name FROM users WHERE role_id = (SELECT role_id FROM roles WHERE role_name = 'nutritionist')")
                 nutritionist_rows = cursor.fetchall()
-                nutritionist_options = {str(row['nutritionist_id']): row['full_name'] for row in nutritionist_rows}
+                nutritionist_options = {str(row['user_id']): row['full_name'] for row in nutritionist_rows}
             except Exception:
                 nutritionist_options = {}
             
@@ -623,14 +628,18 @@ with meal_plans_tab:
         if parent_id is not None:
             parent_info = parents_data.get(str(parent_id))
             if parent_info:
-                parent_full_name = parent_info.get('full_name', 'Unknown')
-                barangay_val = parent_info.get('barangay', '-')
-                religion_val = parent_info.get('religion', '-')
+                parent_full_name = f"{parent_info.get('first_name', '')} {parent_info.get('last_name', '')}".strip()
+                # Get barangay name if barangay_id exists
+                barangay_id = child_data.get('barangay_id') if child_data else None
+                if barangay_id:
+                    barangay_val = data_manager.data_manager.get_barangay_name(barangay_id)
+                religion_val = "-"  # Religion not available in new schema
         plan_details_clean = clean_note(plan.get('plan_details', ''))
         generated_at_val = format_created_at(plan.get('generated_at', ''))
         # Diet Restrictions
-        medical_conditions = child_data.get('medical_conditions', '-') if child_data else '-'
+        medical_conditions = child_data.get('other_medical_problems', '-') if child_data else '-'
         allergies = child_data.get('allergies', '-') if child_data else '-'
+        religion_val = child_data.get('religion', '-') if child_data else '-'
         diet_restrictions = f"Medical Condition: {medical_conditions}  \nAllergy: {allergies}  \nReligion: {religion_val}"
         table_rows.append({
             "Plan ID": plan.get('plan_id', ''),
@@ -730,15 +739,15 @@ with logs_tab:
     
     logs = load_logs()
 
-    columns = ['action', 'details', 'timestamp']
+    columns = ['action', 'description', 'log_timestamp']
     if logs:
         log_df = pd.DataFrame(logs)
         def flatten_details(details):
             if isinstance(details, dict):
                 return ", ".join(f"{k}: {v}" for k, v in details.items())
             return str(details)
-        if 'details' in log_df.columns:
-            log_df['details'] = log_df['details'].apply(flatten_details)
+        if 'description' in log_df.columns:
+            log_df['description'] = log_df['description'].apply(flatten_details)
         st.dataframe(log_df[columns], use_container_width=True, key=f"logs_table_{current_admin_id}")
     else:
         empty_df = pd.DataFrame([], columns=columns)

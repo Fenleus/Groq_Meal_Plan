@@ -43,22 +43,22 @@ def generate_meal_plan(request: MealPlanRequest):
         if not patient_data:
             raise HTTPException(status_code=404, detail="Patient not found")
         # Extract all relevant info from patient and parent
-        name = patient_data.get('first_name', '') + ' ' + patient_data.get('last_name', '')
-        age_in_months = patient_data.get('age_in_months')
-        bmi = patient_data.get('bmi')
-        allergies = patient_data.get('allergies')
-        medical_conditions = patient_data.get('medical_conditions')
+        name = f"{patient_data.get('first_name', '')} {patient_data.get('middle_name', '')} {patient_data.get('last_name', '')}".strip()
+        age_months = patient_data.get('age_months')
+        weight_kg = patient_data.get('weight_kg')
+        height_cm = patient_data.get('height_cm')
+        other_medical_problems = patient_data.get('other_medical_problems')
         parent_id = patient_data.get('parent_id')
         religion = data_manager.get_religion_by_parent(parent_id) if parent_id else None
 
         # Nutrition analysis (LLM) for internal use only
-        if name and age_in_months is not None:
+        if name and age_months is not None:
             _ = nutrition_ai.analyze_child_nutrition(
                 name=name,
-                age_in_months=age_in_months,
-                bmi=bmi,
-                allergies=allergies,
-                medical_conditions=medical_conditions,
+                age_in_months=age_months,
+                weight_kg=weight_kg,
+                height_cm=height_cm,
+                other_medical_problems=other_medical_problems,
                 parent_id=parent_id
             )
         # Generate meal plan (LangChain) with all context

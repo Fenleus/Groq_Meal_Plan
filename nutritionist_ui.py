@@ -59,8 +59,8 @@ def load_nutritionist_options():
         nutritionists = data_manager.get_nutritionists()
         options = {}
         for nutritionist in nutritionists:
-            nutritionist_id = str(nutritionist['nutritionist_id'])
-            full_name = nutritionist['full_name']
+            nutritionist_id = str(nutritionist['user_id'])
+            full_name = f"{nutritionist.get('first_name', '')} {nutritionist.get('last_name', '')}".strip()
             options[nutritionist_id] = full_name
         return options
     except Exception as e:
@@ -146,10 +146,15 @@ def show_all_parents():
     all_children = data_manager.get_children_data()
     parents_data = data_manager.get_parents_data()
     # Barangay dropdown and search bar
-    barangay_list = [
-        "All",
-        "Bagong Silang", "Calendola", "Chrysanthemum", "Cuyab", "Estrella", "Fatima", "G.S.I.S", "Landayan", "Langgam", "Laram", "Magsaysay", "Maharlika", "Narra", "Nueva", "Pacita 1", "Pacita 2", "Poblacion", "Riverside", "Rosario", "Sampaguita Village", "San Antonio", "San Lorenzo Ruiz", "San Roque", "San Vicente", "Santo Niño", "United Bayanihan", "United Better Living"
-    ]
+    barangay_list = ["All"]
+    try:
+        barangays = data_manager.get_all_barangays()
+        barangay_list.extend(sorted(barangays.values()))
+    except Exception:
+        barangay_list = [
+            "All",
+            "Bagong Silang", "Calendola", "Chrysanthemum", "Cuyab", "Estrella", "Fatima", "G.S.I.S", "Landayan", "Langgam", "Laram", "Magsaysay", "Maharlika", "Narra", "Nueva", "Pacita 1", "Pacita 2", "Poblacion", "Riverside", "Rosario", "Sampaguita Village", "San Antonio", "San Lorenzo Ruiz", "San Roque", "San Vicente", "Santo Niño", "United Bayanihan", "United Better Living"
+        ]
     filter_cols = st.columns([3, 2])
     with filter_cols[0]:
         search_val = st.text_input("🔍 Search parents", value="", key="all_parents_search")
@@ -167,8 +172,13 @@ def show_all_parents():
     parent_rows = []
     for parent_id, parent_info in parents_data.items():
         children = parent_to_children.get(str(parent_id), [])
-        parent_name = parent_info.get('full_name', f"Parent {parent_id}")
-        barangay = parent_info.get('barangay', '')
+        parent_name = f"{parent_info.get('first_name', '')} {parent_info.get('last_name', '')}".strip()
+        # Get barangay name for first child (assuming all children in same family have same barangay)
+        barangay = "-"
+        if children:
+            barangay_id = children[0].get('barangay_id')
+            if barangay_id:
+                barangay = data_manager.get_barangay_name(barangay_id)
         num_children = len(children)
         parent_rows.append({
             "parent_id": str(parent_id),
@@ -212,7 +222,7 @@ def show_all_parents():
                 child_header[i].markdown(f"<span style='color:#388e3c;font-weight:bold'>{label}</span>", unsafe_allow_html=True)
             for cidx, child in enumerate(children, start=1):
                 ccols = st.columns([1, 3, 2, 2, 2, 2])
-                age_months = child.get('age_in_months')
+                age_months = child.get('age_months')
                 if age_months is not None:
                     years = age_months // 12
                     months = age_months % 12
@@ -225,12 +235,25 @@ def show_all_parents():
                 else:
                     age_str = "Unknown"
                 ccols[0].markdown(f"{cidx}")
-                child_name = f"{child.get('first_name', '')} {child.get('last_name', '')}".strip()
+                child_name = f"{child.get('first_name', '')} {child.get('middle_name', '')} {child.get('last_name', '')}".strip()
                 ccols[1].markdown(child_name)
                 ccols[2].markdown(age_str)
-                ccols[3].markdown(f"{child.get('bmi', '')} ({child.get('bmi_category', '')})")
-                ccols[4].markdown(child.get('allergies', ''))
-                ccols[5].markdown(child.get('medical_conditions', ''))
+                
+                # Calculate BMI from weight and height
+                weight_kg = child.get('weight_kg')
+                height_cm = child.get('height_cm')
+                bmi_str = "-"
+                if weight_kg and height_cm:
+                    try:
+                        height_m = height_cm / 100
+                        bmi = weight_kg / (height_m ** 2)
+                        bmi_for_age = child.get('bmi_for_age', 'Unknown')
+                        bmi_str = f"{bmi:.1f} ({bmi_for_age})"
+                    except:
+                        bmi_str = "-"
+                ccols[3].markdown(bmi_str)
+                ccols[4].markdown(child.get('allergies', '-'))
+                ccols[5].markdown(child.get('other_medical_problems', '-'))
 
 def show_add_notes():
     """Dedicated section for adding detailed notes to meal plans"""
@@ -241,7 +264,15 @@ def show_add_notes():
     filter_cols = st.columns([2,2,2,2])
     with filter_cols[0]:
         search_val = st.text_input("🔍 Search by child, parent, or plan ID", value=st.session_state.get("add_notes_search", ""), key="add_notes_search")
-    barangay_list = ["All"] + sorted({parent.get('barangay', '-') for parent in parents_data.values() if parent.get('barangay')})
+    barangay_list = ["All"]
+    try:
+        conn = data_manager.data_manager.conn
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT DISTINCT barangay_name FROM barangays ORDER BY barangay_name")
+        barangay_rows = cursor.fetchall()
+        barangay_list.extend([row['barangay_name'] for row in barangay_rows])
+    except Exception:
+        barangay_list = ["All", "Bagong Silang", "Calendola", "Chrysanthemum", "Cuyab", "Estrella", "Fatima", "G.S.I.S", "Landayan", "Langgam", "Laram", "Magsaysay", "Maharlika", "Narra", "Nueva", "Pacita 1", "Pacita 2", "Poblacion", "Riverside", "Rosario", "Sampaguita Village", "San Antonio", "San Lorenzo Ruiz", "San Roque", "San Vicente", "Santo Niño", "United Bayanihan", "United Better Living"]
     with filter_cols[1]:
         barangay_selected = st.selectbox("🏘️ Filter by Barangay", barangay_list, key="add_notes_barangay")
     with filter_cols[2]:
@@ -254,8 +285,8 @@ def show_add_notes():
     table_rows = []
     for plan in all_plans.values():
         child_data = data_manager.get_patient_by_id(plan['patient_id'])
-        child_name = f"{child_data['first_name']} {child_data['last_name']}" if child_data else "Unknown"
-        age_months = child_data['age_in_months'] if child_data and 'age_in_months' in child_data else None
+        child_name = f"{child_data.get('first_name', '')} {child_data.get('middle_name', '')} {child_data.get('last_name', '')}".strip() if child_data else "Unknown"
+        age_months = child_data['age_months'] if child_data and 'age_months' in child_data else None
         child_age = f"{age_months//12}y {age_months%12}m" if age_months is not None else "-"
         parent_id = child_data.get('parent_id') if child_data else None
         notes = data_manager.get_notes_for_meal_plan(plan.get('plan_id', ''))
@@ -297,16 +328,27 @@ def show_add_notes():
         if parent_id is not None:
             parent_info = parents_data.get(str(parent_id))
             if parent_info:
-                parent_full_name = parent_info.get('full_name', f"Parent {parent_id}")
-                barangay_val = parent_info.get('barangay', '-')
-                religion_val = parent_info.get('religion', '-')
+                parent_full_name = f"{parent_info.get('first_name', '')} {parent_info.get('last_name', '')}".strip()
+                # Get barangay name
+                barangay_id = child_data.get('barangay_id') if child_data else None
+                if barangay_id:
+                    try:
+                        conn = data_manager.data_manager.conn
+                        cursor = conn.cursor(dictionary=True)
+                        cursor.execute("SELECT barangay_name FROM barangays WHERE barangay_id = %s", (barangay_id,))
+                        barangay_row = cursor.fetchone()
+                        barangay_val = barangay_row['barangay_name'] if barangay_row else f"Barangay {barangay_id}"
+                    except Exception:
+                        barangay_val = f"Barangay {barangay_id}"
+                religion_val = "-"  # Religion not available in new schema
             else:
                 parent_full_name = f"Parent {parent_id}"
         plan_details_clean = clean_note(plan.get('plan_details', ''))
         generated_at_val = plan.get('generated_at', '')
         # Diet Restrictions
-        medical_conditions = child_data.get('medical_conditions', '-') if child_data else '-'
+        medical_conditions = child_data.get('other_medical_problems', '-') if child_data else '-'
         allergies = child_data.get('allergies', '-') if child_data else '-'
+        religion_val = child_data.get('religion', '-') if child_data else '-'
         diet_restrictions = f"Medical Condition: {medical_conditions}  \nAllergy: {allergies}  \nReligion: {religion_val}"
         table_rows.append({
             "Plan ID": plan.get('plan_id', ''),

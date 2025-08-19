@@ -75,7 +75,7 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
         religion = data_manager.get_religion_by_parent(parent_id) if parent_id else ""
 
     # Retrieve relevant PDF knowledge for this patient
-    query = f"child nutrition {patient_data.get('age_in_months', '')} months {patient_data.get('bmi_category', '')} {patient_data.get('allergies', '')} {patient_data.get('medical_conditions', '')}"
+    query = f"child nutrition {patient_data.get('age_months', '')} months {patient_data.get('bmi_for_age', '')} {patient_data.get('allergies', '')} {patient_data.get('other_medical_problems', '')}"
     relevant_pdf_chunks = get_relevant_pdf_chunks(query, k=4)
     pdf_context = ""
     if relevant_pdf_chunks:
@@ -104,13 +104,14 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
     nutrition_analysis = ""
     try:
         nutrition_ai = ChildNutritionAI()
-        name = f"{patient_data.get('first_name', '')} {patient_data.get('last_name', '')}".strip()
+        name = f"{patient_data.get('first_name', '')} {patient_data.get('middle_name', '')} {patient_data.get('last_name', '')}".strip()
         analysis_result = nutrition_ai.analyze_child_nutrition(
             name=name,
-            age_in_months=patient_data.get('age_in_months'),
-            bmi=patient_data.get('bmi'),
+            age_in_months=patient_data.get('age_months'),
+            weight_kg=patient_data.get('weight_kg'),
+            height_cm=patient_data.get('height_cm'),
             allergies=patient_data.get('allergies'),
-            medical_conditions=patient_data.get('medical_conditions'),
+            other_medical_problems=patient_data.get('other_medical_problems'),
             parent_id=patient_data.get('parent_id')
         )
         nutrition_analysis = f"\nNUTRITION ANALYSIS FOR THIS CHILD:\n{analysis_result}\n"
@@ -121,10 +122,12 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
         "You are a pediatric nutrition expert. You must ONLY recommend foods and ingredients that are present in the provided food database below. Do NOT recommend, mention, or invent any foods, ingredients, or recipes that are not found in the food database. If you are unsure if a food is in the database, do not include it. If you cannot recommend any foods from the database, say 'No suitable foods available.' IMPORTANT: Do NOT recommend or mention generic food groups (like 'fruits', 'vegetables', 'protein sources', 'iron-rich foods', 'complex carbohydrates', 'healthy fats', etc). ONLY list specific food names from the database. Do not output any generic categories.\n"
         + food_list_str
         + "Create a 7-day meal plan for a Filipino child (0-5 years old) with the following profile. For each day, provide: Breakfast, Mid-morning Snack, Lunch, Afternoon Snack, Dinner, and (if age-appropriate) Before-bed Snack. For each meal, specify the Filipino dish name, portion size, and a brief explanation of its nutritional benefit. Focus on traditional Filipino dishes that are practical for parents to prepare.\n"
-        + f"\n- Age (months): {{age_in_months}}"
-        + f"\n- BMI Category: {{bmi_category}}"
+        + f"\n- Age (months): {{age_months}}"
+        + f"\n- Weight (kg): {{weight_kg}}"
+        + f"\n- Height (cm): {{height_cm}}"
+        + f"\n- BMI for Age: {{bmi_for_age}}"
         + f"\n- Allergies: {{allergies}}"
-        + f"\n- Medical Conditions: {{medical_conditions}}"
+        + f"\n- Medical Conditions: {{other_medical_problems}}"
         + f"\n- Religion: {{religion}}\n"
         + nutrition_analysis
         + filipino_context
@@ -135,22 +138,24 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
         + "- Each day should have DIFFERENT meals - avoid repeating the same dishes.\n"
         + "- Focus on Filipino dishes like: lugaw, sopas, giniling, adobo, sinigang, pancit, lumpia, etc. (only if ingredients are in database)\n"
         + "- Create complete meal combinations, not just single ingredients.\n\n"
-        + "GUIDELINES:\n1. Follow WHO nutrition guidelines for children 0-5 years\n2. Account for BMI category, allergies, and medical conditions\n3. Strictly avoid all allergens and respect all medical and religious restrictions\n4. Provide age-appropriate textures and portions\n5. Include traditional Filipino foods and cooking methods\n6. Focus on balanced nutrition for growing children\n7. Include hydration recommendations\n8. Make each day's meals DIFFERENT from other days\n\n"
+        + "\nGUIDELINES:\n1. Follow WHO nutrition guidelines for children 0-5 years\n2. Account for BMI for age, allergies, and medical conditions\n3. Strictly avoid all allergens and respect all medical and religious restrictions\n4. Provide age-appropriate textures and portions\n5. Include traditional Filipino foods and cooking methods\n6. Focus on balanced nutrition for growing children\n7. Include hydration recommendations\n8. Make each day's meals DIFFERENT from other days\n\n"
         + "MEAL PLAN FORMAT (repeat for each day):\nDay X:\n- Breakfast: [Filipino dish name, portion, nutritional explanation]\n- Mid-morning Snack: [snack, portion, explanation]\n- Lunch: [Filipino dish name, portion, nutritional explanation]\n- Afternoon Snack: [snack, portion, explanation]\n- Dinner: [Filipino dish name, portion, nutritional explanation]\n- Before-bed Snack: [if appropriate for age]\n\n"
         + "If the child's age is less than 6 months, do NOT recommend any solid foods.\nDo not include the child's name or any sensitive information.\nIf you use any background knowledge provided, do NOT mention or cite the source, file, or that you used a document. Present all recommendations as your own expertise."
     )
     if pdf_context:
         prompt_str += "\n" + pdf_context
     prompt_template = PromptTemplate(
-        input_variables=["age_in_months", "bmi_category", "allergies", "medical_conditions", "available_ingredients", "religion"],
+        input_variables=["age_months", "weight_kg", "height_cm", "bmi_for_age", "allergies", "other_medical_problems", "available_ingredients", "religion"],
         template=prompt_str
     )
 
     prompt_inputs = {
-        "age_in_months": patient_data.get("age_in_months", "Unknown"),
-        "bmi_category": patient_data.get("bmi_category", "Unknown"),
+        "age_months": patient_data.get("age_months", "Unknown"),
+        "weight_kg": patient_data.get("weight_kg", "Unknown"),
+        "height_cm": patient_data.get("height_cm", "Unknown"),
+        "bmi_for_age": patient_data.get("bmi_for_age", "Unknown"),
         "allergies": patient_data.get("allergies", "None"),
-        "medical_conditions": patient_data.get("medical_conditions", "None"),
+        "other_medical_problems": patient_data.get("other_medical_problems", "None"),
         "available_ingredients": available_ingredients if available_ingredients else "",
         "religion": religion if religion else ""
     }
