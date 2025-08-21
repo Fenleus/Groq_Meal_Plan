@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Streamlit
+.streamlit/
+
+# Environment
+.env
+.env.*
+.venv/
+venv/
+
+# Data files
+/data/*.json
+!data/knowledge_base.json
+!data/children.json
+!data/food_info.json
+!data/parents.json
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Misc
+*.bak
+*.swp
+*.tmp
+
+# Local database connection file
+db.py
+
+# Ignore test outputs
+/test_outputs/
+
+# Test files
+chatbot_test.py
+food_data_parser.py
+food_parser_ui.py
+test_all_prompts.py
+
+# LLM Testing and Validation
+llm_output_validator.py
+enhanced_prompt_templates.py
+run_llm_tests.py
+/test_outputs/
+llm_validation_results_*.json
+prompt_test_results_*.json
