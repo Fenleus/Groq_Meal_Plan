@@ -9,7 +9,6 @@ __pycache__/
 
 # Environment
 .env
-.env.*
 .venv/
 venv/
 
@@ -46,6 +45,7 @@ chatbot_test.py
 food_data_parser.py
 food_parser_ui.py
 test_all_prompts.py
+test_dietary_llm_outputs.py
 
 # LLM Testing and Validation
 llm_output_validator.py

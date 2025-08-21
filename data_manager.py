@@ -18,23 +18,40 @@ class DataManager:
         """Get all nutritionist notes for a given patient_id."""
         self.cursor.execute("SELECT note_id, nutritionist_id, patient_id, plan_id, note, created_at FROM nutritionist_notes WHERE patient_id = %s", (patient_id,))
         return self.cursor.fetchall()
-    def update_food_nutrition(self, food_id, category, field, value):
-        """Update a single nutrition fact for a food entry."""
-        # Map category to table name
-        table_map = {
-            'proximates': 'proximates',
-            'other_carbohydrates': 'other_carbohydrates',
-            'minerals': 'minerals',
-            'vitamins': 'vitamins',
-            'lipids': 'lipids'
+    # Backward compatibility - keeping method names for existing code
+    def get_foods_data(self):
+        """Backward compatibility: Get all meals as 'foods' data."""
+        return self.get_meals_data()
+    
+    def get_food_nutrition(self, meal_id):
+        """Backward compatibility: Get meal nutrition data."""
+        meal = self.get_meal_by_id(meal_id)
+        if not meal:
+            return {}
+        
+        # Return nutrition data in old format for compatibility
+        nutrition = {
+            'general': {
+                'calories_kcal': meal.get('calories_kcal'),
+                'protein_g': meal.get('protein_g'),
+                'carbohydrates_g': meal.get('carbohydrates_g'),
+                'fat_g': meal.get('fat_g'),
+                'fiber_g': meal.get('fiber_g'),
+                'sugar_g': meal.get('sugar_g'),
+                'sodium_mg': meal.get('sodium_mg'),
+                'calcium_mg': meal.get('calcium_mg'),
+                'iron_mg': meal.get('iron_mg'),
+                'vitamin_c_mg': meal.get('vitamin_c_mg'),
+                'saturated_fat_g': meal.get('saturated_fat_g'),
+                'polyunsaturated_fat_g': meal.get('polyunsaturated_fat_g'),
+                'monounsaturated_fat_g': meal.get('monounsaturated_fat_g'),
+                'trans_fat_g': meal.get('trans_fat_g'),
+                'cholesterol_mg': meal.get('cholesterol_mg'),
+                'potassium_mg': meal.get('potassium_mg'),
+                'vitamin_a_iu': meal.get('vitamin_a_iu')
+            }
         }
-        table = table_map.get(category)
-        if not table:
-            raise ValueError(f"Unknown nutrition category: {category}")
-        # Compose SQL
-        sql = f"UPDATE {table} SET {field} = %s WHERE food_id = %s"
-        self.cursor.execute(sql, (value, food_id))
-        self.conn.commit()
+        return nutrition
     # Admin Logs Management
     def save_admin_log(self, action: str, details):
         """Insert a new admin log into the audit_logs table."""
@@ -54,65 +71,284 @@ class DataManager:
                 except Exception:
                     pass
         return rows
-    # Food Database Management
-    def get_foods_data(self):
-        """Get all foods from the foods table, with basic info."""
-        self.cursor.execute("SELECT food_id, food_name_and_description, scientific_name, alternate_common_names, edible_portion FROM foods")
+    # Meals Database Management
+    def get_meals_data(self):
+        """Get all meals from the meals table with nutrition facts."""
+        self.cursor.execute("""
+            SELECT m.meal_id, m.meal_name, m.description, m.course, m.keywords, 
+                   m.prep_time_minutes, m.cook_time_minutes, m.servings, m.ingredients, 
+                   m.instructions, m.image_url, m.created_at, m.updated_at,
+                   nf.calories_kcal, nf.carbohydrates_g, nf.protein_g, nf.fat_g, 
+                   nf.saturated_fat_g, nf.polyunsaturated_fat_g, nf.monounsaturated_fat_g, 
+                   nf.trans_fat_g, nf.cholesterol_mg, nf.sodium_mg, nf.potassium_mg, 
+                   nf.fiber_g, nf.sugar_g, nf.vitamin_a_iu, nf.vitamin_c_mg, 
+                   nf.calcium_mg, nf.iron_mg
+            FROM meals m
+            LEFT JOIN nutrition_facts nf ON m.meal_id = nf.meal_id
+            ORDER BY m.meal_name
+        """)
         rows = self.cursor.fetchall()
-
+        
+        # Parse JSON ingredients if needed
         for row in rows:
-            if isinstance(row.get('alternate_common_names'), (list, tuple)):
-                row['alternate_common_names'] = ', '.join(row['alternate_common_names'])
+            if row.get('ingredients') and isinstance(row['ingredients'], str):
+                try:
+                    import json
+                    row['ingredients'] = json.loads(row['ingredients'])
+                except json.JSONDecodeError:
+                    row['ingredients'] = []
         return rows
 
-    def get_food_nutrition(self, food_id):
-        """Get all nutrition facts for a food from all related tables."""
-        nutrition = {}
-        # Proximates
-        self.cursor.execute("SELECT water_g, energy_kcal, protein_g, total_fat_g, carbohydrate_total_g, ash_g FROM proximates WHERE food_id = %s", (food_id,))
+    def get_meal_by_id(self, meal_id):
+        """Get a specific meal by its ID with all nutrition facts."""
+        self.cursor.execute("""
+            SELECT m.meal_id, m.meal_name, m.description, m.course, m.keywords, 
+                   m.prep_time_minutes, m.cook_time_minutes, m.servings, m.ingredients, 
+                   m.instructions, m.image_url, m.created_at, m.updated_at,
+                   nf.calories_kcal, nf.carbohydrates_g, nf.protein_g, nf.fat_g, 
+                   nf.saturated_fat_g, nf.polyunsaturated_fat_g, nf.monounsaturated_fat_g, 
+                   nf.trans_fat_g, nf.cholesterol_mg, nf.sodium_mg, nf.potassium_mg, 
+                   nf.fiber_g, nf.sugar_g, nf.vitamin_a_iu, nf.vitamin_c_mg, 
+                   nf.calcium_mg, nf.iron_mg
+            FROM meals m
+            LEFT JOIN nutrition_facts nf ON m.meal_id = nf.meal_id
+            WHERE m.meal_id = %s
+        """, (meal_id,))
         row = self.cursor.fetchone()
-        if row:
-            nutrition['proximates'] = row
-        # Other Carbohydrates
-        self.cursor.execute("SELECT fiber_total_dietary_g, sugars_total_g FROM other_carbohydrates WHERE food_id = %s", (food_id,))
-        row = self.cursor.fetchone()
-        if row:
-            nutrition['other_carbohydrates'] = row
-        # Minerals
-        self.cursor.execute("SELECT calcium_mg, phosphorus_mg, iron_mg, sodium_mg FROM minerals WHERE food_id = %s", (food_id,))
-        row = self.cursor.fetchone()
-        if row:
-            nutrition['minerals'] = row
-        # Vitamins
-        self.cursor.execute("SELECT retinol_vitamin_a_ug, beta_carotene_ug, retinol_activity_equivalent_rae_ug, thiamin_vitamin_b1_mg, riboflavin_vitamin_b2_mg, niacin_mg, niacin_from_tryptophan_mg, ascorbic_acid_vitamin_c_mg FROM vitamins WHERE food_id = %s", (food_id,))
-        row = self.cursor.fetchone()
-        if row:
-            nutrition['vitamins'] = row
-        # Lipids
-        self.cursor.execute("SELECT fatty_acids_saturated_total_g, fatty_acids_monounsaturated_total_g, fatty_acids_polyunsaturated_total_g, cholesterol_mg FROM lipids WHERE food_id = %s", (food_id,))
-        row = self.cursor.fetchone()
-        if row:
-            nutrition['lipids'] = row
-        return nutrition
+        
+        if row and row.get('ingredients') and isinstance(row['ingredients'], str):
+            try:
+                import json
+                row['ingredients'] = json.loads(row['ingredients'])
+            except json.JSONDecodeError:
+                row['ingredients'] = []
+        return row
 
-    def update_food(self, food_id, food_name_and_description, scientific_name, alternate_common_names, edible_portion):
-        """Update a food entry in the foods table."""
-        sql = """
-            UPDATE foods
-            SET food_name_and_description = %s,
-                scientific_name = %s,
-                alternate_common_names = %s,
-                edible_portion = %s
-            WHERE food_id = %s
+    def search_meals(self, search_term="", course="", max_prep_time=None):
+        """Search meals by various criteria."""
+        conditions = []
+        params = []
+        
+        if search_term:
+            conditions.append("(meal_name LIKE %s OR description LIKE %s OR keywords LIKE %s)")
+            search_pattern = f"%{search_term}%"
+            params.extend([search_pattern, search_pattern, search_pattern])
+        
+        if course:
+            conditions.append("course = %s")
+            params.append(course)
+            
+        if max_prep_time:
+            conditions.append("prep_time_minutes <= %s")
+            params.append(max_prep_time)
+        
+        where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+        
+        sql = f"""
+            SELECT m.meal_id, m.meal_name, m.description, m.course, m.prep_time_minutes, 
+                   m.cook_time_minutes, m.servings, nf.calories_kcal, nf.protein_g, 
+                   nf.carbohydrates_g, nf.fat_g
+            FROM meals m
+            LEFT JOIN nutrition_facts nf ON m.meal_id = nf.meal_id
+            {where_clause}
+            ORDER BY m.meal_name
         """
-        self.cursor.execute(sql, (
-            food_name_and_description,
-            scientific_name,
-            alternate_common_names,
-            edible_portion,
-            food_id
-        ))
+        
+        self.cursor.execute(sql, params)
+        return self.cursor.fetchall()
+
+    def add_meal(self, meal_data):
+        """Add a new meal to the database."""
+        import json
+        
+        # First, insert into meals table
+        meals_sql = """
+            INSERT INTO meals (
+                meal_name, description, course, keywords, prep_time_minutes, 
+                cook_time_minutes, servings, ingredients, instructions, image_url
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        
+        # Convert ingredients list to JSON string if needed
+        ingredients = meal_data.get('ingredients', [])
+        if isinstance(ingredients, list):
+            ingredients = json.dumps(ingredients)
+        
+        meals_params = (
+            meal_data.get('meal_name'),
+            meal_data.get('description'),
+            meal_data.get('course'),
+            meal_data.get('keywords'),
+            meal_data.get('prep_time_minutes'),
+            meal_data.get('cook_time_minutes'),
+            meal_data.get('servings'),
+            ingredients,
+            meal_data.get('instructions'),
+            meal_data.get('image_url')
+        )
+        
+        self.cursor.execute(meals_sql, meals_params)
+        meal_id = self.cursor.lastrowid
+        
+        # Then, insert nutrition facts if any nutrition data is provided
+        nutrition_data = {
+            'calories_kcal': meal_data.get('calories_kcal'),
+            'carbohydrates_g': meal_data.get('carbohydrates_g'),
+            'protein_g': meal_data.get('protein_g'),
+            'fat_g': meal_data.get('fat_g'),
+            'saturated_fat_g': meal_data.get('saturated_fat_g'),
+            'polyunsaturated_fat_g': meal_data.get('polyunsaturated_fat_g'),
+            'monounsaturated_fat_g': meal_data.get('monounsaturated_fat_g'),
+            'trans_fat_g': meal_data.get('trans_fat_g'),
+            'cholesterol_mg': meal_data.get('cholesterol_mg'),
+            'sodium_mg': meal_data.get('sodium_mg'),
+            'potassium_mg': meal_data.get('potassium_mg'),
+            'fiber_g': meal_data.get('fiber_g'),
+            'sugar_g': meal_data.get('sugar_g'),
+            'vitamin_a_iu': meal_data.get('vitamin_a_iu'),
+            'vitamin_c_mg': meal_data.get('vitamin_c_mg'),
+            'calcium_mg': meal_data.get('calcium_mg'),
+            'iron_mg': meal_data.get('iron_mg')
+        }
+        
+        # Only insert nutrition facts if at least one nutrition value is provided
+        if any(value is not None for value in nutrition_data.values()):
+            nutrition_sql = """
+                INSERT INTO nutrition_facts (
+                    meal_id, calories_kcal, carbohydrates_g, protein_g, fat_g, saturated_fat_g,
+                    polyunsaturated_fat_g, monounsaturated_fat_g, trans_fat_g,
+                    cholesterol_mg, sodium_mg, potassium_mg, fiber_g, sugar_g,
+                    vitamin_a_iu, vitamin_c_mg, calcium_mg, iron_mg
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            
+            nutrition_params = (
+                meal_id,
+                nutrition_data['calories_kcal'],
+                nutrition_data['carbohydrates_g'],
+                nutrition_data['protein_g'],
+                nutrition_data['fat_g'],
+                nutrition_data['saturated_fat_g'],
+                nutrition_data['polyunsaturated_fat_g'],
+                nutrition_data['monounsaturated_fat_g'],
+                nutrition_data['trans_fat_g'],
+                nutrition_data['cholesterol_mg'],
+                nutrition_data['sodium_mg'],
+                nutrition_data['potassium_mg'],
+                nutrition_data['fiber_g'],
+                nutrition_data['sugar_g'],
+                nutrition_data['vitamin_a_iu'],
+                nutrition_data['vitamin_c_mg'],
+                nutrition_data['calcium_mg'],
+                nutrition_data['iron_mg']
+            )
+            
+            self.cursor.execute(nutrition_sql, nutrition_params)
+        
         self.conn.commit()
+        return meal_id
+
+    def update_meal(self, meal_id, meal_data):
+        """Update an existing meal."""
+        import json
+        
+        # Update meals table
+        meals_sql = """
+            UPDATE meals SET
+                meal_name = %s, description = %s, course = %s, keywords = %s,
+                prep_time_minutes = %s, cook_time_minutes = %s, servings = %s,
+                ingredients = %s, instructions = %s, image_url = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE meal_id = %s
+        """
+        
+        # Convert ingredients list to JSON string if needed
+        ingredients = meal_data.get('ingredients', [])
+        if isinstance(ingredients, list):
+            ingredients = json.dumps(ingredients)
+        
+        meals_params = (
+            meal_data.get('meal_name'),
+            meal_data.get('description'),
+            meal_data.get('course'),
+            meal_data.get('keywords'),
+            meal_data.get('prep_time_minutes'),
+            meal_data.get('cook_time_minutes'),
+            meal_data.get('servings'),
+            ingredients,
+            meal_data.get('instructions'),
+            meal_data.get('image_url'),
+            meal_id
+        )
+        
+        self.cursor.execute(meals_sql, meals_params)
+        
+        # Update or insert nutrition facts
+        nutrition_data = {
+            'calories_kcal': meal_data.get('calories_kcal'),
+            'carbohydrates_g': meal_data.get('carbohydrates_g'),
+            'protein_g': meal_data.get('protein_g'),
+            'fat_g': meal_data.get('fat_g'),
+            'saturated_fat_g': meal_data.get('saturated_fat_g'),
+            'polyunsaturated_fat_g': meal_data.get('polyunsaturated_fat_g'),
+            'monounsaturated_fat_g': meal_data.get('monounsaturated_fat_g'),
+            'trans_fat_g': meal_data.get('trans_fat_g'),
+            'cholesterol_mg': meal_data.get('cholesterol_mg'),
+            'sodium_mg': meal_data.get('sodium_mg'),
+            'potassium_mg': meal_data.get('potassium_mg'),
+            'fiber_g': meal_data.get('fiber_g'),
+            'sugar_g': meal_data.get('sugar_g'),
+            'vitamin_a_iu': meal_data.get('vitamin_a_iu'),
+            'vitamin_c_mg': meal_data.get('vitamin_c_mg'),
+            'calcium_mg': meal_data.get('calcium_mg'),
+            'iron_mg': meal_data.get('iron_mg')
+        }
+        
+        # Check if nutrition facts exist for this meal
+        self.cursor.execute("SELECT meal_id FROM nutrition_facts WHERE meal_id = %s", (meal_id,))
+        nutrition_exists = self.cursor.fetchone()
+        
+        if any(value is not None for value in nutrition_data.values()):
+            if nutrition_exists:
+                # Update existing nutrition facts
+                nutrition_sql = """
+                    UPDATE nutrition_facts SET
+                        calories_kcal = %s, carbohydrates_g = %s, protein_g = %s, fat_g = %s,
+                        saturated_fat_g = %s, polyunsaturated_fat_g = %s, monounsaturated_fat_g = %s,
+                        trans_fat_g = %s, cholesterol_mg = %s, sodium_mg = %s, potassium_mg = %s,
+                        fiber_g = %s, sugar_g = %s, vitamin_a_iu = %s, vitamin_c_mg = %s,
+                        calcium_mg = %s, iron_mg = %s
+                    WHERE meal_id = %s
+                """
+                nutrition_params = tuple(nutrition_data.values()) + (meal_id,)
+            else:
+                # Insert new nutrition facts
+                nutrition_sql = """
+                    INSERT INTO nutrition_facts (
+                        meal_id, calories_kcal, carbohydrates_g, protein_g, fat_g, saturated_fat_g,
+                        polyunsaturated_fat_g, monounsaturated_fat_g, trans_fat_g,
+                        cholesterol_mg, sodium_mg, potassium_mg, fiber_g, sugar_g,
+                        vitamin_a_iu, vitamin_c_mg, calcium_mg, iron_mg
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """
+                nutrition_params = (meal_id,) + tuple(nutrition_data.values())
+            
+            self.cursor.execute(nutrition_sql, nutrition_params)
+        
+        self.conn.commit()
+
+    def delete_meal(self, meal_id):
+        """Delete a meal from the database."""
+        # Delete nutrition facts first (foreign key constraint)
+        self.cursor.execute("DELETE FROM nutrition_facts WHERE meal_id = %s", (meal_id,))
+        # Then delete the meal
+        self.cursor.execute("DELETE FROM meals WHERE meal_id = %s", (meal_id,))
+        self.conn.commit()
+
+    def get_meal_courses(self):
+        """Get all unique meal courses."""
+        self.cursor.execute("SELECT DISTINCT course FROM meals WHERE course IS NOT NULL ORDER BY course")
+        return [row['course'] for row in self.cursor.fetchall()]
     """
     Manages MySQL-based data storage for the nutrition system
     """

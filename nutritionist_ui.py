@@ -126,7 +126,7 @@ def main():
         st.metric("Total Meal Plans", len(all_meal_plans))
     
     # Main tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["👨‍👩‍👧‍👦 All Parents", "📝 Add Notes", "🧠 Knowledge Base", "🍽️ Food Database"])
+    tab1, tab2, tab3, tab4 = st.tabs(["👨‍👩‍👧‍👦 All Parents", "📝 Add Notes", "🧠 Knowledge Base", "🍽️ Meal Database"])
 
     with tab1:
         show_all_parents()
@@ -138,7 +138,7 @@ def main():
         show_knowledge_base()
     
     with tab4:
-        show_recipe_database()
+        show_meal_database()
 
 def show_all_parents():
     """Display all parents and their children's meal plans"""
@@ -714,47 +714,47 @@ def show_knowledge_base():
                     import traceback
                     st.error(f"Details: {traceback.format_exc()}")
 
-def show_recipe_database():
-    st.header("Food Database")
+def show_meal_database():
+    st.header("Meal Database")
 
-    foods = data_manager.get_foods_data()
-    if not foods:
-        st.info("No food data available.")
+    meals = data_manager.get_meals_data()
+    if not meals:
+        st.info("No meal data available.")
         return
 
     # Search bar
-    if 'food_db_search' not in st.session_state:
-        st.session_state['food_db_search'] = ''
-    prev_search = st.session_state['food_db_search']
+    if 'meal_db_search' not in st.session_state:
+        st.session_state['meal_db_search'] = ''
+    prev_search = st.session_state['meal_db_search']
     search_val = st.text_input(
-        "🔍 Search food database",
+        "🔍 Search meal database",
         value=prev_search,
-        key='food_db_search',
+        key='meal_db_search',
     )
     if search_val != prev_search:
-        st.session_state['food_db_search'] = search_val
+        st.session_state['meal_db_search'] = search_val
         st.rerun()
-    def filter_foods(data, query):
+    def filter_meals(data, query):
         if not query:
             return data
         query = query.lower()
         filtered = []
         for item in data:
-            for col in ["food_id", "food_name_and_description", "scientific_name", "alternate_common_names", "edible_portion"]:
+            for col in ["meal_name", "description", "course", "keywords"]:
                 val = item.get(col, '')
                 if val and query in str(val).lower():
                     filtered.append(item)
                     break
         return filtered
 
-    filtered_foods = filter_foods(foods, search_val)
+    filtered_meals = filter_meals(meals, search_val)
     # Pagination setup
     records_per_page = 10
-    total_records = len(filtered_foods)
+    total_records = len(filtered_meals)
     total_pages = (total_records - 1) // records_per_page + 1
-    page = st.session_state.get('food_db_page', 1)
+    page = st.session_state.get('meal_db_page', 1)
     def set_page(new_page):
-        st.session_state['food_db_page'] = new_page
+        st.session_state['meal_db_page'] = new_page
 
     # Pagination controls
     pag_row = st.columns([0.18,0.82])
@@ -763,20 +763,20 @@ def show_recipe_database():
         btn_cols[0].button('Previous', key='prev_page', on_click=lambda: set_page(page-1), disabled=(page==1))
         btn_cols[1].button('Next', key='next_page', on_click=lambda: set_page(page+1), disabled=(page==total_pages))
 
-    if st.session_state.get('show_nutrition_notice'):
-        food_idx = st.session_state.get('show_nutrition_section', None)
-        food_data_list = filtered_foods if food_idx else []
-        food_name = ""
-        if food_idx and 0 < food_idx <= len(food_data_list):
-            food = food_data_list[food_idx-1]
-            food_name = food.get('food_name_and_description', '')
+    if st.session_state.get('show_meal_notice'):
+        meal_idx = st.session_state.get('show_meal_section', None)
+        meal_data_list = filtered_meals if meal_idx else []
+        meal_name = ""
+        if meal_idx and 0 < meal_idx <= len(meal_data_list):
+            meal = meal_data_list[meal_idx-1]
+            meal_name = meal.get('meal_name', '')
         st.markdown(f"""
             <div style='background:#2196F3;color:white;padding:0.75rem 1.5rem;border-radius:8px;font-weight:bold;margin-bottom:0.5rem;font-size:1.1rem;'>
-                The nutrition data is shown below.<br>
-                <span style='font-size:1rem;font-weight:normal;'>You are now viewing nutrition data for: <b>{food_name}</b></span>
+                The meal details are shown below.<br>
+                <span style='font-size:1rem;font-weight:normal;'>You are now viewing details for: <b>{meal_name}</b></span>
             </div>
         """, unsafe_allow_html=True)
-        st.session_state['show_nutrition_notice'] = False
+        st.session_state['show_meal_notice'] = False
 
     start_idx = (page-1)*records_per_page
     end_idx = min(start_idx+records_per_page, total_records)
@@ -784,22 +784,24 @@ def show_recipe_database():
 
     columns = [
         "No.",
-        "food_id",
-        "food_name_and_description",
-        "scientific_name",
-        "alternate_common_names",
-        "edible_portion",
+        "meal_id",
+        "meal_name",
+        "course",
+        "prep_time_minutes",
+        "servings",
+        "calories_kcal",
         "Options"
     ]
     # Render column headers
-    header_cols = st.columns([1,2,4,3,3,2,2])
+    header_cols = st.columns([1,1,3,2,2,1,2,2])
     header_labels = [
         "No.",
-        "Food ID",
-        "Food Name and Description",
-        "Scientific Name",
-        "Alternate Common Names",
-        "Edible Portion",
+        "Meal ID",
+        "Meal Name",
+        "Course",
+        "Prep Time",
+        "Servings",
+        "Calories",
         "Options"
     ]
     for i, label in enumerate(header_labels):
@@ -807,66 +809,83 @@ def show_recipe_database():
 
     # Prepare table data
     table_rows = []
-    for idx, item in enumerate(filtered_foods[start_idx:end_idx], start=start_idx+1):
+    for idx, item in enumerate(filtered_meals[start_idx:end_idx], start=start_idx+1):
         row = {
             "No.": idx,
-            "food_id": item.get("food_id", ""),
-            "food_name_and_description": item.get("food_name_and_description", ""),
-            "scientific_name": item.get("scientific_name", ""),
-            "alternate_common_names": item.get("alternate_common_names", ""),
-            "edible_portion": item.get("edible_portion", ""),
+            "meal_id": item.get("meal_id", ""),
+            "meal_name": item.get("meal_name", ""),
+            "course": item.get("course", ""),
+            "prep_time_minutes": f"{item.get('prep_time_minutes', 0)} min" if item.get('prep_time_minutes') else "-",
+            "servings": item.get("servings", ""),
+            "calories_kcal": f"{item.get('calories_kcal', 0)} kcal" if item.get('calories_kcal') else "-",
             "Options": ""
         }
         table_rows.append(row)
 
     # Render table
     for row_idx, row in enumerate(table_rows):
-        col_widths = [1,2,4,3,3,2,2]
+        col_widths = [1,1,3,2,2,1,2,2]
         cols = st.columns(col_widths)
         cols[0].markdown(f"{row['No.']}")
         for i, col in enumerate(columns[1:-1], start=1):
             cols[i].markdown(row[col])
 
         btn_cols = cols[len(columns)-1].columns([1])
-        data_btn = btn_cols[0].button("Data", key=f"data_{row['No.']}" )
+        data_btn = btn_cols[0].button("Details", key=f"data_{row['No.']}" )
         if data_btn:
-            st.session_state['show_nutrition_section'] = row['No.']
-            st.session_state['scroll_to_nutrition'] = True
-            st.session_state['show_nutrition_notice'] = True
+            st.session_state['show_meal_section'] = row['No.']
+            st.session_state['scroll_to_meal'] = True
+            st.session_state['show_meal_notice'] = True
             st.rerun()
 
-    # Nutrition data section with tabbed info
-    if st.session_state.get('show_nutrition_section'):
-        # Show nutrition section
-        if st.session_state.get('scroll_to_nutrition'):
-            st.session_state['scroll_to_nutrition'] = False
-        i = st.session_state['show_nutrition_section']-1
-        food = filtered_foods[i]
-        section_title = food.get('food_name_and_description', '')
-        st.markdown(f"<div class='nutrition-section-container'><h2 id='nutrition_data'>{section_title}</h2>", unsafe_allow_html=True)
-        # Nutrition data
-        tab_keys = [
-            ("proximates", "Proximates"),
-            ("other_carbohydrates", "Other Carbohydrate"),
-            ("minerals", "Minerals"),
-            ("vitamins", "Vitamins"),
-            ("lipids", "Lipids")
-        ]
-        # Get nutrition data for this food from data_manager
-        nutrition = data_manager.get_food_nutrition(food['food_id'])
-        tabs = st.tabs([tab for _, tab in tab_keys])
-        for idx, (nut_key, tab_name) in enumerate(tab_keys):
-            with tabs[idx]:
-                nut_data = nutrition.get(nut_key, {})
-                if nut_data:
-                    st.markdown(f"<div style='background:#2196F3;color:white;padding:0.5rem 1rem;border-radius:6px;font-weight:bold;margin-bottom:0.5rem;'>"
-                                f"{tab_name} <span style='float:right;'>Amount per 100 g E.P.</span></div>", unsafe_allow_html=True)
-                    for k, v in nut_data.items():
-                        pretty_k = k.replace('_g', ' (g)').replace('_mg', ' (mg)').replace('_µg', ' (µg)').replace('_ug', ' (µg)').replace('_', ' ').capitalize()
-                        display_val = v if (v is not None and str(v).strip() != "") else "-"
-                        st.markdown(f"<div style='display:flex;justify-content:space-between;padding:0.5rem 0.2rem;border-bottom:1px solid #eee;'><span>{pretty_k}</span><span style='font-weight:bold'>{display_val}</span></div>", unsafe_allow_html=True)
-                else:
-                    st.info(f"No {tab_name.lower()} data available.")
+    # Meal details section
+    if st.session_state.get('show_meal_section'):
+        # Show meal section
+        if st.session_state.get('scroll_to_meal'):
+            st.session_state['scroll_to_meal'] = False
+        i = st.session_state['show_meal_section']-1
+        meal = filtered_meals[i]
+        section_title = meal.get('meal_name', '')
+        st.markdown(f"<div class='meal-section-container'><h2 id='meal_data'>{section_title}</h2>", unsafe_allow_html=True)
+        
+        # Meal Information
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Basic Information:**")
+            st.markdown(f"- **Description:** {meal.get('description', 'N/A')}")
+            st.markdown(f"- **Course:** {meal.get('course', 'N/A')}")
+            st.markdown(f"- **Keywords:** {meal.get('keywords', 'N/A')}")
+            st.markdown(f"- **Prep Time:** {meal.get('prep_time_minutes', 0)} minutes")
+            st.markdown(f"- **Cook Time:** {meal.get('cook_time_minutes', 0)} minutes")
+            st.markdown(f"- **Servings:** {meal.get('servings', 'N/A')}")
+        
+        with col2:
+            st.markdown("**Nutrition Information (per serving):**")
+            st.markdown(f"- **Calories:** {meal.get('calories_kcal', 'N/A')} kcal")
+            st.markdown(f"- **Protein:** {meal.get('protein_g', 'N/A')} g")
+            st.markdown(f"- **Carbohydrates:** {meal.get('carbohydrates_g', 'N/A')} g")
+            st.markdown(f"- **Fat:** {meal.get('fat_g', 'N/A')} g")
+            st.markdown(f"- **Fiber:** {meal.get('fiber_g', 'N/A')} g")
+            st.markdown(f"- **Sodium:** {meal.get('sodium_mg', 'N/A')} mg")
+            st.markdown(f"- **Calcium:** {meal.get('calcium_mg', 'N/A')} mg")
+            st.markdown(f"- **Iron:** {meal.get('iron_mg', 'N/A')} mg")
+        
+        # Ingredients
+        ingredients = meal.get('ingredients', [])
+        if ingredients:
+            st.markdown("**Ingredients:**")
+            if isinstance(ingredients, list):
+                for ingredient in ingredients:
+                    st.markdown(f"- {ingredient}")
+            else:
+                st.markdown(ingredients)
+        
+        # Instructions
+        instructions = meal.get('instructions', '')
+        if instructions:
+            st.markdown("**Instructions:**")
+            st.markdown(instructions)
+        
         st.markdown("</div>", unsafe_allow_html=True)
     
 

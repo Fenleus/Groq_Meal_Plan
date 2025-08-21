@@ -76,17 +76,12 @@ def generate_meal_plan(request: MealPlanRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Combined endpoint: returns all foods with nutrition facts
-@app.post("/get_foods_data")
-def get_foods_data():
+# Combined endpoint: returns all meals with nutrition facts
+@app.post("/get_meals_data")
+def get_meals_data():
     try:
-        foods = data_manager.get_foods_data()
-        # For each food, add nutrition facts
-        for food in foods:
-            food_id = food.get("food_id")
-            nutrition = data_manager.get_food_nutrition(food_id)
-            food["nutrition_facts"] = nutrition
-        return {"foods": foods}
+        meals = data_manager.get_meals_data()
+        return {"meals": meals}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -131,12 +126,12 @@ def get_meal_plan_detail(request: MealPlanDetailRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 class NutritionistNotesRequest(BaseModel):
-    patient_id: int
+    plan_id: int
 
 @app.post("/get_nutritionist_notes")
 def get_nutritionist_notes(request: NutritionistNotesRequest):
     try:
-        notes = data_manager.get_nutritionist_notes_by_patient(request.patient_id)
+        notes = data_manager.get_notes_for_meal_plan(request.plan_id)
         return {"nutritionist_notes": notes}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
