@@ -13,61 +13,64 @@ load_dotenv()
 class ChildNutritionAI:
     def analyze_child_nutrition(
         self,
-        name: str,
-        age_in_months: int,
-        weight_kg: float = None,
-        height_cm: float = None,
+        patient_id: int = None,
+        age_in_months: int = None,
         allergies: str = None,
         other_medical_problems: str = None,
-        parent_id: str = None
+        parent_id: str = None,
+        notes: str = None,
+        treatment: str = None,
+        sex: str = None,
+        weight_for_age: str = None,
+        height_for_age: str = None,
+        bmi_for_age: str = None,
+        breastfeeding: str = None,
+        religion: str = None
     ) -> str:
-        """Analyze a child's nutrition profile and return a summary or recommendations."""
+        """Analyze a child's nutrition profile and return a summary or recommendations. No name or location info is used. Patient ID is included for database association only."""
         try:
-            # Calculate BMI if weight and height are available
-            bmi = None
-            if weight_kg and height_cm:
-                try:
-                    height_m = height_cm / 100
-                    bmi = weight_kg / (height_m ** 2)
-                except:
-                    bmi = None
-            
-            # Create LangChain prompt template
             prompt_template = PromptTemplate(
-                input_variables=["name", "age_in_months", "weight_kg", "height_cm", "bmi", "allergies", "other_medical_problems", "parent_id"],
-                template="""You are a pediatric nutrition expert. Analyze the following child's nutrition profile and provide a summary of their nutritional status, potential concerns, and general recommendations.
+                input_variables=[
+                    "patient_id", "age_in_months", "allergies", "other_medical_problems", "parent_id", "notes", "treatment", "sex", "weight_for_age", "height_for_age", "bmi_for_age", "breastfeeding", "religion"
+                ],
+                template="""You are a pediatric nutrition expert. Analyze the following child's nutrition profile and provide a summary of their nutritional status, potential concerns, and general recommendations. Do NOT include or request any personal names or location information. Patient ID is included for database association only.
 
 CHILD PROFILE:
-- Name: {name}
+- Patient ID: {patient_id}
 - Age (months): {age_in_months}
-- Weight (kg): {weight_kg}
-- Height (cm): {height_cm}
-- BMI: {bmi}
+- Sex: {sex}
+- Weight-for-Age: {weight_for_age}
+- Height-for-Age: {height_for_age}
+- BMI-for-Age: {bmi_for_age}
+- Breastfeeding: {breastfeeding}
 - Allergies: {allergies}
-- Medical Conditions: {other_medical_problems}
+- Religion: {religion}
+- Other Medical Problems: {other_medical_problems}
 - Parent ID: {parent_id}
+- Notes: {notes}
+- Treatment: {treatment}
 
 Give practical, parent-friendly advice and highlight any red flags or areas for improvement."""
             )
-            
-            # Create LangChain chain
             chain = LLMChain(
                 llm=self.llm,
                 prompt=prompt_template
             )
-            
-            # Execute the chain
             result = chain.run(
-                name=name,
+                patient_id=patient_id,
                 age_in_months=age_in_months,
-                weight_kg=weight_kg,
-                height_cm=height_cm,
-                bmi=bmi,
                 allergies=allergies,
                 other_medical_problems=other_medical_problems,
-                parent_id=parent_id
+                parent_id=parent_id,
+                notes=notes,
+                treatment=treatment,
+                sex=sex,
+                weight_for_age=weight_for_age,
+                height_for_age=height_for_age,
+                bmi_for_age=bmi_for_age,
+                breastfeeding=breastfeeding,
+                religion=religion
             )
-            
             return result
         except Exception as e:
             return f"Error analyzing child nutrition: {str(e)}"
