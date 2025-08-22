@@ -12,13 +12,6 @@ __pycache__/
 .venv/
 venv/
 
-# Data files
-/data/*.json
-!data/knowledge_base.json
-!data/children.json
-!data/food_info.json
-!data/parents.json
-
 # VS Code
 .vscode/
 
@@ -37,20 +30,3 @@ Thumbs.db
 # Local database connection file
 db.py
 
-# Ignore test outputs
-/test_outputs/
-
-# Test files
-chatbot_test.py
-food_data_parser.py
-food_parser_ui.py
-test_all_prompts.py
-test_dietary_llm_outputs.py
-
-# LLM Testing and Validation
-llm_output_validator.py
-enhanced_prompt_templates.py
-run_llm_tests.py
-/test_outputs/
-llm_validation_results_*.json
-prompt_test_results_*.json
