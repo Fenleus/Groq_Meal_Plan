@@ -513,7 +513,7 @@ def show_meal_database():
         query = query.lower()
         filtered = []
         for item in data:
-            for col in ["food_id", "food_name_and_description", "scientific_name", "alternate_common_names", "energy_kcal", "nutrition_tags"]:
+            for col in ["food_id", "food_name_and_description", "alternate_common_names", "energy_kcal", "nutrition_tags"]:
                 val = item.get(col, '')
                 if isinstance(val, list):
                     val = ', '.join(val)
@@ -546,17 +546,15 @@ def show_meal_database():
         "No.",
         "food_id",
         "food_name_and_description",
-        "scientific_name",
         "alternate_common_names",
         "energy_kcal",
         "nutrition_tags"
     ]
-    header_cols = st.columns([1,2,4,3,3,2,3])
+    header_cols = st.columns([1,2,4,3,2,3])
     header_labels = [
         "No.",
         "Food ID",
         "Food Name and Description",
-        "Scientific Name",
         "Alternative Names",
         "Energy (kcal)",
         "Nutrition Tags"
@@ -570,7 +568,6 @@ def show_meal_database():
             "No.": idx,
             "food_id": item.get("food_id", ""),
             "food_name_and_description": item.get("food_name_and_description", ""),
-            "scientific_name": item.get("scientific_name", ""),
             "alternate_common_names": item.get("alternate_common_names", ""),
             "energy_kcal": item.get("energy_kcal", ""),
             "nutrition_tags": item.get("nutrition_tags", "")
@@ -578,7 +575,7 @@ def show_meal_database():
         table_rows.append(row)
 
     for row in table_rows:
-        col_widths = [1,2,4,3,3,2,3]
+        col_widths = [1,2,4,3,2,3]
         cols = st.columns(col_widths)
         for i, col in enumerate(columns):
             cols[i].markdown(row[col])

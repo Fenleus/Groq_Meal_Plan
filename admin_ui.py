@@ -139,7 +139,7 @@ import json
 
 # Tabs: Meal Database, Knowledge Base, Meal Plans Overview, Logs
 main_tab, kb_tab, meal_plans_tab, logs_tab = st.tabs([
-    "�️ Meal Database", 
+    "🍽️ Meal Database", 
     "📚 Knowledge Base", 
     "📝 Meal Plans Overview", 
     "📜 Logs"
@@ -171,7 +171,7 @@ with main_tab:
             query = query.lower()
             filtered = []
             for item in data:
-                for col in ["food_id", "food_name_and_description", "scientific_name", "alternate_common_names", "energy_kcal", "nutrition_tags"]:
+                for col in ["food_id", "food_name_and_description", "alternate_common_names", "energy_kcal", "nutrition_tags"]:
                     val = item.get(col, '')
                     if isinstance(val, list):
                         val = ', '.join(val)
@@ -205,19 +205,17 @@ with main_tab:
             "No.",
             "food_id",
             "food_name_and_description",
-            "scientific_name",
             "alternate_common_names",
             "energy_kcal",
             "nutrition_tags",
             "Options"
         ]
 
-        header_cols = st.columns([1,2,4,3,3,2,3,2])
+        header_cols = st.columns([1,2,4,3,2,3,2])
         header_labels = [
             "No.",
             "Food ID",
             "Food Name and Description",
-            "Scientific Name",
             "Alternative Names",
             "Energy (kcal)",
             "Nutrition Tags",
@@ -232,7 +230,6 @@ with main_tab:
                 "No.": idx,
                 "food_id": item.get("food_id", ""),
                 "food_name_and_description": item.get("food_name_and_description", ""),
-                "scientific_name": item.get("scientific_name", ""),
                 "alternate_common_names": item.get("alternate_common_names", ""),
                 "energy_kcal": item.get("energy_kcal", ""),
                 "nutrition_tags": item.get("nutrition_tags", ""),
@@ -241,7 +238,7 @@ with main_tab:
             table_rows.append(row)
 
         for row_idx, row in enumerate(table_rows):
-            col_widths = [1,2,4,3,3,2,3,2]
+            col_widths = [1,2,4,3,2,3,2]
             cols = st.columns(col_widths)
             cols[0].markdown(f"{row['No.']}")
             for i, col in enumerate(columns[1:-1], start=1):
@@ -262,7 +259,6 @@ with main_tab:
                 st.markdown(f"### ✏️ Edit Food: {food_to_edit.get('food_name_and_description', '')}")
                 with st.form("edit_food_form"):
                     food_name_and_description = st.text_input("Food Name and Description", value=food_to_edit.get('food_name_and_description', ''))
-                    scientific_name = st.text_input("Scientific Name", value=food_to_edit.get('scientific_name', ''))
                     alternate_common_names = st.text_input("Alternative Names", value=food_to_edit.get('alternate_common_names', ''))
                     energy_kcal = st.number_input("Energy (kcal)", min_value=0.0, value=float(food_to_edit.get('energy_kcal', 0) or 0), format="%.1f")
                     nutrition_tags = st.text_input("Nutrition Tags", value=food_to_edit.get('nutrition_tags', ''))
@@ -274,7 +270,6 @@ with main_tab:
                     if save_btn:
                         updated_food_data = {
                             'food_name_and_description': food_name_and_description,
-                            'scientific_name': scientific_name,
                             'alternate_common_names': alternate_common_names,
                             'energy_kcal': energy_kcal,
                             'nutrition_tags': nutrition_tags
@@ -622,4 +617,3 @@ with logs_tab:
     else:
         empty_df = pd.DataFrame([], columns=columns)
         st.dataframe(empty_df, use_container_width=True, key=f"empty_logs_table_{current_admin_id}")
-
