@@ -185,7 +185,6 @@ def generate_patient_assessment(patient_id):
     if relevant_kb:
         kb_context = "NUTRITION KNOWLEDGE BASE:\n" + "\n---\n".join(relevant_kb) + "\n"
 
-    # Create the comprehensive assessment prompt with privacy protection
     prompt_template = PromptTemplate(
         input_variables=[
             "patient_id", "age_months", "sex", "weight_kg", "height_cm", "weight_for_age", 
@@ -367,26 +366,92 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
     else:
         food_list_str = ''
 
-    # --- Nutrition analysis integration ---
+    # --- Nutrition analysis
     from nutrition_ai import ChildNutritionAI
     nutrition_analysis = ""
     try:
         nutrition_ai = ChildNutritionAI()
-        name = data_manager.format_full_name(
-            patient_data.get('first_name', ''),
-            patient_data.get('middle_name', ''),
-            patient_data.get('last_name', '')
-        )
+        # Get latest assessment for notes and treatment
+        assessments = data_manager.get_nutritionist_notes_by_patient(patient_id)
+        latest_assessment = assessments[0] if assessments else {}
+        # Custom prompt for structured output
         analysis_result = nutrition_ai.analyze_child_nutrition(
-            name=name,
+            patient_id=patient_id,
             age_in_months=patient_data.get('age_months'),
-            weight_kg=patient_data.get('weight_kg'),
-            height_cm=patient_data.get('height_cm'),
             allergies=patient_data.get('allergies'),
             other_medical_problems=patient_data.get('other_medical_problems'),
-            parent_id=patient_data.get('parent_id')
+            parent_id=patient_data.get('parent_id'),
+            notes=latest_assessment.get('notes', ''),
+            treatment=latest_assessment.get('treatment', ''),
+            sex=patient_data.get('sex', ''),
+            weight_for_age=patient_data.get('weight_for_age', ''),
+            height_for_age=patient_data.get('height_for_age', ''),
+            bmi_for_age=patient_data.get('bmi_for_age', ''),
+            breastfeeding=patient_data.get('breastfeeding', ''),
+            religion=patient_data.get('religion', ''),
+            custom_prompt="""
+        Provide a comprehensive nutrition analysis in the following structured format:
+
+        ## NUTRITIONAL STATUS:
+        [Provide overall assessment based on growth indicators]
+
+        ## POTENTIAL CONCERNS:
+        [List any nutritional concerns or deficiencies identified]
+
+        ## DIETARY RESTRICTIONS:
+
+        ### Allergy-Related Restrictions:
+        [If allergies present: List specific foods to avoid and safety reminders]
+        [If no allergies: State "No known allergies"]
+
+        ### Religious Dietary Requirements:
+        [If religious restrictions apply: List specific dietary guidelines]
+        [If none: State "No religious dietary restrictions"]
+
+        ### Medical Condition Restrictions:
+        [If medical conditions present: List foods to avoid and foods that are beneficial]
+        [If none: State "No medical dietary restrictions"]
+
+        ## NUTRITIONAL RECOMMENDATIONS:
+
+        ### Growth-Specific Needs:
+        - **Height Development**: [If height-for-age is low, specify nutrients needed for linear growth]
+        - **Weight Management**: [If weight-for-age is concerning, specify appropriate interventions]
+
+        ### Age-Appropriate Guidelines:
+
+        **0-6 months:**
+        - **Primary Nutrition**: Exclusively breast milk or formula
+        - **Feeding Style**: Breastfeeding on demand; practice responsive feeding by responding to the infant's hunger cues
+
+        **6-12 months:**
+        - **Introduction of Solids**: Start introducing small amounts of pureed or mashed, nutrient-dense foods
+        - **Foods to Offer**: Iron-fortified infant cereals, fruits, vegetables, and lean proteins like finely mashed meat or fish
+        - **Breast Milk/Formula**: Continues as the primary source of nutrition
+        - **Feeding Environment**: Introduce solids in a calm setting, with the infant sitting upright and moderately hungry
+
+        **1-2 years:**
+        - **Solid Foods**: Increase variety in texture and consistency. Most children can eat the same foods as the family, with appropriate preparation
+        - **Whole Milk**: Begin offering whole cow's milk
+        - **Meal Schedule**: Aim for 3 meals and 1-2 snacks per day
+
+        **2-5 years:**
+        - **Diverse Diet**: Continue offering a variety of healthy foods from all food groups
+        - **Whole Grains**: Gradually increase the introduction of wholegrain foods
+        - **Milk**: Offer low-fat milk after age 2
+        - **Responsibility**: Maintain the division of responsibility: the caregiver provides healthy food, and the child decides how much to eat
+
+        ### Key Nutrients to Focus On:
+        [List specific vitamins, minerals, and macronutrients needed based on the child's current nutritional status]
+
+        ## FEEDING RECOMMENDATIONS:
+        [Provide practical, age-appropriate feeding advice and meal suggestions specific to this child's needs]
+
+        ## FOLLOW-UP RECOMMENDATIONS:
+        [Suggest monitoring schedule and when to reassess nutritional status]
+        """
         )
-        nutrition_analysis = f"\nNUTRITION ANALYSIS FOR THIS CHILD:\n{analysis_result}\n"
+        nutrition_analysis = f"NUTRITION ANALYSIS FOR THIS CHILD (ID: {patient_id}):\n{analysis_result}"
     except Exception as e:
         nutrition_analysis = ""
 
