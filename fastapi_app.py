@@ -47,8 +47,7 @@ def nutrition_analysis(request: NutritionAnalysis):
         patient_data = data_manager.get_patient_by_id(request.patient_id)
         if not patient_data:
             raise HTTPException(status_code=404, detail="Patient not found")
-        # Use patient_id only, do not use name
-        # Use the same logic as in get_meal_plan_with_langchain for analysis
+
         from nutrition_ai import ChildNutritionAI
         nutrition_ai = ChildNutritionAI()
         # Get latest assessment for notes and treatment
@@ -69,11 +68,11 @@ def nutrition_analysis(request: NutritionAnalysis):
             breastfeeding=patient_data.get('breastfeeding', ''),
             religion=patient_data.get('religion', '')
         )
-        # Parse the LLM output into sections for clean API output
+        # Parse the LLM output into sections
         def parse_nutrition_analysis(text):
             import re
             # Remove markdown and split by section headers
-            text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # Remove bold
+            text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  
             text = text.replace('\n', '\n')
             sections = {}
             current = None
@@ -82,7 +81,7 @@ def nutrition_analysis(request: NutritionAnalysis):
                 line = line.strip()
                 if not line:
                     continue
-                # Section header: ends with ':' and not a list item
+
                 if re.match(r'^[A-Za-z].*:$', line):
                     current = line[:-1].strip().lower().replace(' ', '_')
                     sections[current] = ''
@@ -140,34 +139,43 @@ def generate_meal_plan(request: MealPlanRequest):
             patient_id=request.patient_id,
             available_ingredients=request.available_foods
         )
-        # Parse the meal plan text into a structured dict
-        def parse_meal_plan(text):
+
+        def clean_meal_plan_text(text):
             import re
-            days = {}
-            current_day = None
-            current_meals = {}
-            for line in text.splitlines():
+            # Remove markdown headers and join sections as a single line
+            lines = text.splitlines()
+            result = []
+            current_section = None
+            section_content = []
+            for line in lines:
                 line = line.strip()
                 if not line:
                     continue
-                day_match = re.match(r'^Day (\d+):$', line)
-                if day_match:
-                    if current_day and current_meals:
-                        days[current_day] = current_meals
-                    current_day = f"Day {day_match.group(1)}"
-                    current_meals = {}
-                elif current_day and ':' in line:
-                    meal, desc = line.split(':', 1)
-                    meal = meal.strip().replace('-', '').replace(' ', '_').lower()
-                    desc = desc.strip()
-                    current_meals[meal] = desc
-            if current_day and current_meals:
-                days[current_day] = current_meals
-            return days
+                # Detect section headers (markdown or all-caps with colon)
+                header_match = re.match(r'^(#+)\s*(.*)', line)
+                alt_header_match = re.match(r'^([A-Z][A-Z\- ]+):$', line)
+                if header_match:
+                    # Save previous section
+                    if current_section:
+                        result.append(f"{current_section}: {' '.join(section_content).strip()}")
+                    current_section = header_match.group(2).strip().upper()
+                    section_content = []
+                elif alt_header_match:
+                    if current_section:
+                        result.append(f"{current_section}: {' '.join(section_content).strip()}")
+                    current_section = alt_header_match.group(1).strip().upper()
+                    section_content = []
+                else:
+                    section_content.append(line)
+            # Add last section
+            if current_section:
+                result.append(f"{current_section}: {' '.join(section_content).strip()}")
+            # Join all sections with a space, no embedded \n
+            return ' '.join(result)
 
-        parsed_meal_plan = parse_meal_plan(meal_plan_text)
+        cleaned_meal_plan = clean_meal_plan_text(meal_plan_text)
         return {
-            "meal_plan": parsed_meal_plan if parsed_meal_plan else meal_plan_text
+            "meal_plan": cleaned_meal_plan
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -116,12 +116,11 @@ TEXT TO ANALYZE:
 
 INSTRUCTIONS:
 1. Extract key insights as bullet points (each bullet should be 1-2 sentences max)
-2. Focus ONLY on information relevant to 0-5 year old children's nutrition and health
+2. Focus ONLY on information relevant to 0-5 year old children's nutrition and health and religion and allergy compliance
 3. Include specific food recommendations, portion sizes, or feeding guidelines if mentioned
 4. Include any warnings or contraindications for young children
 5. If the document contains no relevant information for 0-5 year olds, return "NO_RELEVANT_CONTENT"
-6. Maximum 20 bullet points
-7. Each bullet point should be actionable or informative for meal planning
+6. Each bullet point should be actionable or informative for meal planning
 
 """
             )
@@ -202,87 +201,6 @@ INSTRUCTIONS:
             for recipe in filipino_foods.values():
                 filipino_recipes.append(f"- {recipe['name']}: {recipe['nutrition_facts']}")
             filipino_context = f"\n\nFilipino Food Options:\n" + "\n".join(filipino_recipes)
-
-        try:
-            # Create LangChain prompt template
-            prompt_template = PromptTemplate(
-                input_variables=["duration_days", "age", "weight_kg", "height_cm", "bmi", "allergies", "other_medical_problems", "weight", "height", "parent_recipes_context", "filipino_context", "pdf_insights_context"],
-                template="""You are a pediatric nutrition expert specializing in Filipino children's nutrition (ages 0-5). 
-
-Create a {duration_days}-day meal plan for this patient:
-
-PATIENT PROFILE:
-- Age: {age} years old
-- Weight: {weight_kg} kg
-- Height: {height_cm} cm
-- BMI: {bmi}
-- Allergies: {allergies}
-- Medical Conditions: {other_medical_problems}
-- Current Weight: {weight} kg
-- Current Height: {height} cm
-
-GUIDELINES:
-1. Consider Filipino dietary patterns and available foods
-2. Account for BMI - adjust food types accordingly
-3. Strictly avoid allergens mentioned above
-4. Consider medical conditions in food recommendations
-5. Provide age-appropriate textures and portions
-6. Include traditional Filipino foods when appropriate
-7. Focus on balanced nutrition for growing children
-
-{parent_recipes_context}
-{filipino_context}
-{pdf_insights_context}
-
-MEAL PLAN FORMAT:
-For each day, provide:
-- Breakfast
-- Mid-morning snack
-- Lunch
-- Afternoon snack  
-- Dinner 
-
-Include:
-- Specific portion sizes for the patient's age and BMI
-- Filipino-friendly ingredients and cooking methods
-- Nutritional benefits of each meal
-- Any special preparation notes for the patient's conditions
-- Alternative options if patient refuses certain foods
-
-SAFETY NOTES:
-- Highlight any foods to avoid due to allergies/conditions
-- Note appropriate textures for the patient's age
-
-Keep recommendations practical for Filipino parents."""
-            )
-            
-            # Create LangChain chain
-            chain = LLMChain(
-                llm=self.llm,
-                prompt=prompt_template
-            )
-            
-            # Execute the chain
-            result = chain.run(
-                duration_days=duration_days,
-                age=patient_data.get('age', 'Unknown'),
-                weight_kg=patient_data.get('weight_kg', 'Unknown'),
-                height_cm=patient_data.get('height_cm', 'Unknown'),
-                bmi=patient_data.get('bmi', 'Unknown'),
-                allergies=patient_data.get('allergies', 'None'),
-                other_medical_problems=patient_data.get('other_medical_problems', 'None'),
-                weight=patient_data.get('weight_kg', 'Unknown'),
-                height=patient_data.get('height_cm', 'Unknown'),
-                parent_recipes_context=parent_recipes_context,
-                filipino_context=filipino_context,
-                pdf_insights_context=pdf_insights_context
-            )
-
-            return result
-
-        except Exception as e:
-            return f"Error generating meal plan: {str(e)}"
-    
 
 if __name__ == "__main__":
 
