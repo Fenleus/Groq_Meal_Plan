@@ -10,7 +10,6 @@ class DataManager:
         sql = """
             UPDATE foods SET
                 food_name_and_description = %s,
-                scientific_name = %s,
                 alternate_common_names = %s,
                 energy_kcal = %s,
                 nutrition_tags = %s
@@ -18,7 +17,6 @@ class DataManager:
         """
         params = (
             food_data.get('food_name_and_description', ''),
-            food_data.get('scientific_name', ''),
             food_data.get('alternate_common_names', ''),
             food_data.get('energy_kcal', 0),
             food_data.get('nutrition_tags', ''),
@@ -28,12 +26,12 @@ class DataManager:
         self.conn.commit()
     def get_foods_data(self):
         """Get all foods from the foods table, ordered by food_id."""
-        self.cursor.execute("SELECT food_id, food_name_and_description, scientific_name, alternate_common_names, energy_kcal, nutrition_tags FROM foods ORDER BY food_id")
+        self.cursor.execute("SELECT food_id, food_name_and_description, alternate_common_names, energy_kcal, nutrition_tags FROM foods ORDER BY food_id")
         return self.cursor.fetchall()
 
     def get_food_by_id(self, food_id):
         """Get a specific food by its ID."""
-        self.cursor.execute("SELECT food_id, food_name_and_description, scientific_name, alternate_common_names, energy_kcal, nutrition_tags FROM foods WHERE food_id = %s", (food_id,))
+        self.cursor.execute("SELECT food_id, food_name_and_description, alternate_common_names, energy_kcal, nutrition_tags FROM foods WHERE food_id = %s", (food_id,))
         return self.cursor.fetchone()
 
     def search_foods(self, search_term=""):
@@ -41,11 +39,11 @@ class DataManager:
         conditions = []
         params = []
         if search_term:
-            conditions.append("(food_name_and_description LIKE %s OR scientific_name LIKE %s OR alternate_common_names LIKE %s OR nutrition_tags LIKE %s)")
+            conditions.append("(food_name_and_description LIKE %s OR alternate_common_names LIKE %s OR nutrition_tags LIKE %s)")
             search_pattern = f"%{search_term}%"
-            params.extend([search_pattern, search_pattern, search_pattern, search_pattern])
+            params.extend([search_pattern, search_pattern, search_pattern])
         where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
-        sql = f"SELECT food_id, food_name_and_description, scientific_name, alternate_common_names, energy_kcal, nutrition_tags FROM foods {where_clause} ORDER BY food_name_and_description"
+        sql = f"SELECT food_id, food_name_and_description, alternate_common_names, energy_kcal, nutrition_tags FROM foods {where_clause} ORDER BY food_name_and_description"
         self.cursor.execute(sql, params)
         return self.cursor.fetchall()
     def get_nutritionists(self) -> list:
@@ -495,19 +493,42 @@ class DataManager:
 
     # Knowledge Base Management
     def get_knowledge_base(self) -> Dict:
-        self.cursor.execute("SELECT kb_id, ai_summary, pdf_name, pdf_text, added_at FROM knowledge_base")
+        """Get all knowledge base entries with admin full names who uploaded them."""
+        sql = """
+            SELECT 
+                kb.kb_id, 
+                kb.user_id,
+                kb.ai_summary, 
+                kb.pdf_name, 
+                kb.pdf_text, 
+                kb.added_at,
+                CONCAT(u.first_name, 
+                       CASE 
+                           WHEN u.middle_name IS NOT NULL AND u.middle_name != '' 
+                           THEN CONCAT(' ', u.middle_name, ' ') 
+                           ELSE ' ' 
+                       END, 
+                       u.last_name) as uploaded_by_name
+            FROM knowledge_base kb
+            LEFT JOIN users u ON kb.user_id = u.user_id
+            ORDER BY kb.added_at DESC
+        """
+        self.cursor.execute(sql)
         rows = self.cursor.fetchall()
         return {str(row['kb_id']): row for row in rows}
 
     def save_knowledge_base(self, ai_summary, pdf_name, pdf_text=None, uploaded_by=None, uploaded_by_id=None):
-        sql = "INSERT INTO knowledge_base (ai_summary, pdf_name, pdf_text, added_at) VALUES (%s, %s, %s, %s)"
+        """Save knowledge base entry with user_id."""
+        sql = "INSERT INTO knowledge_base (user_id, ai_summary, pdf_name, pdf_text, added_at) VALUES (%s, %s, %s, %s, %s)"
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         # Convert ai_summary to plain text if it's a list
         if isinstance(ai_summary, list):
             ai_summary_text = "\n".join(ai_summary)
         else:
             ai_summary_text = str(ai_summary) if ai_summary else ""
+        
         self.cursor.execute(sql, (
+            uploaded_by_id,  # Store the user_id of the admin who uploaded
             ai_summary_text,
             pdf_name,
             pdf_text,

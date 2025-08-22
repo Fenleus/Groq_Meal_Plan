@@ -3,12 +3,13 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from nutrition_ai import ChildNutritionAI
 from data_manager import data_manager
-from nutrition_chain import get_meal_plan_with_langchain
+from nutrition_chain import get_meal_plan_with_langchain, generate_patient_assessment
 from typing import List, Optional
 
 
 app = FastAPI(title="Nutritionist LLM API", description="API for LLM-powered nutrition functions", version="1.0")
 nutrition_ai = ChildNutritionAI()
+
 class MealPlanRequest(BaseModel):
     patient_id: int
     available_foods: Optional[str] = None
@@ -16,10 +17,8 @@ class MealPlanRequest(BaseModel):
 class NutritionQuestionRequest(BaseModel):
     question: str
 
-
 class ChildrenByParentRequest(BaseModel):
     parent_id: int
-
 
 class SaveMealPlanRequest(BaseModel):
     patient_id: int
@@ -34,6 +33,9 @@ class MealPlansByChildRequest(BaseModel):
 class SaveAdminLogRequest(BaseModel):
     action: str
     details: dict
+
+class AssessmentRequest(BaseModel):
+    patient_id: int
 
 @app.post("/generate_meal_plan")
 def generate_meal_plan(request: MealPlanRequest):
@@ -77,6 +79,24 @@ def generate_meal_plan(request: MealPlanRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/assessment")
+def generate_assessment(request: AssessmentRequest):
+    """Generate a comprehensive pediatric dietary assessment for a patient."""
+    try:
+        # Fetch patient data
+        patient_data = data_manager.get_patient_by_id(request.patient_id)
+        if not patient_data:
+            raise HTTPException(status_code=404, detail="Patient not found")
+        
+        # Generate assessment using LangChain
+        assessment = generate_patient_assessment(patient_id=request.patient_id)
+        
+        return {
+            "patient_id": request.patient_id,
+            "assessment": assessment
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Combined endpoint: returns all foods
 @app.post("/get_foods_data")
@@ -95,7 +115,6 @@ def get_children_by_parent(request: ChildrenByParentRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @app.post("/get_meal_plans_by_child")
 def get_meal_plans_by_child(request: MealPlansByChildRequest):
     try:
@@ -109,7 +128,6 @@ def get_meal_plans_by_child(request: MealPlansByChildRequest):
         return {"meal_plans": plans}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 class KnowledgeBaseRequest(BaseModel):
     pass  # No parameters needed for get_knowledge_base
@@ -132,4 +150,3 @@ def get_meal_plan_detail(request: MealPlanDetailRequest):
         return {"meal_plan": plan}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
