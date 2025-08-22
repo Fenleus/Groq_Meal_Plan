@@ -29,6 +29,7 @@ class SaveMealPlanRequest(BaseModel):
 
 class MealPlansByChildRequest(BaseModel):
     patient_id: int
+    most_recent: Optional[bool] = False
 
 class SaveAdminLogRequest(BaseModel):
     action: str
@@ -76,12 +77,13 @@ def generate_meal_plan(request: MealPlanRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Combined endpoint: returns all meals with nutrition facts
-@app.post("/get_meals_data")
-def get_meals_data():
+
+# Combined endpoint: returns all foods
+@app.post("/get_foods_data")
+def get_foods_data():
     try:
-        meals = data_manager.get_meals_data()
-        return {"meals": meals}
+        foods = data_manager.get_foods_data()
+        return {"foods": foods}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -98,6 +100,12 @@ def get_children_by_parent(request: ChildrenByParentRequest):
 def get_meal_plans_by_child(request: MealPlansByChildRequest):
     try:
         plans = data_manager.get_meal_plans_by_patient(request.patient_id)
+        if request.most_recent:
+            # Return only the most recent plan (if any)
+            if plans:
+                return {"meal_plans": [plans[0]]}
+            else:
+                return {"meal_plans": []}
         return {"meal_plans": plans}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -125,13 +133,3 @@ def get_meal_plan_detail(request: MealPlanDetailRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-class NutritionistNotesRequest(BaseModel):
-    plan_id: int
-
-@app.post("/get_nutritionist_notes")
-def get_nutritionist_notes(request: NutritionistNotesRequest):
-    try:
-        notes = data_manager.get_notes_for_meal_plan(request.plan_id)
-        return {"nutritionist_notes": notes}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
