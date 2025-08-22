@@ -6,11 +6,10 @@ import json
 
 class DataManager:
     def update_food(self, food_id, food_data):
-        """Update a food in the foods table with the allowed columns."""
+        """Update a food in the foods table with the allowed columns (no scientific_name)."""
         sql = """
             UPDATE foods SET
                 food_name_and_description = %s,
-                scientific_name = %s,
                 alternate_common_names = %s,
                 energy_kcal = %s,
                 nutrition_tags = %s
@@ -18,7 +17,6 @@ class DataManager:
         """
         params = (
             food_data.get('food_name_and_description', ''),
-            food_data.get('scientific_name', ''),
             food_data.get('alternate_common_names', ''),
             food_data.get('energy_kcal', 0),
             food_data.get('nutrition_tags', ''),
@@ -27,25 +25,25 @@ class DataManager:
         self.cursor.execute(sql, params)
         self.conn.commit()
     def get_foods_data(self):
-        """Get all foods from the foods table, ordered by food_id."""
-        self.cursor.execute("SELECT food_id, food_name_and_description, scientific_name, alternate_common_names, energy_kcal, nutrition_tags FROM foods ORDER BY food_id")
+        """Get all foods from the foods table, ordered by food_id (no scientific_name)."""
+        self.cursor.execute("SELECT food_id, food_name_and_description, alternate_common_names, energy_kcal, nutrition_tags FROM foods ORDER BY food_id")
         return self.cursor.fetchall()
 
     def get_food_by_id(self, food_id):
-        """Get a specific food by its ID."""
-        self.cursor.execute("SELECT food_id, food_name_and_description, scientific_name, alternate_common_names, energy_kcal, nutrition_tags FROM foods WHERE food_id = %s", (food_id,))
+        """Get a specific food by its ID (no scientific_name)."""
+        self.cursor.execute("SELECT food_id, food_name_and_description, alternate_common_names, energy_kcal, nutrition_tags FROM foods WHERE food_id = %s", (food_id,))
         return self.cursor.fetchone()
 
     def search_foods(self, search_term=""):
-        """Search foods by name, description, or tags."""
+        """Search foods by name, description, or tags (no scientific_name)."""
         conditions = []
         params = []
         if search_term:
-            conditions.append("(food_name_and_description LIKE %s OR scientific_name LIKE %s OR alternate_common_names LIKE %s OR nutrition_tags LIKE %s)")
+            conditions.append("(food_name_and_description LIKE %s OR alternate_common_names LIKE %s OR nutrition_tags LIKE %s)")
             search_pattern = f"%{search_term}%"
-            params.extend([search_pattern, search_pattern, search_pattern, search_pattern])
+            params.extend([search_pattern, search_pattern, search_pattern])
         where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
-        sql = f"SELECT food_id, food_name_and_description, scientific_name, alternate_common_names, energy_kcal, nutrition_tags FROM foods {where_clause} ORDER BY food_name_and_description"
+        sql = f"SELECT food_id, food_name_and_description, alternate_common_names, energy_kcal, nutrition_tags FROM foods {where_clause} ORDER BY food_name_and_description"
         self.cursor.execute(sql, params)
         return self.cursor.fetchall()
     def get_nutritionists(self) -> list:
