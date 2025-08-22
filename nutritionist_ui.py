@@ -125,19 +125,16 @@ def main():
         st.metric("Total Children", len(all_children))
         st.metric("Total Meal Plans", len(all_meal_plans))
     
-    # Main tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["👨‍👩‍👧‍👦 All Parents", "📝 Add Notes", "🧠 Knowledge Base", "🍽️ Meal Database"])
+    # Main tabs (remove Knowledge Base tab)
+    tab1, tab2, tab3 = st.tabs(["👨‍👩‍👧‍👦 All Parents", "📝 Add Notes", "🍽️ Meal Database"])
 
     with tab1:
         show_all_parents()
-    
+
     with tab2:
         show_add_notes()
-    
+
     with tab3:
-        show_knowledge_base()
-    
-    with tab4:
         show_meal_database()
 
 def show_all_parents():
@@ -329,7 +326,7 @@ def show_add_notes():
             def get_nutritionist_name(nutritionist_id):
                 return nutritionist_options.get(str(nutritionist_id), f"Nutritionist {nutritionist_id}")
             notes_str = "<br>".join([
-                f"Noted by {get_nutritionist_name(note.get('nutritionist_id'))}: {clean_note(note['note'])}"
+                f"Noted by {get_nutritionist_name(note.get('nutritionist_id'))}: {clean_note(note.get('notes', ''))}"
                 for note in notes
             ])
         else:
@@ -472,7 +469,13 @@ def show_add_notes():
                 new_note = val_cols[-1].text_area("Enter note:", key=f"note_input_{plan_id}")
                 save_col, cancel_col = val_cols[-1].columns([1,1])
                 if save_col.button("Save Note", key=f"save_note_{plan_id}"):
-                    data_manager.save_nutritionist_note(plan_id, st.session_state.nutritionist_id, new_note)
+                    # Find patient_id for this plan
+                    plan = next((p for p in all_plans.values() if str(p.get('plan_id')) == str(plan_id)), None)
+                    patient_id = plan['patient_id'] if plan and 'patient_id' in plan else None
+                    if not patient_id:
+                        st.error('Could not determine patient_id for this meal plan.')
+                    else:
+                        data_manager.save_nutritionist_note(plan_id, patient_id, st.session_state.nutritionist_id, new_note)
                     st.success("Note added!")
                     st.session_state[show_input_key] = False
                     st.rerun()
@@ -483,278 +486,50 @@ def show_add_notes():
         empty_df = pd.DataFrame([], columns=columns)
         st.dataframe(empty_df, use_container_width=True, hide_index=True)
 
-def show_knowledge_base():
-    """Manage Filipino nutrition knowledge base"""
-    st.header("🧠 Filipino Nutrition Knowledge Base")
-    
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        st.subheader("📚 Current Knowledge Base")
-        # Get PDFs uploaded by this nutritionist
-        knowledge_base_raw = data_manager.get_knowledge_base()
-        nutritionist_pdfs = []
-        
-        # Only include rows uploaded by this nutritionist
-        if isinstance(knowledge_base_raw, dict):
-            for kb in knowledge_base_raw.values():
-                if kb.get('uploaded_by') == 'nutritionist' and str(kb.get('uploaded_by_id')) == str(st.session_state.nutritionist_id):
-                    pdf_name = kb.get('pdf_name', '')
-                    ai_summary = kb.get('ai_summary', '')
-                    added_at = kb.get('added_at', '')
-                    
-                    if pdf_name:  # Only add if there's a PDF name
-                        nutritionist_pdfs.append({
-                            'name': pdf_name,
-                            'ai_summary': ai_summary,
-                            'added_at': added_at,
-                            'kb_id': kb.get('kb_id')
-                        })
-        # Optionally, aggregate filipino_foods if needed (currently only showing from latest)
-        filipino_foods = {}
-        if isinstance(knowledge_base_raw, dict) and knowledge_base_raw:
-            latest_kb = max(knowledge_base_raw.values(), key=lambda x: x.get('kb_id', 0))
-            # filipino_foods is no longer stored in knowledge_base, so skip this for now
-            filipino_foods = {}
-            
-        if filipino_foods:
-            st.write(f"**Filipino Foods Database: {len(filipino_foods)} recipes**")
-            for food_id, food_data in list(filipino_foods.items())[:3]:
-                with st.expander(f"🍽️ {food_data['name']}"):
-                    st.write(f"**Ingredients:** {food_data['ingredients']}")
-                    st.write(f"**Nutrition Facts:** {food_data['nutrition_facts']}")
-                    st.write(f"**Instructions:** {food_data['instructions']}" )
-
-        # Show uploaded PDFs
-        if 'pending_delete_pdf_idx' not in st.session_state:
-            st.session_state['pending_delete_pdf_idx'] = None
-        st.write(f"**Uploaded PDFs: {len(nutritionist_pdfs)} documents**")
-        
-        # Show total text information if available
-        total_text_chars = 0
-        for kb in knowledge_base_raw.values():
-            if (kb.get('uploaded_by') == 'nutritionist' and 
-                str(kb.get('uploaded_by_id')) == str(st.session_state.nutritionist_id)):
-                pdf_text = kb.get('pdf_text', '')
-                if pdf_text:
-                    total_text_chars += len(pdf_text)
-        
-        if total_text_chars > 0:
-            text_kb = total_text_chars / 1024  # Convert to KB
-            if text_kb > 1024:
-                text_size = f"{text_kb/1024:.1f} MB"
-            else:
-                text_size = f"{text_kb:.1f} KB"
-            st.caption(f"📊 Total text content: {text_size}")
-        
-        for idx, pdf_data in enumerate(nutritionist_pdfs):
-            pdf_name = pdf_data['name']
-            ai_summary = pdf_data['ai_summary']
-            added_at = pdf_data['added_at']
-            
-            col_pdf, col_actions = st.columns([7, 2])
-            with col_pdf:
-                st.write(f"📄 **{pdf_name}**")
-                if added_at:
-                    try:
-                        if isinstance(added_at, str):
-                            dt = datetime.strptime(added_at, '%Y-%m-%d %H:%M:%S')
-                        else:
-                            dt = added_at
-                        st.caption(f"Uploaded: {dt.strftime('%b %d, %Y')}")
-                    except:
-                        st.caption(f"Uploaded: {added_at}")
-            
-            with col_actions:
-                # Only show delete button
-                delete_btn = st.button("🗑️", key=f"delete_pdf_{idx}", help=f"Delete {pdf_name}")
-
-            # Create two columns for aligned expanders
-            exp_col1, exp_col2 = st.columns(2)
-            
-            # Show AI insights in first column (if available)
-            with exp_col1:
-                if ai_summary:
-                    with st.expander("🧠 View Insights"):
-                        st.text_area("", value=ai_summary, height=200, key=f"insights_expanded_{idx}")
-                else:
-                    st.info("No AI insights available")
-
-            # Show PDF text in second column
-            with exp_col2:
-                pdf_text_content = None
-                for kb in knowledge_base_raw.values():
-                    if (kb.get('uploaded_by') == 'nutritionist' and 
-                        str(kb.get('uploaded_by_id')) == str(st.session_state.nutritionist_id) and
-                        kb.get('pdf_name') == pdf_name):
-                        pdf_text_content = kb.get('pdf_text', '')
-                        break
-                
-                if pdf_text_content:
-                    with st.expander(f"📄 Full Text: {pdf_name}"):
-                        st.text_area(
-                            "PDF Content:",
-                            value=pdf_text_content,
-                            height=400,
-                            key=f"pdf_text_display_{idx}",
-                            help="Full extracted text from the PDF"
-                        )
-                else:
-                    st.warning("PDF text not found in database.")
-
-            if delete_btn:
-                st.session_state['pending_delete_pdf_idx'] = idx
-                st.session_state['pending_delete_pdf_name'] = pdf_name
-                st.rerun()
-            
-            # Show confirmation dialog only for the selected PDF
-            if st.session_state.get('pending_delete_pdf_idx') == idx:
-                confirm = st.warning(f"Are you sure you want to delete '{pdf_name}'? This will remove it from the knowledge base.", icon="⚠️")
-                confirm_col1, confirm_col2 = st.columns([1,1])
-                with confirm_col1:
-                    confirm_yes = st.button("Yes, delete", key=f"confirm_delete_{idx}")
-                with confirm_col2:
-                    confirm_no = st.button("Cancel", key=f"cancel_delete_{idx}")
-                if confirm_yes:
-                    # Find and delete the knowledge base entry
-                    kb_to_delete = None
-                    for kb in knowledge_base_raw.values():
-                        if (kb.get('uploaded_by') == 'nutritionist' and 
-                            str(kb.get('uploaded_by_id')) == str(st.session_state.nutritionist_id) and
-                            kb.get('pdf_name') == pdf_name):
-                            kb_to_delete = kb
-                            break
-                    
-                    if kb_to_delete:
-                        # Delete the entire knowledge base entry
-                        data_manager.delete_knowledge_base_entry(kb_to_delete['kb_id'])
-                        
-                        st.session_state['pending_delete_pdf_idx'] = None
-                        st.session_state['pending_delete_pdf_name'] = None
-                        st.success(f"Deleted '{pdf_name}' from knowledge base.")
-                        st.rerun()
-                elif confirm_no:
-                    st.session_state['pending_delete_pdf_idx'] = None
-                    st.session_state['pending_delete_pdf_name'] = None
-                    st.rerun()
-    
-    with col2:
-
-        import pdfplumber
-        from io import BytesIO
-        import math
-        st.write("**Upload PDF Knowledge:**")
-        if 'pending_pdf_file' not in st.session_state:
-            st.session_state['pending_pdf_file'] = None
-        uploaded_file = st.file_uploader("Choose PDF file", type="pdf", key="pdf_upload")
-        # If the file uploader is cleared (cross clicked), remove pending_pdf_file
-        if uploaded_file is None and st.session_state.get('pending_pdf_file') is not None:
-            st.session_state['pending_pdf_file'] = None
-        if uploaded_file is not None:
-            st.session_state['pending_pdf_file'] = uploaded_file
-        if st.session_state.get('pending_pdf_file') is not None:
-            st.info(f"Ready to upload: {st.session_state['pending_pdf_file'].name}")
-            if st.button("Submit PDF to Knowledge Base", key="submit_pdf_knowledge"):
-                try:
-                    with st.spinner("Processing PDF with AI..."):
-                        knowledge_base = data_manager.get_knowledge_base()
-                        existing_names = set()
-                        # Check all knowledge base entries for existing PDF names
-                        for kb in knowledge_base.values():
-                            existing_pdf_name = kb.get('pdf_name', '')
-                            if existing_pdf_name:
-                                existing_names.add(existing_pdf_name)
-                        
-                        if st.session_state['pending_pdf_file'].name in existing_names:
-                            st.warning(f"PDF '{st.session_state['pending_pdf_file'].name}' is already in the knowledge base.")
-                            st.session_state['pending_pdf_file'] = None
-                        else:
-                            # Extract text from PDF
-                            with pdfplumber.open(BytesIO(st.session_state['pending_pdf_file'].read())) as pdf:
-                                all_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
-                            
-                            # Use AI to summarize nutrition-relevant content
-                            if st.session_state.nutrition_ai:
-                                st.info("🤖 Analyzing PDF content with AI for nutrition insights...")
-                                nutrition_insights = st.session_state.nutrition_ai.summarize_pdf_for_nutrition_knowledge(
-                                    all_text, 
-                                    st.session_state['pending_pdf_file'].name
-                                )
-                                
-                                if not nutrition_insights:
-                                    st.warning("⚠️ No relevant nutrition content found for 0-5 year old children in this PDF.")
-                                    st.session_state['pending_pdf_file'] = None
-                                    return
-                                
-                                # Save to knowledge base with simplified structure
-                                data_manager.save_knowledge_base(
-                                    nutrition_insights,  # Pass insights list directly
-                                    st.session_state['pending_pdf_file'].name,  # Pass filename directly
-                                    pdf_text=all_text,
-                                    uploaded_by='nutritionist',
-                                    uploaded_by_id=st.session_state.nutritionist_id
-                                )
-                                
-                                st.success(f"✅ PDF '{st.session_state['pending_pdf_file'].name}' processed successfully!")
-                                st.info(f"🧠 Extracted {len(nutrition_insights)} nutrition insights for 0-5 year old children")
-                                
-                                # Show preview of insights
-                                with st.expander("Preview of Extracted Insights", expanded=True):
-                                    for insight in nutrition_insights[:5]:  # Show first 5
-                                        st.write(insight)
-                                    if len(nutrition_insights) > 5:
-                                        st.write(f"... and {len(nutrition_insights) - 5} more insights")
-                                
-                                st.session_state['pending_pdf_file'] = None
-                                st.rerun()
-                            else:
-                                st.error("AI system not available. Cannot process PDF.")
-                except Exception as e:
-                    st.error(f"Failed to process PDF: {e}")
-                    import traceback
-                    st.error(f"Details: {traceback.format_exc()}")
 
 def show_meal_database():
-    st.header("Meal Database")
+    st.header("🍽️ Food Database Management")
 
-    meals = data_manager.get_meals_data()
-    if not meals:
-        st.info("No meal data available.")
+    foods = data_manager.get_foods_data()
+    if not foods:
+        st.info("No food data available.")
         return
 
     # Search bar
-    if 'meal_db_search' not in st.session_state:
-        st.session_state['meal_db_search'] = ''
-    prev_search = st.session_state['meal_db_search']
+    if 'food_db_search' not in st.session_state:
+        st.session_state['food_db_search'] = ''
+    prev_search = st.session_state['food_db_search']
     search_val = st.text_input(
-        "🔍 Search meal database",
+        "🔍 Search food database",
         value=prev_search,
-        key='meal_db_search',
+        key='food_db_search',
     )
     if search_val != prev_search:
-        st.session_state['meal_db_search'] = search_val
+        st.session_state['food_db_search'] = search_val
         st.rerun()
-    def filter_meals(data, query):
+    def filter_foods(data, query):
         if not query:
             return data
         query = query.lower()
         filtered = []
         for item in data:
-            for col in ["meal_name", "description", "course", "keywords"]:
+            for col in ["food_id", "food_name_and_description", "scientific_name", "alternate_common_names", "energy_kcal", "nutrition_tags"]:
                 val = item.get(col, '')
-                if val and query in str(val).lower():
+                if isinstance(val, list):
+                    val = ', '.join(val)
+                if query in str(val).lower():
                     filtered.append(item)
                     break
         return filtered
 
-    filtered_meals = filter_meals(meals, search_val)
+    filtered_foods = filter_foods(foods, search_val)
     # Pagination setup
     records_per_page = 10
-    total_records = len(filtered_meals)
+    total_records = len(filtered_foods)
     total_pages = (total_records - 1) // records_per_page + 1
-    page = st.session_state.get('meal_db_page', 1)
+    page = st.session_state.get('food_db_page', 1)
     def set_page(new_page):
-        st.session_state['meal_db_page'] = new_page
+        st.session_state['food_db_page'] = new_page
 
     # Pagination controls
     pag_row = st.columns([0.18,0.82])
@@ -763,130 +538,50 @@ def show_meal_database():
         btn_cols[0].button('Previous', key='prev_page', on_click=lambda: set_page(page-1), disabled=(page==1))
         btn_cols[1].button('Next', key='next_page', on_click=lambda: set_page(page+1), disabled=(page==total_pages))
 
-    if st.session_state.get('show_meal_notice'):
-        meal_idx = st.session_state.get('show_meal_section', None)
-        meal_data_list = filtered_meals if meal_idx else []
-        meal_name = ""
-        if meal_idx and 0 < meal_idx <= len(meal_data_list):
-            meal = meal_data_list[meal_idx-1]
-            meal_name = meal.get('meal_name', '')
-        st.markdown(f"""
-            <div style='background:#2196F3;color:white;padding:0.75rem 1.5rem;border-radius:8px;font-weight:bold;margin-bottom:0.5rem;font-size:1.1rem;'>
-                The meal details are shown below.<br>
-                <span style='font-size:1rem;font-weight:normal;'>You are now viewing details for: <b>{meal_name}</b></span>
-            </div>
-        """, unsafe_allow_html=True)
-        st.session_state['show_meal_notice'] = False
-
     start_idx = (page-1)*records_per_page
     end_idx = min(start_idx+records_per_page, total_records)
     st.caption(f"Showing {start_idx+1} to {end_idx} of {total_records} rows | {records_per_page} records per page")
 
     columns = [
         "No.",
-        "meal_id",
-        "meal_name",
-        "course",
-        "prep_time_minutes",
-        "servings",
-        "calories_kcal",
-        "Options"
+        "food_id",
+        "food_name_and_description",
+        "scientific_name",
+        "alternate_common_names",
+        "energy_kcal",
+        "nutrition_tags"
     ]
-    # Render column headers
-    header_cols = st.columns([1,1,3,2,2,1,2,2])
+    header_cols = st.columns([1,2,4,3,3,2,3])
     header_labels = [
         "No.",
-        "Meal ID",
-        "Meal Name",
-        "Course",
-        "Prep Time",
-        "Servings",
-        "Calories",
-        "Options"
+        "Food ID",
+        "Food Name and Description",
+        "Scientific Name",
+        "Alternative Names",
+        "Energy (kcal)",
+        "Nutrition Tags"
     ]
     for i, label in enumerate(header_labels):
         header_cols[i].markdown(f"**{label}**")
 
-    # Prepare table data
     table_rows = []
-    for idx, item in enumerate(filtered_meals[start_idx:end_idx], start=start_idx+1):
+    for idx, item in enumerate(filtered_foods[start_idx:end_idx], start=start_idx+1):
         row = {
             "No.": idx,
-            "meal_id": item.get("meal_id", ""),
-            "meal_name": item.get("meal_name", ""),
-            "course": item.get("course", ""),
-            "prep_time_minutes": f"{item.get('prep_time_minutes', 0)} min" if item.get('prep_time_minutes') else "-",
-            "servings": item.get("servings", ""),
-            "calories_kcal": f"{item.get('calories_kcal', 0)} kcal" if item.get('calories_kcal') else "-",
-            "Options": ""
+            "food_id": item.get("food_id", ""),
+            "food_name_and_description": item.get("food_name_and_description", ""),
+            "scientific_name": item.get("scientific_name", ""),
+            "alternate_common_names": item.get("alternate_common_names", ""),
+            "energy_kcal": item.get("energy_kcal", ""),
+            "nutrition_tags": item.get("nutrition_tags", "")
         }
         table_rows.append(row)
 
-    # Render table
-    for row_idx, row in enumerate(table_rows):
-        col_widths = [1,1,3,2,2,1,2,2]
+    for row in table_rows:
+        col_widths = [1,2,4,3,3,2,3]
         cols = st.columns(col_widths)
-        cols[0].markdown(f"{row['No.']}")
-        for i, col in enumerate(columns[1:-1], start=1):
+        for i, col in enumerate(columns):
             cols[i].markdown(row[col])
-
-        btn_cols = cols[len(columns)-1].columns([1])
-        data_btn = btn_cols[0].button("Details", key=f"data_{row['No.']}" )
-        if data_btn:
-            st.session_state['show_meal_section'] = row['No.']
-            st.session_state['scroll_to_meal'] = True
-            st.session_state['show_meal_notice'] = True
-            st.rerun()
-
-    # Meal details section
-    if st.session_state.get('show_meal_section'):
-        # Show meal section
-        if st.session_state.get('scroll_to_meal'):
-            st.session_state['scroll_to_meal'] = False
-        i = st.session_state['show_meal_section']-1
-        meal = filtered_meals[i]
-        section_title = meal.get('meal_name', '')
-        st.markdown(f"<div class='meal-section-container'><h2 id='meal_data'>{section_title}</h2>", unsafe_allow_html=True)
-        
-        # Meal Information
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("**Basic Information:**")
-            st.markdown(f"- **Description:** {meal.get('description', 'N/A')}")
-            st.markdown(f"- **Course:** {meal.get('course', 'N/A')}")
-            st.markdown(f"- **Keywords:** {meal.get('keywords', 'N/A')}")
-            st.markdown(f"- **Prep Time:** {meal.get('prep_time_minutes', 0)} minutes")
-            st.markdown(f"- **Cook Time:** {meal.get('cook_time_minutes', 0)} minutes")
-            st.markdown(f"- **Servings:** {meal.get('servings', 'N/A')}")
-        
-        with col2:
-            st.markdown("**Nutrition Information (per serving):**")
-            st.markdown(f"- **Calories:** {meal.get('calories_kcal', 'N/A')} kcal")
-            st.markdown(f"- **Protein:** {meal.get('protein_g', 'N/A')} g")
-            st.markdown(f"- **Carbohydrates:** {meal.get('carbohydrates_g', 'N/A')} g")
-            st.markdown(f"- **Fat:** {meal.get('fat_g', 'N/A')} g")
-            st.markdown(f"- **Fiber:** {meal.get('fiber_g', 'N/A')} g")
-            st.markdown(f"- **Sodium:** {meal.get('sodium_mg', 'N/A')} mg")
-            st.markdown(f"- **Calcium:** {meal.get('calcium_mg', 'N/A')} mg")
-            st.markdown(f"- **Iron:** {meal.get('iron_mg', 'N/A')} mg")
-        
-        # Ingredients
-        ingredients = meal.get('ingredients', [])
-        if ingredients:
-            st.markdown("**Ingredients:**")
-            if isinstance(ingredients, list):
-                for ingredient in ingredients:
-                    st.markdown(f"- {ingredient}")
-            else:
-                st.markdown(ingredients)
-        
-        # Instructions
-        instructions = meal.get('instructions', '')
-        if instructions:
-            st.markdown("**Instructions:**")
-            st.markdown(instructions)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
     
 
 if __name__ == "__main__":

@@ -5,6 +5,49 @@ import uuid
 import json
 
 class DataManager:
+    def update_food(self, food_id, food_data):
+        """Update a food in the foods table with the allowed columns."""
+        sql = """
+            UPDATE foods SET
+                food_name_and_description = %s,
+                scientific_name = %s,
+                alternate_common_names = %s,
+                energy_kcal = %s,
+                nutrition_tags = %s
+            WHERE food_id = %s
+        """
+        params = (
+            food_data.get('food_name_and_description', ''),
+            food_data.get('scientific_name', ''),
+            food_data.get('alternate_common_names', ''),
+            food_data.get('energy_kcal', 0),
+            food_data.get('nutrition_tags', ''),
+            food_id
+        )
+        self.cursor.execute(sql, params)
+        self.conn.commit()
+    def get_foods_data(self):
+        """Get all foods from the foods table, ordered by food_id."""
+        self.cursor.execute("SELECT food_id, food_name_and_description, scientific_name, alternate_common_names, energy_kcal, nutrition_tags FROM foods ORDER BY food_id")
+        return self.cursor.fetchall()
+
+    def get_food_by_id(self, food_id):
+        """Get a specific food by its ID."""
+        self.cursor.execute("SELECT food_id, food_name_and_description, scientific_name, alternate_common_names, energy_kcal, nutrition_tags FROM foods WHERE food_id = %s", (food_id,))
+        return self.cursor.fetchone()
+
+    def search_foods(self, search_term=""):
+        """Search foods by name, description, or tags."""
+        conditions = []
+        params = []
+        if search_term:
+            conditions.append("(food_name_and_description LIKE %s OR scientific_name LIKE %s OR alternate_common_names LIKE %s OR nutrition_tags LIKE %s)")
+            search_pattern = f"%{search_term}%"
+            params.extend([search_pattern, search_pattern, search_pattern, search_pattern])
+        where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+        sql = f"SELECT food_id, food_name_and_description, scientific_name, alternate_common_names, energy_kcal, nutrition_tags FROM foods {where_clause} ORDER BY food_name_and_description"
+        self.cursor.execute(sql, params)
+        return self.cursor.fetchall()
     def get_nutritionists(self) -> list:
         """Get all nutritionists from MySQL, all columns."""
         self.cursor.execute("SELECT user_id, role_id, first_name, middle_name, last_name, birth_date, sex, email, email_verified_at, password, contact_number, address, is_active, remember_token, license_number, years_experience, qualifications, professional_experience, professional_id_path, verification_status, rejection_reason, verified_at, verified_by, account_status, deleted_at, created_at, updated_at FROM users WHERE role_id = (SELECT role_id FROM roles WHERE role_name = 'nutritionist')")
@@ -15,13 +58,10 @@ class DataManager:
         return self.cursor.fetchone()
 
     def get_nutritionist_notes_by_patient(self, patient_id: int) -> List[Dict]:
-        """Get all nutritionist notes for a given patient_id."""
-        self.cursor.execute("SELECT note_id, nutritionist_id, patient_id, plan_id, note, created_at FROM nutritionist_notes WHERE patient_id = %s", (patient_id,))
+        """Get all nutritionist notes for a given patient_id from assessments.notes."""
+        self.cursor.execute("SELECT assessment_id, nutritionist_id, patient_id, plan_id, assessment_date, notes, treatment, recovery_status, completed_at, created_at, updated_at FROM assessments WHERE patient_id = %s", (patient_id,))
         return self.cursor.fetchall()
-    # Backward compatibility - keeping method names for existing code
-    def get_foods_data(self):
-        """Backward compatibility: Get all meals as 'foods' data."""
-        return self.get_meals_data()
+    # get_foods_data is now the canonical method for foods
     
     def get_food_nutrition(self, meal_id):
         """Backward compatibility: Get meal nutrition data."""
@@ -71,91 +111,6 @@ class DataManager:
                 except Exception:
                     pass
         return rows
-    # Meals Database Management
-    def get_meals_data(self):
-        """Get all meals from the meals table with nutrition facts."""
-        self.cursor.execute("""
-            SELECT m.meal_id, m.meal_name, m.description, m.course, m.keywords, 
-                   m.prep_time_minutes, m.cook_time_minutes, m.servings, m.ingredients, 
-                   m.instructions, m.image_url, m.created_at, m.updated_at,
-                   nf.calories_kcal, nf.carbohydrates_g, nf.protein_g, nf.fat_g, 
-                   nf.saturated_fat_g, nf.polyunsaturated_fat_g, nf.monounsaturated_fat_g, 
-                   nf.trans_fat_g, nf.cholesterol_mg, nf.sodium_mg, nf.potassium_mg, 
-                   nf.fiber_g, nf.sugar_g, nf.vitamin_a_iu, nf.vitamin_c_mg, 
-                   nf.calcium_mg, nf.iron_mg
-            FROM meals m
-            LEFT JOIN nutrition_facts nf ON m.meal_id = nf.meal_id
-            ORDER BY m.meal_name
-        """)
-        rows = self.cursor.fetchall()
-        
-        # Parse JSON ingredients if needed
-        for row in rows:
-            if row.get('ingredients') and isinstance(row['ingredients'], str):
-                try:
-                    import json
-                    row['ingredients'] = json.loads(row['ingredients'])
-                except json.JSONDecodeError:
-                    row['ingredients'] = []
-        return rows
-
-    def get_meal_by_id(self, meal_id):
-        """Get a specific meal by its ID with all nutrition facts."""
-        self.cursor.execute("""
-            SELECT m.meal_id, m.meal_name, m.description, m.course, m.keywords, 
-                   m.prep_time_minutes, m.cook_time_minutes, m.servings, m.ingredients, 
-                   m.instructions, m.image_url, m.created_at, m.updated_at,
-                   nf.calories_kcal, nf.carbohydrates_g, nf.protein_g, nf.fat_g, 
-                   nf.saturated_fat_g, nf.polyunsaturated_fat_g, nf.monounsaturated_fat_g, 
-                   nf.trans_fat_g, nf.cholesterol_mg, nf.sodium_mg, nf.potassium_mg, 
-                   nf.fiber_g, nf.sugar_g, nf.vitamin_a_iu, nf.vitamin_c_mg, 
-                   nf.calcium_mg, nf.iron_mg
-            FROM meals m
-            LEFT JOIN nutrition_facts nf ON m.meal_id = nf.meal_id
-            WHERE m.meal_id = %s
-        """, (meal_id,))
-        row = self.cursor.fetchone()
-        
-        if row and row.get('ingredients') and isinstance(row['ingredients'], str):
-            try:
-                import json
-                row['ingredients'] = json.loads(row['ingredients'])
-            except json.JSONDecodeError:
-                row['ingredients'] = []
-        return row
-
-    def search_meals(self, search_term="", course="", max_prep_time=None):
-        """Search meals by various criteria."""
-        conditions = []
-        params = []
-        
-        if search_term:
-            conditions.append("(meal_name LIKE %s OR description LIKE %s OR keywords LIKE %s)")
-            search_pattern = f"%{search_term}%"
-            params.extend([search_pattern, search_pattern, search_pattern])
-        
-        if course:
-            conditions.append("course = %s")
-            params.append(course)
-            
-        if max_prep_time:
-            conditions.append("prep_time_minutes <= %s")
-            params.append(max_prep_time)
-        
-        where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
-        
-        sql = f"""
-            SELECT m.meal_id, m.meal_name, m.description, m.course, m.prep_time_minutes, 
-                   m.cook_time_minutes, m.servings, nf.calories_kcal, nf.protein_g, 
-                   nf.carbohydrates_g, nf.fat_g
-            FROM meals m
-            LEFT JOIN nutrition_facts nf ON m.meal_id = nf.meal_id
-            {where_clause}
-            ORDER BY m.meal_name
-        """
-        
-        self.cursor.execute(sql, params)
-        return self.cursor.fetchall()
 
     def add_meal(self, meal_data):
         """Add a new meal to the database."""
@@ -495,47 +450,68 @@ class DataManager:
 
     # Nutritionist Notes Management
     def get_nutritionist_notes(self) -> Dict:
-        self.cursor.execute("SELECT note_id, nutritionist_id, patient_id, plan_id, note, created_at FROM nutritionist_notes")
+        self.cursor.execute("SELECT assessment_id, nutritionist_id, patient_id, plan_id, assessment_date, notes, treatment, recovery_status, completed_at, created_at, updated_at FROM assessments")
         rows = self.cursor.fetchall()
-        return {str(row['note_id']): row for row in rows}
+        return {str(row['assessment_id']): row for row in rows}
 
-    def save_nutritionist_note(self, plan_id: str, nutritionist_id: str, note: str) -> str:
-        sql = """
-            INSERT INTO nutritionist_notes (plan_id, nutritionist_id, note, created_at)
-            VALUES (%s, %s, %s, %s)
+    def save_nutritionist_note(self, plan_id: str, patient_id: str, nutritionist_id: str, note: str) -> str:
+        """
+        If an assessment exists for the given plan_id, patient_id, and nutritionist_id, append the note to the existing notes field.
+        Otherwise, insert a new assessment row.
         """
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self.cursor.execute(sql, (plan_id, nutritionist_id, note, now))
-        self.conn.commit()
-        return str(self.cursor.lastrowid)
+        # Check for existing assessment
+        self.cursor.execute(
+            "SELECT assessment_id, notes FROM assessments WHERE plan_id = %s AND patient_id = %s AND nutritionist_id = %s",
+            (plan_id, patient_id, nutritionist_id)
+        )
+        row = self.cursor.fetchone()
+        if row:
+            # Append new note to existing notes (newline separator)
+            existing_notes = row.get('notes') or ''
+            if existing_notes.strip():
+                updated_notes = existing_notes.rstrip() + '\n- ' + note.strip()
+            else:
+                updated_notes = note.strip()
+            self.cursor.execute(
+                "UPDATE assessments SET notes = %s, updated_at = %s WHERE assessment_id = %s",
+                (updated_notes, now, row['assessment_id'])
+            )
+            self.conn.commit()
+            return str(row['assessment_id'])
+        else:
+            # Insert new row
+            sql = """
+                INSERT INTO assessments (plan_id, patient_id, nutritionist_id, notes, assessment_date, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """
+            self.cursor.execute(sql, (plan_id, patient_id, nutritionist_id, note.strip(), now, now))
+            self.conn.commit()
+            return str(self.cursor.lastrowid)
 
     def get_notes_for_meal_plan(self, plan_id: str) -> List[Dict]:
-        self.cursor.execute("SELECT note_id, nutritionist_id, patient_id, plan_id, note, created_at FROM nutritionist_notes WHERE plan_id = %s", (plan_id,))
+        self.cursor.execute("SELECT assessment_id, nutritionist_id, patient_id, plan_id, notes, created_at FROM assessments WHERE plan_id = %s", (plan_id,))
         return self.cursor.fetchall()
 
     # Knowledge Base Management
     def get_knowledge_base(self) -> Dict:
-        self.cursor.execute("SELECT kb_id, ai_summary, pdf_name, pdf_text, uploaded_by, added_at, uploaded_by_id FROM knowledge_base")
+        self.cursor.execute("SELECT kb_id, ai_summary, pdf_name, pdf_text, added_at FROM knowledge_base")
         rows = self.cursor.fetchall()
         return {str(row['kb_id']): row for row in rows}
 
     def save_knowledge_base(self, ai_summary, pdf_name, pdf_text=None, uploaded_by=None, uploaded_by_id=None):
-        sql = "INSERT INTO knowledge_base (ai_summary, pdf_name, pdf_text, uploaded_by, added_at, uploaded_by_id) VALUES (%s, %s, %s, %s, %s, %s)"
+        sql = "INSERT INTO knowledge_base (ai_summary, pdf_name, pdf_text, added_at) VALUES (%s, %s, %s, %s)"
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
         # Convert ai_summary to plain text if it's a list
         if isinstance(ai_summary, list):
             ai_summary_text = "\n".join(ai_summary)
         else:
             ai_summary_text = str(ai_summary) if ai_summary else ""
-            
         self.cursor.execute(sql, (
             ai_summary_text,
             pdf_name,
             pdf_text,
-            uploaded_by,
-            now,
-            uploaded_by_id
+            now
         ))
         self.conn.commit()
         return str(self.cursor.lastrowid)

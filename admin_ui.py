@@ -79,14 +79,14 @@ with st.sidebar:
     st.subheader("📊 Quick Stats")
 
     try:
-        meal_count = len(data_manager.data_manager.get_meals_data())
+        food_count = len(data_manager.data_manager.get_foods_data())
     except Exception:
-        meal_count = 0
+        food_count = 0
     try:
         log_count = len(load_logs())
     except Exception:
         log_count = 0
-    st.metric("Total Meals", meal_count)
+    st.metric("Total Foods", food_count)
     st.metric("Total Logs", log_count)
 
 st.markdown("""
@@ -144,32 +144,34 @@ main_tab, kb_tab, meal_plans_tab, logs_tab = st.tabs([
     "📝 Meal Plans Overview", 
     "📜 Logs"
 ])
+
 with main_tab:
-    st.header("�️ Meal Database Management")
-    # Load meal data from MySQL
-    meal_data = data_manager.data_manager.get_meals_data()
-    if not meal_data:
-        st.info("No meal data available.")
+    st.header("🍽️ Food Database Management")
+    # Load food data from MySQL
+
+    food_data = data_manager.data_manager.get_foods_data()
+    if not food_data:
+        st.info("No food data available.")
     else:
         # Search bar
-        if 'meal_db_search' not in st.session_state:
-            st.session_state['meal_db_search'] = ''
-        prev_search = st.session_state['meal_db_search']
+        if 'food_db_search' not in st.session_state:
+            st.session_state['food_db_search'] = ''
+        prev_search = st.session_state['food_db_search']
         search_val = st.text_input(
-            "🔍 Search meal database",
+            "🔍 Search food database",
             value=prev_search,
-            key='meal_db_search',
+            key='food_db_search',
         )
         if search_val != prev_search:
-            st.session_state['meal_db_search'] = search_val
+            st.session_state['food_db_search'] = search_val
             st.rerun()
-        def filter_meals(data, query):
+        def filter_foods(data, query):
             if not query:
                 return data
             query = query.lower()
             filtered = []
             for item in data:
-                for col in ["meal_name", "description", "course", "keywords"]:
+                for col in ["food_id", "food_name_and_description", "scientific_name", "alternate_common_names", "energy_kcal", "nutrition_tags"]:
                     val = item.get(col, '')
                     if isinstance(val, list):
                         val = ', '.join(val)
@@ -178,15 +180,15 @@ with main_tab:
                         break
             return filtered
 
-        filtered_meal_data = filter_meals(meal_data, search_val)
+        filtered_food_data = filter_foods(food_data, search_val)
 
         # Pagination setup
         records_per_page = 10
-        total_records = len(filtered_meal_data)
+        total_records = len(filtered_food_data)
         total_pages = (total_records - 1) // records_per_page + 1
-        page = st.session_state.get('meal_db_page', 1)
+        page = st.session_state.get('food_db_page', 1)
         def set_page(new_page):
-            st.session_state['meal_db_page'] = new_page
+            st.session_state['food_db_page'] = new_page
         # Pagination controls
         pag_row = st.columns([0.18,0.82])
         with pag_row[0]:
@@ -201,263 +203,149 @@ with main_tab:
 
         columns = [
             "No.",
-            "meal_id",
-            "meal_name",
-            "course",
-            "prep_time_minutes",
-            "servings",
-            "calories_kcal",
+            "food_id",
+            "food_name_and_description",
+            "scientific_name",
+            "alternate_common_names",
+            "energy_kcal",
+            "nutrition_tags",
             "Options"
         ]
 
-        # Render column headers
-        header_cols = st.columns([1,1,3,2,2,1,2,2])
+        header_cols = st.columns([1,2,4,3,3,2,3,2])
         header_labels = [
             "No.",
-            "Meal ID",
-            "Meal Name",
-            "Course",
-            "Prep Time",
-            "Servings",
-            "Calories",
+            "Food ID",
+            "Food Name and Description",
+            "Scientific Name",
+            "Alternative Names",
+            "Energy (kcal)",
+            "Nutrition Tags",
             "Options"
         ]
         for i, label in enumerate(header_labels):
             header_cols[i].markdown(f"**{label}**")
 
-        # Prepare table data
         table_rows = []
-        for idx, item in enumerate(filtered_meal_data[start_idx:end_idx], start=start_idx+1):
+        for idx, item in enumerate(filtered_food_data[start_idx:end_idx], start=start_idx+1):
             row = {
                 "No.": idx,
-                "meal_id": item.get("meal_id", ""),
-                "meal_name": item.get("meal_name", ""),
-                "course": item.get("course", ""),
-                "prep_time_minutes": f"{item.get('prep_time_minutes', 0)} min" if item.get('prep_time_minutes') else "-",
-                "servings": item.get("servings", ""),
-                "calories_kcal": f"{item.get('calories_kcal', 0)} kcal" if item.get('calories_kcal') else "-",
+                "food_id": item.get("food_id", ""),
+                "food_name_and_description": item.get("food_name_and_description", ""),
+                "scientific_name": item.get("scientific_name", ""),
+                "alternate_common_names": item.get("alternate_common_names", ""),
+                "energy_kcal": item.get("energy_kcal", ""),
+                "nutrition_tags": item.get("nutrition_tags", ""),
                 "Options": ""
             }
             table_rows.append(row)
 
-        # Render table
         for row_idx, row in enumerate(table_rows):
-            col_widths = [1,1,3,2,2,1,2,2]
+            col_widths = [1,2,4,3,3,2,3,2]
             cols = st.columns(col_widths)
             cols[0].markdown(f"{row['No.']}")
-
             for i, col in enumerate(columns[1:-1], start=1):
                 cols[i].markdown(row[col])
-
-            btn_cols = cols[len(columns)-1].columns([1,0.1,1])
-            data_btn = btn_cols[0].button("Details", key=f"data_{row['No.']}" )
-            edit_btn = btn_cols[2].button("Edit", key=f"edit_{row['No.']}" )
-
-            if data_btn:
-                st.session_state['show_meal_details'] = row['No.']
-                st.session_state['show_meal_notice'] = True
-                st.rerun()
-
+            btn_cols = cols[len(columns)-1].columns([1])
+            edit_btn = btn_cols[0].button("Edit", key=f"edit_{row['No.']}" )
             if edit_btn:
-                st.session_state['edit_meal_id'] = filtered_meal_data[start_idx + row_idx]['meal_id']
+                st.session_state['edit_food_id'] = filtered_food_data[start_idx + row_idx]['food_id']
                 st.session_state['show_edit_form'] = True
                 st.rerun()
 
-        # Show meal editing form
-        if st.session_state.get('show_edit_form') and st.session_state.get('edit_meal_id'):
-            meal_id = st.session_state.get('edit_meal_id')
-            meal_to_edit = data_manager.data_manager.get_meal_by_id(meal_id)
-            
-            if meal_to_edit:
+        # Show food editing form (only foods columns)
+        if st.session_state.get('show_edit_form') and st.session_state.get('edit_food_id'):
+            food_id = st.session_state.get('edit_food_id')
+            food_to_edit = data_manager.data_manager.get_food_by_id(food_id)
+            if food_to_edit:
                 st.markdown("---")
-                st.markdown(f"### ✏️ Edit Meal: {meal_to_edit.get('meal_name', '')}")
-                
-                with st.form("edit_meal_form"):
+                st.markdown(f"### ✏️ Edit Food: {food_to_edit.get('food_name_and_description', '')}")
+                with st.form("edit_food_form"):
+                    food_name_and_description = st.text_input("Food Name and Description", value=food_to_edit.get('food_name_and_description', ''))
+                    scientific_name = st.text_input("Scientific Name", value=food_to_edit.get('scientific_name', ''))
+                    alternate_common_names = st.text_input("Alternative Names", value=food_to_edit.get('alternate_common_names', ''))
+                    energy_kcal = st.number_input("Energy (kcal)", min_value=0.0, value=float(food_to_edit.get('energy_kcal', 0) or 0), format="%.1f")
+                    nutrition_tags = st.text_input("Nutrition Tags", value=food_to_edit.get('nutrition_tags', ''))
                     col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.subheader("Basic Information")
-                        meal_name = st.text_input("Meal Name", value=meal_to_edit.get('meal_name', ''))
-                        description = st.text_area("Description", value=meal_to_edit.get('description', ''))
-                        course = st.text_input("Course", value=meal_to_edit.get('course', ''))
-                        keywords = st.text_input("Keywords", value=meal_to_edit.get('keywords', ''))
-                        
-                        st.subheader("Cooking Information")
-                        prep_time = st.number_input("Prep Time (minutes)", min_value=0, value=meal_to_edit.get('prep_time_minutes', 0))
-                        cook_time = st.number_input("Cook Time (minutes)", min_value=0, value=meal_to_edit.get('cook_time_minutes', 0))
-                        servings = st.number_input("Servings", min_value=1, value=meal_to_edit.get('servings', 1))
-                        
-                        # Ingredients handling
-                        ingredients = meal_to_edit.get('ingredients', [])
-                        if isinstance(ingredients, str):
-                            try:
-                                import json
-                                ingredients = json.loads(ingredients)
-                            except:
-                                ingredients = [ingredients]
-                        elif not isinstance(ingredients, list):
-                            ingredients = []
-                        
-                        ingredients_text = '\n'.join(ingredients) if ingredients else ''
-                        ingredients_input = st.text_area("Ingredients (one per line)", value=ingredients_text)
-                        
-                        instructions = st.text_area("Instructions", value=meal_to_edit.get('instructions', ''))
-                        image_url = st.text_input("Image URL", value=meal_to_edit.get('image_url', ''))
-                    
-                    with col2:
-                        st.subheader("Nutrition Information (per serving)")
-                        calories = st.number_input("Calories (kcal)", min_value=0, value=meal_to_edit.get('calories_kcal', 0) or 0)
-                        protein = st.number_input("Protein (g)", min_value=0.0, value=float(meal_to_edit.get('protein_g', 0) or 0), format="%.1f")
-                        carbs = st.number_input("Carbohydrates (g)", min_value=0.0, value=float(meal_to_edit.get('carbohydrates_g', 0) or 0), format="%.1f")
-                        fat = st.number_input("Fat (g)", min_value=0.0, value=float(meal_to_edit.get('fat_g', 0) or 0), format="%.1f")
-                        
-                        st.subheader("Detailed Nutrition")
-                        sat_fat = st.number_input("Saturated Fat (g)", min_value=0.0, value=float(meal_to_edit.get('saturated_fat_g', 0) or 0), format="%.1f")
-                        poly_fat = st.number_input("Polyunsaturated Fat (g)", min_value=0.0, value=float(meal_to_edit.get('polyunsaturated_fat_g', 0) or 0), format="%.1f")
-                        mono_fat = st.number_input("Monounsaturated Fat (g)", min_value=0.0, value=float(meal_to_edit.get('monounsaturated_fat_g', 0) or 0), format="%.1f")
-                        trans_fat = st.number_input("Trans Fat (g)", min_value=0.0, value=float(meal_to_edit.get('trans_fat_g', 0) or 0), format="%.1f")
-                        cholesterol = st.number_input("Cholesterol (mg)", min_value=0.0, value=float(meal_to_edit.get('cholesterol_mg', 0) or 0), format="%.1f")
-                        sodium = st.number_input("Sodium (mg)", min_value=0.0, value=float(meal_to_edit.get('sodium_mg', 0) or 0), format="%.1f")
-                        potassium = st.number_input("Potassium (mg)", min_value=0.0, value=float(meal_to_edit.get('potassium_mg', 0) or 0), format="%.1f")
-                        fiber = st.number_input("Fiber (g)", min_value=0.0, value=float(meal_to_edit.get('fiber_g', 0) or 0), format="%.1f")
-                        sugar = st.number_input("Sugar (g)", min_value=0.0, value=float(meal_to_edit.get('sugar_g', 0) or 0), format="%.1f")
-                        
-                        st.subheader("Vitamins & Minerals")
-                        vitamin_a = st.number_input("Vitamin A (IU)", min_value=0.0, value=float(meal_to_edit.get('vitamin_a_iu', 0) or 0), format="%.1f")
-                        vitamin_c = st.number_input("Vitamin C (mg)", min_value=0.0, value=float(meal_to_edit.get('vitamin_c_mg', 0) or 0), format="%.1f")
-                        calcium = st.number_input("Calcium (mg)", min_value=0.0, value=float(meal_to_edit.get('calcium_mg', 0) or 0), format="%.1f")
-                        iron = st.number_input("Iron (mg)", min_value=0.0, value=float(meal_to_edit.get('iron_mg', 0) or 0), format="%.1f")
-                    
-                    col1, col2, col3 = st.columns(3)
                     with col1:
                         save_btn = st.form_submit_button("💾 Save Changes", type="primary")
                     with col2:
                         cancel_btn = st.form_submit_button("❌ Cancel")
-                    with col3:
-                        delete_btn = st.form_submit_button("🗑️ Delete Meal", type="secondary")
-                    
                     if save_btn:
-                        # Prepare updated meal data
-                        updated_meal_data = {
-                            'meal_name': meal_name,
-                            'description': description,
-                            'course': course,
-                            'keywords': keywords,
-                            'prep_time_minutes': prep_time,
-                            'cook_time_minutes': cook_time,
-                            'servings': servings,
-                            'ingredients': [line.strip() for line in ingredients_input.split('\n') if line.strip()],
-                            'instructions': instructions,
-                            'image_url': image_url,
-                            'calories_kcal': calories,
-                            'protein_g': protein,
-                            'carbohydrates_g': carbs,
-                            'fat_g': fat,
-                            'saturated_fat_g': sat_fat,
-                            'polyunsaturated_fat_g': poly_fat,
-                            'monounsaturated_fat_g': mono_fat,
-                            'trans_fat_g': trans_fat,
-                            'cholesterol_mg': cholesterol,
-                            'sodium_mg': sodium,
-                            'potassium_mg': potassium,
-                            'fiber_g': fiber,
-                            'sugar_g': sugar,
-                            'vitamin_a_iu': vitamin_a,
-                            'vitamin_c_mg': vitamin_c,
-                            'calcium_mg': calcium,
-                            'iron_mg': iron
+                        updated_food_data = {
+                            'food_name_and_description': food_name_and_description,
+                            'scientific_name': scientific_name,
+                            'alternate_common_names': alternate_common_names,
+                            'energy_kcal': energy_kcal,
+                            'nutrition_tags': nutrition_tags
                         }
-                        
                         try:
-                            data_manager.data_manager.update_meal(meal_id, updated_meal_data)
-                            
-                            # Log the action
-                            log_action("Update Meal", {
-                                'meal_id': meal_id,
-                                'meal_name': meal_name,
-                                'action': 'meal_updated'
+                            data_manager.data_manager.update_food(food_id, updated_food_data)
+                            log_action("Update Food", {
+                                'food_id': food_id,
+                                'food_name_and_description': food_name_and_description,
+                                'action': 'food_updated'
                             })
-                            
-                            st.success(f"Meal '{meal_name}' updated successfully!")
+                            st.success(f"Food '{food_name_and_description}' updated successfully!")
                             st.session_state['show_edit_form'] = False
-                            del st.session_state['edit_meal_id']
+                            del st.session_state['edit_food_id']
                             st.rerun()
                         except Exception as e:
-                            st.error(f"Error updating meal: {e}")
-                    
+                            st.error(f"Error updating food: {e}")
                     if cancel_btn:
                         st.session_state['show_edit_form'] = False
-                        del st.session_state['edit_meal_id']
+                        del st.session_state['edit_food_id']
                         st.rerun()
-                    
-                    if delete_btn:
-                        try:
-                            meal_name_to_delete = meal_to_edit.get('meal_name', '')
-                            data_manager.data_manager.delete_meal(meal_id)
-                            
-                            # Log the action
-                            log_action("Delete Meal", {
-                                'meal_id': meal_id,
-                                'meal_name': meal_name_to_delete,
-                                'action': 'meal_deleted'
-                            })
-                            
-                            st.success(f"Meal '{meal_name_to_delete}' deleted successfully!")
-                            st.session_state['show_edit_form'] = False
-                            del st.session_state['edit_meal_id']
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Error deleting meal: {e}")
             else:
-                st.error("Meal not found!")
+                st.error("Food not found!")
                 st.session_state['show_edit_form'] = False
-                del st.session_state['edit_meal_id']
+                del st.session_state['edit_food_id']
 
-        # Show meal details section
-        if st.session_state.get('show_meal_details'):
-            if st.session_state.get('show_meal_notice'):
-                meal_idx = st.session_state.get('show_meal_details', None)
-                meal_name = ""
-                if meal_idx and 0 < meal_idx <= len(filtered_meal_data):
-                    meal = filtered_meal_data[meal_idx-1]
-                    meal_name = meal.get('meal_name', '')
+        # Show food details section
+        if st.session_state.get('show_food_details'):
+            if st.session_state.get('show_food_notice'):
+                food_idx = st.session_state.get('show_food_details', None)
+                food_name = ""
+                if food_idx and 0 < food_idx <= len(filtered_food_data):
+                    food = filtered_food_data[food_idx-1]
+                    food_name = food.get('food_name', '')
                 st.markdown(f"""
                     <div style='background:#2196F3;color:white;padding:0.75rem 1.5rem;border-radius:8px;font-weight:bold;margin-bottom:0.5rem;font-size:1.1rem;'>
-                        The meal details are shown below.<br>
-                        <span style='font-size:1rem;font-weight:normal;'>You are now viewing details for: <b>{meal_name}</b></span>
+                        The food details are shown below.<br>
+                        <span style='font-size:1rem;font-weight:normal;'>You are now viewing details for: <b>{food_name}</b></span>
                     </div>
                 """, unsafe_allow_html=True)
-                st.session_state['show_meal_notice'] = False
+                st.session_state['show_food_notice'] = False
 
-            i = st.session_state['show_meal_details']-1
-            if 0 <= i < len(filtered_meal_data):
-                meal = filtered_meal_data[i]
-                section_title = meal.get('meal_name', '')
+            i = st.session_state['show_food_details']-1
+            if 0 <= i < len(filtered_food_data):
+                food = filtered_food_data[i]
+                section_title = food.get('food_name', '')
                 st.markdown(f"<h2>{section_title}</h2>", unsafe_allow_html=True)
                 
-                # Meal Information
+                # Food Information
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.markdown(f"**Description:** {meal.get('description', 'N/A')}")
-                    st.markdown(f"**Course:** {meal.get('course', 'N/A')}")
-                    st.markdown(f"**Keywords:** {meal.get('keywords', 'N/A')}")
-                    st.markdown(f"**Prep Time:** {meal.get('prep_time_minutes', 0)} minutes")
-                    st.markdown(f"**Cook Time:** {meal.get('cook_time_minutes', 0)} minutes")
-                    st.markdown(f"**Servings:** {meal.get('servings', 'N/A')}")
+                    st.markdown(f"**Description:** {food.get('description', 'N/A')}")
+                    st.markdown(f"**Course:** {food.get('course', 'N/A')}")
+                    st.markdown(f"**Keywords:** {food.get('keywords', 'N/A')}")
+                    st.markdown(f"**Prep Time:** {food.get('prep_time_minutes', 0)} minutes")
+                    st.markdown(f"**Cook Time:** {food.get('cook_time_minutes', 0)} minutes")
+                    st.markdown(f"**Servings:** {food.get('servings', 'N/A')}")
                 
                 with col2:
                     st.markdown("**Nutrition Information (per serving):**")
-                    st.markdown(f"- Calories: {meal.get('calories_kcal', 'N/A')} kcal")
-                    st.markdown(f"- Protein: {meal.get('protein_g', 'N/A')} g")
-                    st.markdown(f"- Carbohydrates: {meal.get('carbohydrates_g', 'N/A')} g")
-                    st.markdown(f"- Fat: {meal.get('fat_g', 'N/A')} g")
-                    st.markdown(f"- Fiber: {meal.get('fiber_g', 'N/A')} g")
-                    st.markdown(f"- Sodium: {meal.get('sodium_mg', 'N/A')} mg")
-                    st.markdown(f"- Calcium: {meal.get('calcium_mg', 'N/A')} mg")
-                    st.markdown(f"- Iron: {meal.get('iron_mg', 'N/A')} mg")
+                    st.markdown(f"- Calories: {food.get('calories_kcal', 'N/A')} kcal")
+                    st.markdown(f"- Protein: {food.get('protein_g', 'N/A')} g")
+                    st.markdown(f"- Carbohydrates: {food.get('carbohydrates_g', 'N/A')} g")
+                    st.markdown(f"- Fat: {food.get('fat_g', 'N/A')} g")
+                    st.markdown(f"- Fiber: {food.get('fiber_g', 'N/A')} g")
+                    st.markdown(f"- Sodium: {food.get('sodium_mg', 'N/A')} mg")
+                    st.markdown(f"- Calcium: {food.get('calcium_mg', 'N/A')} mg")
+                    st.markdown(f"- Iron: {food.get('iron_mg', 'N/A')} mg")
                 
                 # Ingredients
-                ingredients = meal.get('ingredients', [])
+                ingredients = food.get('ingredients', [])
                 if ingredients:
                     st.markdown("**Ingredients:**")
                     if isinstance(ingredients, list):
@@ -467,7 +355,7 @@ with main_tab:
                         st.markdown(ingredients)
                 
                 # Instructions
-                instructions = meal.get('instructions', '')
+                instructions = food.get('instructions', '')
                 if instructions:
                     st.markdown("**Instructions:**")
                     st.markdown(instructions)
@@ -481,57 +369,23 @@ with kb_tab:
     with col1:
         st.subheader("Knowledge Base Table")
         kb_entries = data_manager.data_manager.get_knowledge_base()
-        conn = data_manager.data_manager.conn
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT user_id, CONCAT(first_name, ' ', last_name) as full_name FROM users WHERE role_id = (SELECT role_id FROM roles WHERE role_name = 'admin')")
-        admins = {str(row['user_id']): row['full_name'] for row in cursor.fetchall()}
-        cursor.execute("SELECT user_id, CONCAT(first_name, ' ', last_name) as full_name FROM users WHERE role_id = (SELECT role_id FROM roles WHERE role_name = 'nutritionist')")
-        nutritionists = {str(row['user_id']): row['full_name'] for row in cursor.fetchall()}
-        # Use a set to avoid duplicate (kb_id, file name) pairs
-        seen_files = set()
         table_rows = []
         if isinstance(kb_entries, dict):
             for kb in kb_entries.values():
-                kb_id = kb.get('kb_id', '')
-                pdf_names = kb.get('pdf_name', [])
-                if isinstance(pdf_names, str):
-                    try:
-                        pdf_names = json.loads(pdf_names)
-                    except Exception:
-                        pdf_names = [pdf_names]
-                if not isinstance(pdf_names, list):
-                    pdf_names = [pdf_names]
-                uploaded_by_id = str(kb.get('uploaded_by_id', ''))
-                uploaded_by_role = kb.get('uploaded_by', '')
-                if uploaded_by_role == 'admin':
-                    full_name = admins.get(uploaded_by_id, 'Unknown Admin')
-                elif uploaded_by_role == 'nutritionist':
-                    full_name = nutritionists.get(uploaded_by_id, 'Unknown Nutritionist')
-                else:
-                    full_name = 'Unknown'
-                for pdf_name in pdf_names:
-                    if isinstance(pdf_name, dict):
-                        pdf_name_str = pdf_name.get('name', str(pdf_name))
-                    else:
-                        pdf_name_str = str(pdf_name)
-                    file_key = (kb_id, pdf_name_str)
-                    if file_key not in seen_files:
-                        seen_files.add(file_key)
-                        table_rows.append({
-                            "id": kb_id,
-                            "file name": pdf_name_str,
-                            "uploaded by (full name)": full_name,
-                            "uploaded by (role)": uploaded_by_role.capitalize() if uploaded_by_role else "Unknown",
-                            "added at": kb.get('added_at', '')
-                        })
+                table_rows.append({
+                    "kb_id": kb.get('kb_id', ''),
+                    "ai_summary": kb.get('ai_summary', ''),
+                    "pdf_name": kb.get('pdf_name', ''),
+                    "pdf_text": kb.get('pdf_text', ''),
+                    "added_at": kb.get('added_at', '')
+                })
+        columns = ["kb_id", "ai_summary", "pdf_name", "pdf_text", "added_at"]
         if table_rows:
-            df = pd.DataFrame(table_rows)
+            df = pd.DataFrame(table_rows, columns=columns)
             st.dataframe(df, use_container_width=True, hide_index=True)
         else:
-            columns = ["id", "file name", "uploaded by (full name)", "uploaded by (role)", "added at"]
             empty_df = pd.DataFrame([], columns=columns)
             st.dataframe(empty_df, use_container_width=True, hide_index=True)
-            # ...removed info message...
     with col2:
         st.subheader("Upload Knowledge Base PDF")
         uploaded_file = st.file_uploader("Choose PDF file", type="pdf", key="admin_pdf_upload")
