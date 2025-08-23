@@ -121,12 +121,12 @@ def main():
         # Quick stats
         st.subheader("📊 Quick Stats")
         all_children = data_manager.get_children_data()
-        all_meal_plans = {}
+        all_meal_plans = data_manager.get_meal_plans()
         st.metric("Total Children", len(all_children))
         st.metric("Total Meal Plans", len(all_meal_plans))
     
-    # Main tabs (remove Knowledge Base tab)
-    tab1, tab2, tab3 = st.tabs(["👨‍👩‍👧‍👦 All Parents", "📝 Add Notes", "🍽️ Meal Database"])
+    # Main tabs
+    tab1, tab2, tab3 = st.tabs(["👨‍👩‍👧‍👦 All Parents", "📝 Add Notes", "🍽️ Food Database"])
 
     with tab1:
         show_all_parents()
@@ -135,23 +135,22 @@ def main():
         show_add_notes()
 
     with tab3:
-        show_meal_database()
+        show_food_database()
 
 def show_all_parents():
     """Display all parents and their children's meal plans"""
     st.header("👨‍👩‍👧‍👦 All Parents Overview")
     all_children = data_manager.get_children_data()
     parents_data = data_manager.get_parents_data()
-    # Barangay dropdown and search bar
+    
+    # Get barangays from database
     barangay_list = ["All"]
     try:
         barangays = data_manager.get_all_barangays()
         barangay_list.extend(sorted(barangays.values()))
     except Exception:
-        barangay_list = [
-            "All",
-            "Bagong Silang", "Calendola", "Chrysanthemum", "Cuyab", "Estrella", "Fatima", "G.S.I.S", "Landayan", "Langgam", "Laram", "Magsaysay", "Maharlika", "Narra", "Nueva", "Pacita 1", "Pacita 2", "Poblacion", "Riverside", "Rosario", "Sampaguita Village", "San Antonio", "San Lorenzo Ruiz", "San Roque", "San Vicente", "Santo Niño", "United Bayanihan", "United Better Living"
-        ]
+        barangay_list = ["All"]
+    
     filter_cols = st.columns([3, 2])
     with filter_cols[0]:
         search_val = st.text_input("🔍 Search parents", value="", key="all_parents_search")
@@ -269,15 +268,16 @@ def show_add_notes():
     filter_cols = st.columns([2,2,2,2])
     with filter_cols[0]:
         search_val = st.text_input("🔍 Search by child, parent, or plan ID", value=st.session_state.get("add_notes_search", ""), key="add_notes_search")
+    
+    # Get barangays from database - FIXED: Use the same approach as show_all_parents()
     barangay_list = ["All"]
     try:
-        conn = data_manager.data_manager.conn
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT DISTINCT barangay_name FROM barangays ORDER BY barangay_name")
-        barangay_rows = cursor.fetchall()
-        barangay_list.extend([row['barangay_name'] for row in barangay_rows])
-    except Exception:
-        barangay_list = ["All", "Bagong Silang", "Calendola", "Chrysanthemum", "Cuyab", "Estrella", "Fatima", "G.S.I.S", "Landayan", "Langgam", "Laram", "Magsaysay", "Maharlika", "Narra", "Nueva", "Pacita 1", "Pacita 2", "Poblacion", "Riverside", "Rosario", "Sampaguita Village", "San Antonio", "San Lorenzo Ruiz", "San Roque", "San Vicente", "Santo Niño", "United Bayanihan", "United Better Living"]
+        barangays = data_manager.get_all_barangays()
+        barangay_list.extend(sorted(barangays.values()))
+    except Exception as e:
+        st.error(f"Error loading barangays: {e}")
+        barangay_list = ["All"]
+    
     with filter_cols[1]:
         barangay_selected = st.selectbox("🏘️ Filter by Barangay", barangay_list, key="add_notes_barangay")
     with filter_cols[2]:
@@ -299,6 +299,7 @@ def show_add_notes():
         child_age = f"{age_months//12}y {age_months%12}m" if age_months is not None else "-"
         parent_id = child_data.get('parent_id') if child_data else None
         notes = data_manager.get_notes_for_meal_plan(plan.get('plan_id', ''))
+        
         def format_created_at(val):
             if isinstance(val, str):
                 try:
@@ -309,7 +310,7 @@ def show_add_notes():
             if isinstance(val, datetime):
                 return val.strftime('%b %d')
             return str(val)
-        import json
+            
         def clean_note(note_val):
             if isinstance(note_val, str):
                 try:
@@ -321,6 +322,7 @@ def show_add_notes():
             if isinstance(note_val, str):
                 note_val = note_val.replace('\r\n', '  \n').replace('\n', '  \n').replace('/n', '  \n')
             return note_val
+            
         if notes:
             nutritionist_options = st.session_state.nutritionist_options if 'nutritionist_options' in st.session_state else load_nutritionist_options()
             def get_nutritionist_name(nutritionist_id):
@@ -331,9 +333,9 @@ def show_add_notes():
             ])
         else:
             notes_str = "No notes yet"
+            
         parent_full_name = "Unknown"
         barangay_val = "-"
-        religion_val = "-"
         if parent_id is not None:
             parent_info = parents_data.get(str(parent_id))
             if parent_info:
@@ -342,22 +344,24 @@ def show_add_notes():
                     parent_info.get('middle_name', ''),
                     parent_info.get('last_name', '')
                 )
-                # Get barangay name
+                # Get barangay name - FIXED: Use the same logic as show_all_parents()
                 barangay_id = child_data.get('barangay_id') if child_data else None
                 if barangay_id:
                     barangay_val = data_manager.get_barangay_name(barangay_id)
                 else:
                     barangay_val = "-"
-                religion_val = "-"  # Religion not available in new schema
             else:
                 parent_full_name = f"Parent {parent_id}"
+                
         plan_details_clean = clean_note(plan.get('plan_details', ''))
         generated_at_val = plan.get('generated_at', '')
+        
         # Diet Restrictions
         medical_conditions = child_data.get('other_medical_problems', '-') if child_data else '-'
         allergies = child_data.get('allergies', '-') if child_data else '-'
         religion_val = child_data.get('religion', '-') if child_data else '-'
         diet_restrictions = f"Medical Condition: {medical_conditions}  \nAllergy: {allergies}  \nReligion: {religion_val}"
+        
         table_rows.append({
             "Plan ID": plan.get('plan_id', ''),
             "Child Name": child_name,
@@ -408,7 +412,7 @@ def show_add_notes():
         filtered_rows.sort(key=lambda x: int(x.get('Plan ID', 0)))
 
     columns = ["Plan ID", "Child Name", "Child Age", "Parent", "Barangay", "Diet Restrictions", "Plan Details", "Generated at", "Notes", "Add note"]
-    import pandas as pd
+    
     if filtered_rows:
         # Render table header
         cols = st.columns(len(columns))
@@ -487,7 +491,7 @@ def show_add_notes():
         st.dataframe(empty_df, use_container_width=True, hide_index=True)
 
 
-def show_meal_database():
+def show_food_database():
     st.header("🍽️ Food Database Management")
 
     foods = data_manager.get_foods_data()
@@ -507,6 +511,7 @@ def show_meal_database():
     if search_val != prev_search:
         st.session_state['food_db_search'] = search_val
         st.rerun()
+        
     def filter_foods(data, query):
         if not query:
             return data
