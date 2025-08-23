@@ -3,8 +3,6 @@ import pandas as pd
 from datetime import datetime, timedelta
 import data_manager
 import mysql.connector
-import os
-LOG_PATH = os.path.join("data", "admin_logs.json")
 
 st.set_page_config(
     page_title="🛠️ Admin Dashboard",
@@ -163,7 +161,7 @@ def log_action(action, details):
 import json
 
 main_tab, kb_tab, meal_plans_tab, add_notes_tab, logs_tab = st.tabs([
-    "🍽️ Meal Database", 
+    "🍽️ Food Database", 
     "📚 Knowledge Base", 
     "📝 Meal Plans Overview", 
     "🗒️ Add Notes",
@@ -391,12 +389,15 @@ with meal_plans_tab:
     filter_cols = st.columns([2,2,2,2])
     with filter_cols[0]:
         search_val = st.text_input("🔍 Search by child, parent, or plan ID", value=st.session_state.get("meal_plans_search", ""), key="meal_plans_search")
+    
+    # Get barangays from database
     barangay_list = ["All"]
     try:
         barangays = data_manager.data_manager.get_all_barangays()
         barangay_list.extend(sorted(barangays.values()))
     except Exception:
         barangay_list = ["All"]
+    
     with filter_cols[1]:
         barangay_selected = st.selectbox("🏘️ Filter by Barangay", barangay_list, key="meal_plans_barangay")
     with filter_cols[2]:
@@ -565,6 +566,8 @@ with add_notes_tab:
     filter_cols = st.columns([2,2,2,2])
     with filter_cols[0]:
         search_val = st.text_input("🔍 Search by child, parent, or plan ID", value=st.session_state.get("add_notes_search", ""), key="add_notes_search")
+    
+    # Get barangays from database
     barangay_list = ["All"]
     try:
         conn = data_manager.data_manager.conn
@@ -574,6 +577,7 @@ with add_notes_tab:
         barangay_list.extend([row['barangay_name'] for row in barangay_rows])
     except Exception:
         barangay_list = ["All"]
+    
     with filter_cols[1]:
         barangay_selected = st.selectbox("🏘️ Filter by Barangay", barangay_list, key="add_notes_barangay")
     with filter_cols[2]:
