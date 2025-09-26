@@ -48,22 +48,11 @@ def nutrition_analysis(request: NutritionAnalysis):
         if not patient_data:
             raise HTTPException(status_code=404, detail="Patient not found")
 
-        # Get relevant nutrition knowledge using semantic search
-        from nutrition_chain import get_relevant_pdf_chunks
-        query = f"child nutrition analysis {patient_data.get('age_months', '')} months {patient_data.get('bmi_for_age', '')} {patient_data.get('allergies', '')} {patient_data.get('other_medical_problems', '')}"
-        relevant_guidelines = get_relevant_pdf_chunks(query, k=3)
-        
         from nutrition_ai import ChildNutritionAI
         nutrition_ai = ChildNutritionAI()
         # Get latest assessment for notes and treatment
         assessments = data_manager.get_nutritionist_notes_by_patient(request.patient_id)
         latest_assessment = assessments[0] if assessments else {}
-        
-        # Enhanced analysis with nutrition guidelines context
-        guidelines_context = ""
-        if relevant_guidelines:
-            guidelines_context = "\n\nNUTRITION GUIDELINES CONTEXT:\n" + "\n---\n".join(relevant_guidelines)
-        
         analysis_result = nutrition_ai.analyze_child_nutrition(
             patient_id=request.patient_id,
             age_in_months=patient_data.get('age_months'),
@@ -77,8 +66,7 @@ def nutrition_analysis(request: NutritionAnalysis):
             height_for_age=patient_data.get('height_for_age', ''),
             bmi_for_age=patient_data.get('bmi_for_age', ''),
             breastfeeding=patient_data.get('breastfeeding', ''),
-            religion=patient_data.get('religion', ''),
-            guidelines_context=guidelines_context
+            religion=patient_data.get('religion', '')
         )
         # Parse the LLM output into sections
         def parse_nutrition_analysis(text):

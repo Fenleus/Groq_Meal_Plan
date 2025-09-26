@@ -301,14 +301,4 @@ class DataManager:
         self.conn.commit()
         return True
 
-    def chunk_pdf_text_with_overlap(self, pdf_text: str, chunk_size: int = 800, chunk_overlap: int = 100):
-        """Chunk PDF text with overlap for better context preservation using sentence-transformers optimal size."""
-        from langchain.text_splitter import RecursiveCharacterTextSplitter
-        splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size, 
-            chunk_overlap=chunk_overlap,
-            separators=["\n\n", "\n", ". ", "! ", "? ", " ", ""]
-        )
-        return splitter.split_text(pdf_text)
-
 data_manager = DataManager()

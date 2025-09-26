@@ -10,19 +10,9 @@ import re
 load_dotenv()
 
 def get_relevant_pdf_chunks(query, k=4):
-    """Retrieve relevant PDF text using semantic similarity with sentence-transformers."""
+    """Retrieve relevant PDF text using simple keyword matching."""
     try:
-        from embedding_utils import embedding_searcher
-        
-        # Use semantic search instead of keyword matching
-        results = embedding_searcher.search_similar_chunks(query, k)
-        
-        # Return just the chunks (maintaining compatibility with existing code)
-        return [result[0] for result in results]
-        
-    except Exception as e:
-        print(f"Error in semantic search: {e}")
-        # Fallback to simple keyword matching
+        # Get PDF text directly from knowledge base
         knowledge_base = data_manager.get_knowledge_base()
         if not knowledge_base:
             return []
