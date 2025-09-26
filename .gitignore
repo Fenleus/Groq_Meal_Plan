@@ -28,5 +28,9 @@ Thumbs.db
 *.tmp
 
 # Local database connection file
+
 db.py
+examine*
+test*
+usage*
 

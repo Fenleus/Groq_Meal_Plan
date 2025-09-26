@@ -25,13 +25,14 @@ class ChildNutritionAI:
         height_for_age: str = None,
         bmi_for_age: str = None,
         breastfeeding: str = None,
-        religion: str = None
+        religion: str = None,
+        guidelines_context: str = None
     ) -> str:
         """Analyze a child's nutrition profile and return a summary or recommendations. No name or location info is used. Patient ID is included for database association only."""
         try:
             prompt_template = PromptTemplate(
                 input_variables=[
-                    "patient_id", "age_in_months", "allergies", "other_medical_problems", "parent_id", "notes", "treatment", "sex", "weight_for_age", "height_for_age", "bmi_for_age", "breastfeeding", "religion"
+                    "patient_id", "age_in_months", "allergies", "other_medical_problems", "parent_id", "notes", "treatment", "sex", "weight_for_age", "height_for_age", "bmi_for_age", "breastfeeding", "religion", "guidelines_context"
                 ],
                 template="""You are a pediatric nutrition expert. Analyze the following child's nutrition profile and provide a summary of their nutritional status, potential concerns, and general recommendations. Do NOT include or request any personal names or location information. Patient ID is included for database association only.
 
@@ -50,7 +51,9 @@ CHILD PROFILE:
 - Notes: {notes}
 - Treatment: {treatment}
 
-Give practical, parent-friendly advice and highlight any red flags or areas for improvement."""
+{guidelines_context}
+
+Based on the above information and relevant nutrition guidelines, provide practical, parent-friendly advice and highlight any red flags or areas for improvement."""
             )
             chain = LLMChain(
                 llm=self.llm,
@@ -69,7 +72,8 @@ Give practical, parent-friendly advice and highlight any red flags or areas for 
                 height_for_age=height_for_age,
                 bmi_for_age=bmi_for_age,
                 breastfeeding=breastfeeding,
-                religion=religion
+                religion=religion,
+                guidelines_context=guidelines_context or ""
             )
             return result
         except Exception as e:
