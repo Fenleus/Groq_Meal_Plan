@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import uuid
 import json
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 class DataManager:
     def update_food(self, food_id, food_data):
@@ -300,5 +301,23 @@ class DataManager:
         self.cursor.execute(sql, (kb_id,))
         self.conn.commit()
         return True
+
+    def chunk_pdf_text_with_overlap(self, text: str, chunk_size: int = 1000, overlap: int = 200) -> List[str]:
+        """Split PDF text into overlapping chunks using LangChain's RecursiveCharacterTextSplitter."""
+        if not text or not text.strip():
+            return []
+        
+        # Use LangChain's RecursiveCharacterTextSplitter for better chunking
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=overlap,
+            length_function=len,
+            separators=["\n\n", "\n", ". ", " ", ""]
+        )
+        
+        chunks = splitter.split_text(text.strip())
+        
+        # Remove any empty chunks
+        return [chunk for chunk in chunks if chunk.strip()]
 
 data_manager = DataManager()

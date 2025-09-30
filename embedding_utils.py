@@ -98,6 +98,7 @@ class EmbeddingSearcher:
             if pdf_text:
                 # Chunk the PDF text
                 chunks = data_manager.chunk_pdf_text_with_overlap(pdf_text)
+                
                 for chunk in chunks:
                     if chunk.strip():  # Only add non-empty chunks
                         all_chunks.append(chunk.strip())
@@ -172,6 +173,8 @@ class EmbeddingSearcher:
                 ))
         
         return results
+
+
 
 # Global instance
 embedding_searcher = EmbeddingSearcher()

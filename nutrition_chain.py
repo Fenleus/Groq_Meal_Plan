@@ -10,41 +10,16 @@ import re
 load_dotenv()
 
 def get_relevant_pdf_chunks(query, k=4):
-    """Retrieve relevant PDF text using simple keyword matching."""
-    try:
-        # Get PDF text directly from knowledge base
-        knowledge_base = data_manager.get_knowledge_base()
-        if not knowledge_base:
-            return []
-        
-        query_keywords = query.lower().split()
-        scored_chunks = []
-        
-        for kb in knowledge_base.values():
-            ai_summary = kb.get('ai_summary', '')
-            if ai_summary:
-                # Simple scoring based on keyword matches
-                summary_lower = ai_summary.lower()
-                score = sum(1 for keyword in query_keywords if keyword in summary_lower)
-                
-                if score > 0:
-                    # Split into smaller chunks if needed
-                    if len(ai_summary) > 500:
-                        chunks = ai_summary.split('\n')
-                        for chunk in chunks:
-                            if chunk.strip():
-                                chunk_score = sum(1 for keyword in query_keywords if keyword in chunk.lower())
-                                if chunk_score > 0:
-                                    scored_chunks.append((chunk.strip(), chunk_score))
-                    else:
-                        scored_chunks.append((ai_summary, score))
-        
-        # Sort by score and return top k
-        scored_chunks.sort(key=lambda x: x[1], reverse=True)
-        return [chunk[0] for chunk in scored_chunks[:k]]
-        
-    except Exception as e:
-        return []
+    """Retrieve relevant PDF text using semantic similarity search."""
+    from embedding_utils import embedding_searcher
+    
+    results = embedding_searcher.search_similar_chunks(query, k=k)
+    if results:
+        # Return the text chunks from semantic search
+        return [chunk for chunk, score, metadata in results if score > 0.4]  # Filter by similarity threshold
+    
+    # Return empty list if no results found
+    return []
 
 def clean_section_text(text):
     """Clean section text by removing markdown formatting and extra whitespace."""
@@ -370,12 +345,60 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
         parent_id = patient_data.get('parent_id')
         religion = data_manager.get_religion_by_parent(parent_id) if parent_id else ""
 
-    # Retrieve relevant PDF knowledge for this patient
-    query = f"child nutrition {patient_data.get('age_months', '')} months {patient_data.get('bmi_for_age', '')} {patient_data.get('allergies', '')} {patient_data.get('other_medical_problems', '')}"
-    relevant_pdf_chunks = get_relevant_pdf_chunks(query, k=4)
+    # Retrieve relevant PDF knowledge for this patient with multiple targeted queries
+    age_months = patient_data.get('age_months', 0)
+    allergies = patient_data.get('allergies', '')
+    medical_problems = patient_data.get('other_medical_problems', '')
+    
+    # Create targeted nutrition queries for better context
+    nutrition_queries = []
+    
+    # Age-specific query
+    if age_months <= 6:
+        nutrition_queries.append("exclusive breastfeeding infant nutrition 0-6 months")
+    elif age_months <= 12:
+        nutrition_queries.append("complementary feeding introduction 6-12 months iron rich foods")
+    elif age_months <= 24:
+        nutrition_queries.append("toddler nutrition 12-24 months feeding practices meal planning")
+    else:
+        nutrition_queries.append("young child nutrition 2-5 years dietary guidelines")
+    
+    # Add specific queries for medical conditions
+    if allergies and allergies.lower() not in ['none', 'no', 'n/a', 'not specified']:
+        nutrition_queries.append(f"food allergies children {allergies} alternative foods")
+    
+    if medical_problems and medical_problems.lower() not in ['none', 'no', 'n/a', 'not specified']:
+        nutrition_queries.append(f"child nutrition {medical_problems} dietary management")
+    
+    # Growth-related queries based on patient data
+    weight_status = patient_data.get('weight_for_age', '')
+    height_status = patient_data.get('height_for_age', '')
+    
+    if 'underweight' in weight_status.lower() or 'wasted' in weight_status.lower():
+        nutrition_queries.append("underweight children nutrition dense foods weight gain")
+    elif 'overweight' in weight_status.lower():
+        nutrition_queries.append("overweight children healthy eating weight management")
+        
+    if 'stunted' in height_status.lower() or 'short' in height_status.lower():
+        nutrition_queries.append("stunting prevention linear growth nutrition")
+    
+    # Collect all relevant knowledge
+    all_pdf_chunks = []
+    for query in nutrition_queries:
+        chunks = get_relevant_pdf_chunks(query, k=2)  # Get 2 chunks per query
+        all_pdf_chunks.extend(chunks)
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_chunks = []
+    for chunk in all_pdf_chunks:
+        if chunk not in seen:
+            seen.add(chunk)
+            unique_chunks.append(chunk)
+    
     pdf_context = ""
-    if relevant_pdf_chunks:
-        pdf_context = "\nBACKGROUND KNOWLEDGE (for your reference only, do NOT mention or cite this in your response):\n" + "\n---\n".join(relevant_pdf_chunks)
+    if unique_chunks:
+        pdf_context = f"\nEVIDENCE-BASED NUTRITION GUIDANCE (from WHO guidelines - for context only):\n" + "\n---\n".join(unique_chunks[:6])  # Limit to 6 most relevant chunks
 
     # Get all food names, energy, and nutrition_tags from the database
     foods_data = data_manager.get_foods_data()
@@ -426,6 +449,7 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
             bmi_for_age=patient_data.get('bmi_for_age', ''),
             breastfeeding=patient_data.get('breastfeeding', ''),
             religion=patient_data.get('religion', ''),
+            guidelines_context=pdf_context,
             custom_prompt="""
         Provide a comprehensive nutrition analysis in the following structured format:
 
@@ -530,7 +554,9 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
     ## FOOD DATABASE
     {food_list_str}
     
-    Based your response to {nutrition_analysis}
+    {pdf_context}
+    
+    Base your response on {nutrition_analysis}
 
     ## CHILD PROFILE
     - Age: {age_months} months
