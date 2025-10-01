@@ -11,3 +11,4 @@ mysql-connector-python
 sentence-transformers
 faiss-cpu
 numpy
+python-multipart

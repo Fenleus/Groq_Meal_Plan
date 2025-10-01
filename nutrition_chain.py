@@ -13,13 +13,18 @@ def get_relevant_pdf_chunks(query, k=4):
     """Retrieve relevant PDF text using semantic similarity search."""
     from embedding_utils import embedding_searcher
     
-    results = embedding_searcher.search_similar_chunks(query, k=k)
-    if results:
-        # Return the text chunks from semantic search
-        return [chunk for chunk, score, metadata in results if score > 0.4]  # Filter by similarity threshold
-    
-    # Return empty list if no results found
-    return []
+    try:
+        results = embedding_searcher.search_similar_chunks(query, k=k)
+        if results:
+            # Return the text chunks from semantic search, filtered by similarity threshold
+            return [chunk for chunk, score, metadata in results if score > 0.4]
+        
+        # Return empty list if no results found
+        return []
+    except Exception as e:
+        print(f"Error retrieving PDF chunks: {str(e)}")
+        print("Note: If no embeddings found, run 'python build_embeddings.py' to create them.")
+        return []
 
 def clean_section_text(text):
     """Clean section text by removing markdown formatting and extra whitespace."""
@@ -153,12 +158,62 @@ def generate_patient_assessment(patient_id):
             food_list.append(food_info)
         food_context = "AVAILABLE FOODS SAMPLE:\n" + "\n".join(food_list) + "\n"
 
-    # Get knowledge base context
-    query = f"child nutrition {patient_data.get('age_months', '')} months assessment dietary recommendations"
-    relevant_kb = get_relevant_pdf_chunks(query, k=3)
-    kb_context = ""
-    if relevant_kb:
-        kb_context = "NUTRITION KNOWLEDGE BASE:\n" + "\n---\n".join(relevant_kb) + "\n"
+    # Get knowledge base context using optimized search
+    from embedding_utils import embedding_searcher
+    
+    # Create targeted query based on patient characteristics
+    query_parts = []
+    age_months = patient_data.get('age_months', 0)
+    allergies = patient_data.get('allergies', '')
+    medical_problems = patient_data.get('other_medical_problems', '')
+    weight_status = patient_data.get('weight_for_age', '')
+    height_status = patient_data.get('height_for_age', '')
+    
+    # Age-specific query
+    if age_months <= 6:
+        query_parts.append("exclusive breastfeeding infant nutrition 0-6 months")
+    elif age_months <= 12:
+        query_parts.append("complementary feeding introduction 6-12 months iron rich foods")
+    elif age_months <= 24:
+        query_parts.append("toddler nutrition 12-24 months feeding practices")
+    else:
+        query_parts.append("young child nutrition 2-5 years dietary guidelines")
+    
+    query_parts.append("pediatric dietary assessment comprehensive evaluation")
+    
+    # Add condition-specific queries
+    if allergies and allergies.lower() not in ['none', 'no', 'n/a', 'not specified']:
+        query_parts.append(f"food allergies children {allergies} alternative foods")
+    
+    if medical_problems and medical_problems.lower() not in ['none', 'no', 'n/a', 'not specified']:
+        query_parts.append(f"child nutrition {medical_problems} dietary management")
+    
+    # Growth-related queries
+    if 'underweight' in weight_status.lower() or 'wasted' in weight_status.lower():
+        query_parts.append("underweight children nutrition dense foods weight gain")
+    elif 'overweight' in weight_status.lower():
+        query_parts.append("overweight children healthy eating weight management")
+        
+    if 'stunted' in height_status.lower() or 'short' in height_status.lower():
+        query_parts.append("stunting prevention linear growth nutrition")
+    
+    query = " ".join(query_parts)
+    
+    try:
+        kb_results = embedding_searcher.search_similar_chunks(query, k=4)
+        relevant_kb = []
+        for chunk, score, metadata in kb_results:
+            if score > 0.4:  # Filter by similarity threshold
+                source_info = f" (Source: {metadata.get('pdf_name', 'Unknown')})" if metadata.get('pdf_name') else ""
+                relevant_kb.append(f"{chunk.strip()}{source_info}")
+        
+        kb_context = ""
+        if relevant_kb:
+            kb_context = "NUTRITION KNOWLEDGE BASE:\n" + "\n---\n".join(relevant_kb) + "\n"
+    except Exception as e:
+        print(f"Error retrieving knowledge base context: {str(e)}")
+        print("Note: If no embeddings found, run 'python build_embeddings.py' to create them.")
+        kb_context = ""
 
     prompt_template = PromptTemplate(
         input_variables=[
@@ -382,23 +437,31 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
     if 'stunted' in height_status.lower() or 'short' in height_status.lower():
         nutrition_queries.append("stunting prevention linear growth nutrition")
     
-    # Collect all relevant knowledge
-    all_pdf_chunks = []
-    for query in nutrition_queries:
-        chunks = get_relevant_pdf_chunks(query, k=2)  # Get 2 chunks per query
-        all_pdf_chunks.extend(chunks)
+    # Collect all relevant knowledge using unified embedding search
+    from embedding_utils import embedding_searcher
     
-    # Remove duplicates while preserving order
-    seen = set()
-    unique_chunks = []
-    for chunk in all_pdf_chunks:
-        if chunk not in seen:
-            seen.add(chunk)
-            unique_chunks.append(chunk)
+    # Combine all nutrition queries into a single comprehensive query
+    combined_query = " ".join(nutrition_queries)
     
-    pdf_context = ""
-    if unique_chunks:
-        pdf_context = f"\nEVIDENCE-BASED NUTRITION GUIDANCE (from WHO guidelines - for context only):\n" + "\n---\n".join(unique_chunks[:6])  # Limit to 6 most relevant chunks
+    try:
+        # Use embedding searcher directly for better efficiency (only uses cached embeddings)
+        search_results = embedding_searcher.search_similar_chunks(combined_query, k=6)
+        unique_chunks = []
+        seen = set()
+        
+        for chunk, score, metadata in search_results:
+            if score > 0.4 and chunk not in seen:  # Filter by similarity threshold and remove duplicates
+                seen.add(chunk)
+                source_info = f" (Source: {metadata.get('pdf_name', 'Unknown')})" if metadata.get('pdf_name') else ""
+                unique_chunks.append(f"{chunk.strip()}{source_info}")
+        
+        pdf_context = ""
+        if unique_chunks:
+            pdf_context = f"\nEVIDENCE-BASED NUTRITION GUIDANCE (from WHO guidelines - for context only):\n" + "\n---\n".join(unique_chunks[:6])  # Limit to 6 most relevant chunks
+    except Exception as e:
+        print(f"Error retrieving nutrition guidance for meal planning: {str(e)}")
+        print("Note: If no embeddings found, run 'python build_embeddings.py' to create them.")
+        pdf_context = ""
 
     # Get all food names, energy, and nutrition_tags from the database
     foods_data = data_manager.get_foods_data()

@@ -84,9 +84,11 @@ class EmbeddingSearcher:
             print("Failed to load cache, rebuilding...")
             return False
         
-    def create_embeddings_from_knowledge_base(self, batch_size: int = 128):
-        """Create embeddings for all PDF texts in knowledge base and build FAISS index."""
-        print("Loading knowledge base...")
+    def build_embeddings_from_knowledge_base(self, batch_size: int = 128):
+        """Build embeddings for all PDF texts in knowledge base and save to cache.
+        This is a separate function that should be called manually to update embeddings.
+        """
+        print("Building embeddings from knowledge base...")
         knowledge_base = data_manager.get_knowledge_base()
         
         all_chunks = []
@@ -110,7 +112,7 @@ class EmbeddingSearcher:
         
         if not all_chunks:
             print("No PDF texts found in knowledge base.")
-            return
+            return False
             
         print(f"Processing {len(all_chunks)} chunks...")
         
@@ -140,14 +142,48 @@ class EmbeddingSearcher:
         
         # Save to cache
         self._save_embeddings()
+        return True
+    
+    def create_embeddings_from_knowledge_base(self, batch_size: int = 128):
+        """Deprecated: Use build_embeddings_from_knowledge_base() instead."""
+        print("Warning: create_embeddings_from_knowledge_base() is deprecated. Use build_embeddings_from_knowledge_base()")
+        return self.build_embeddings_from_knowledge_base(batch_size)
+    
+    def check_embeddings_status(self):
+        """Check if embeddings are available and provide status information."""
+        cache_files_exist = all(os.path.exists(f) for f in [self.index_file, self.chunks_file, self.metadata_file])
+        
+        if not cache_files_exist:
+            return {
+                "status": "no_cache",
+                "message": "No cached embeddings found. Run build_embeddings_from_knowledge_base() to create them.",
+                "chunks_count": 0
+            }
+        
+        # Try to load and check
+        if self.index is None:
+            loaded = self._load_embeddings()
+            if not loaded:
+                return {
+                    "status": "cache_invalid",
+                    "message": "Cached embeddings are invalid or outdated. Run build_embeddings_from_knowledge_base() to rebuild.",
+                    "chunks_count": 0
+                }
+        
+        return {
+            "status": "ready",
+            "message": f"Embeddings ready with {len(self.chunks)} chunks.",
+            "chunks_count": len(self.chunks)
+        }
     
     def search_similar_chunks(self, query: str, k: int = 4) -> List[Tuple[str, float, dict]]:
-        """Search for similar chunks using semantic similarity."""
+        """Search for similar chunks using semantic similarity. Only uses cached embeddings."""
         if self.index is None:
             # Try to load from cache first
             if not self._load_embeddings():
-                # If cache loading fails, create embeddings
-                self.create_embeddings_from_knowledge_base()
+                # If cache loading fails, return empty results (don't create embeddings)
+                print("Warning: No cached embeddings found. Run build_embeddings_from_knowledge_base() first.")
+                return []
         
         if self.index is None or len(self.chunks) == 0:
             return []
@@ -174,6 +210,88 @@ class EmbeddingSearcher:
         
         return results
 
+
+def get_contextual_nutrition_guidance(patient_data: dict, context_type: str = "general", k: int = 4) -> str:
+    """
+    Unified function to get top-K similar nutrition guidance chunks using existing embedding model.
+    
+    Args:
+        patient_data: Patient information dictionary
+        context_type: Type of guidance needed ("analysis", "assessment", "meal_plan", "general")
+        k: Number of top similar chunks to retrieve
+    
+    Returns:
+        Formatted context string from knowledge base chunks
+    """
+    # Build query based on patient data and context type
+    age_months = patient_data.get('age_months', 0)
+    allergies = patient_data.get('allergies', '')
+    medical_problems = patient_data.get('other_medical_problems', '')
+    weight_status = patient_data.get('weight_for_age', '')
+    height_status = patient_data.get('height_for_age', '')
+    
+    # Create targeted query based on context type and patient characteristics
+    query_parts = []
+    
+    # Age-specific guidance
+    if age_months <= 6:
+        query_parts.append("exclusive breastfeeding infant nutrition 0-6 months")
+    elif age_months <= 12:
+        query_parts.append("complementary feeding introduction 6-12 months iron rich foods")
+    elif age_months <= 24:
+        query_parts.append("toddler nutrition 12-24 months feeding practices")
+    else:
+        query_parts.append("young child nutrition 2-5 years dietary guidelines")
+    
+    # Context-specific terms
+    if context_type == "analysis":
+        query_parts.append("nutritional assessment evaluation status")
+    elif context_type == "assessment":
+        query_parts.append("pediatric dietary assessment comprehensive evaluation")
+    elif context_type == "meal_plan":
+        query_parts.append("meal planning children nutrition guidelines")
+    
+    # Add condition-specific queries
+    if allergies and allergies.lower() not in ['none', 'no', 'n/a', 'not specified']:
+        query_parts.append(f"food allergies children {allergies} alternative foods")
+    
+    if medical_problems and medical_problems.lower() not in ['none', 'no', 'n/a', 'not specified']:
+        query_parts.append(f"child nutrition {medical_problems} dietary management")
+    
+    # Growth-related queries
+    if 'underweight' in weight_status.lower() or 'wasted' in weight_status.lower():
+        query_parts.append("underweight children nutrition dense foods weight gain")
+    elif 'overweight' in weight_status.lower():
+        query_parts.append("overweight children healthy eating weight management")
+        
+    if 'stunted' in height_status.lower() or 'short' in height_status.lower():
+        query_parts.append("stunting prevention linear growth nutrition")
+    
+    # Combine query parts
+    query = " ".join(query_parts)
+    
+    try:
+        # Use embedding searcher to get top-K similar chunks (only uses cached embeddings)
+        results = embedding_searcher.search_similar_chunks(query, k=k)
+        
+        if results:
+            # Filter results by similarity threshold and format
+            relevant_chunks = []
+            for chunk, score, metadata in results:
+                if score > 0.4:  # Only include chunks with good similarity
+                    # Add source information if available
+                    source_info = f"(Source: {metadata.get('pdf_name', 'Unknown')})" if metadata.get('pdf_name') else ""
+                    relevant_chunks.append(f"{chunk.strip()} {source_info}")
+            
+            if relevant_chunks:
+                return f"\nEVIDENCE-BASED NUTRITION GUIDANCE:\n" + "\n---\n".join(relevant_chunks) + "\n"
+        
+        return ""  # Return empty string if no relevant guidance found
+        
+    except Exception as e:
+        print(f"Error retrieving nutrition guidance: {str(e)}")
+        print("Note: If no embeddings found, run 'python build_embeddings.py' to create them.")
+        return ""  # Return empty string on error to avoid breaking the main functionality
 
 
 # Global instance

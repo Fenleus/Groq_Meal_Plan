@@ -26,15 +26,19 @@ class ChildNutritionAI:
         bmi_for_age: str = None,
         breastfeeding: str = None,
         religion: str = None,
-        guidelines_context: str = None
+        guidelines_context: str = None,
+        custom_prompt: str = None
     ) -> str:
         """Analyze a child's nutrition profile and return a summary or recommendations. No name or location info is used. Patient ID is included for database association only."""
         try:
-            prompt_template = PromptTemplate(
-                input_variables=[
-                    "patient_id", "age_in_months", "allergies", "other_medical_problems", "parent_id", "notes", "treatment", "sex", "weight_for_age", "height_for_age", "bmi_for_age", "breastfeeding", "religion", "guidelines_context"
-                ],
-                template="""You are a pediatric nutrition expert. Analyze the following child's nutrition profile and provide a summary of their nutritional status, potential concerns, and general recommendations. Do NOT include or request any personal names or location information. Patient ID is included for database association only.
+            # Use custom prompt if provided, otherwise use default
+            if custom_prompt:
+                template = custom_prompt
+                # Extract input variables from template
+                import re
+                variables = re.findall(r'\{(\w+)\}', template)
+            else:
+                template = """You are a pediatric nutrition expert. Analyze the following child's nutrition profile and provide a summary of their nutritional status, potential concerns, and general recommendations. Do NOT include or request any personal names or location information. Patient ID is included for database association only.
 
 CHILD PROFILE:
 - Patient ID: {patient_id}
@@ -54,27 +58,42 @@ CHILD PROFILE:
 {guidelines_context}
 
 Based on the above information and relevant nutrition guidelines, provide practical, parent-friendly advice and highlight any red flags or areas for improvement."""
+                variables = [
+                    "patient_id", "age_in_months", "allergies", "other_medical_problems", "parent_id", "notes", "treatment", "sex", "weight_for_age", "height_for_age", "bmi_for_age", "breastfeeding", "religion", "guidelines_context"
+                ]
+            
+            prompt_template = PromptTemplate(
+                input_variables=variables,
+                template=template
             )
             chain = LLMChain(
                 llm=self.llm,
                 prompt=prompt_template
             )
-            result = chain.run(
-                patient_id=patient_id,
-                age_in_months=age_in_months,
-                allergies=allergies,
-                other_medical_problems=other_medical_problems,
-                parent_id=parent_id,
-                notes=notes,
-                treatment=treatment,
-                sex=sex,
-                weight_for_age=weight_for_age,
-                height_for_age=height_for_age,
-                bmi_for_age=bmi_for_age,
-                breastfeeding=breastfeeding,
-                religion=religion,
-                guidelines_context=guidelines_context or ""
-            )
+            
+            # Build input parameters dynamically based on what's available in the template
+            # Create mapping of all available parameters
+            all_params = {
+                "patient_id": patient_id or "",
+                "age_in_months": age_in_months or "",
+                "allergies": allergies or "",
+                "other_medical_problems": other_medical_problems or "",
+                "parent_id": parent_id or "",
+                "notes": notes or "",
+                "treatment": treatment or "",
+                "sex": sex or "",
+                "weight_for_age": weight_for_age or "",
+                "height_for_age": height_for_age or "",
+                "bmi_for_age": bmi_for_age or "",
+                "breastfeeding": breastfeeding or "",
+                "religion": religion or "",
+                "guidelines_context": guidelines_context or ""
+            }
+            
+            # Build input params with only variables needed by template
+            input_params = {var: all_params[var] for var in variables}
+            
+            result = chain.run(**input_params)
             return result
         except Exception as e:
             return f"Error analyzing child nutrition: {str(e)}"
@@ -112,7 +131,7 @@ Please analyze the following text and extract ONLY information that is relevant 
 - Health guidelines for toddlers and preschoolers
 - Food safety for young children
 - Feeding recommendations for infants and toddlers
-- Filipino/Asian nutrition practices for children
+- Filipino nutrition practices for children
 - Child development and nutrition
 
 TEXT TO ANALYZE:
