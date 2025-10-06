@@ -3,8 +3,8 @@ from groq import Groq
 from dotenv import load_dotenv
 from data_manager import data_manager
 from typing import Dict, List, Optional
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableSequence
 from langchain_groq import ChatGroq
 
 # Load environment variables
@@ -66,10 +66,9 @@ Based on the above information and relevant nutrition guidelines, provide practi
                 input_variables=variables,
                 template=template
             )
-            chain = LLMChain(
-                llm=self.llm,
-                prompt=prompt_template
-            )
+            
+            # Create runnable sequence using modern LangChain pattern
+            chain = prompt_template | self.llm
             
             # Build input parameters dynamically based on what's available in the template
             # Create mapping of all available parameters
@@ -93,7 +92,7 @@ Based on the above information and relevant nutrition guidelines, provide practi
             # Build input params with only variables needed by template
             input_params = {var: all_params[var] for var in variables}
             
-            result = chain.run(**input_params)
+            result = chain.invoke(input_params)
             return result
         except Exception as e:
             return f"Error analyzing child nutrition: {str(e)}"
@@ -108,12 +107,9 @@ Based on the above information and relevant nutrition guidelines, provide practi
         
         self.client = Groq(api_key=self.api_key)
         
-        # Initialize LangChain LLM
-        self.llm = ChatGroq(
-            groq_api_key=self.api_key,
-            model_name="meta-llama/llama-4-scout-17b-16e-instruct",
-            temperature=0.3
-        )
+        # Initialize LangChain LLM using shared factory function
+        from nutrition_chain import create_nutrition_llm
+        self.llm = create_nutrition_llm()
     
     def summarize_pdf_for_nutrition_knowledge(self, pdf_text: str, pdf_name: str) -> List[str]:
         """
@@ -148,17 +144,14 @@ INSTRUCTIONS:
 """
             )
             
-            # Create LangChain chain
-            chain = LLMChain(
-                llm=self.llm,
-                prompt=prompt_template
-            )
+            # Create runnable sequence using modern LangChain pattern
+            chain = prompt_template | self.llm
             
             # Execute the chain
-            response = chain.run(
-                pdf_name=pdf_name,
-                pdf_text=pdf_text
-            )
+            response = chain.invoke({
+                "pdf_name": pdf_name,
+                "pdf_text": pdf_text
+            })
             
             content = response.strip()
             

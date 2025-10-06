@@ -1,5 +1,5 @@
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableSequence
 from langchain_groq import ChatGroq
 import os
 from dotenv import load_dotenv
@@ -8,6 +8,19 @@ from datetime import datetime
 import re
 
 load_dotenv()
+
+def create_nutrition_llm():
+    """Create a standardized ChatGroq instance for nutrition functions."""
+    api_key = os.getenv('GROQ_API_KEY')
+    if not api_key:
+        raise ValueError("GROQ_API_KEY not found in environment variables")
+    
+    return ChatGroq(
+        groq_api_key=api_key,
+        model_name="meta-llama/llama-4-scout-17b-16e-instruct",
+        temperature=0.1,
+        max_tokens=1500
+    )
 
 def get_relevant_pdf_chunks(query, k=4):
     """Retrieve relevant PDF text using semantic similarity search."""
@@ -313,23 +326,15 @@ IMPORTANT:
         "kb_context": kb_context
     }
 
-    # Create LLM
-    llm = ChatGroq(
-        groq_api_key=api_key,
-        model_name="meta-llama/llama-4-scout-17b-16e-instruct",
-        temperature=0.3,
-        max_tokens=4000
-    )
+    # Create LLM using shared factory function
+    llm = create_nutrition_llm()
 
-    # Create chain
-    chain = LLMChain(
-        llm=llm,
-        prompt=prompt_template
-    )
+    # Create runnable sequence using modern LangChain pattern
+    chain = prompt_template | llm
 
     try:
         # Generate assessment
-        result = chain.run(**template_vars)
+        result = chain.invoke(template_vars)
         
         # Parse the result into structured sections
         sections = parse_assessment_sections(result)
@@ -687,17 +692,10 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
         "nutrition_tags": nutrition_tags_str
     }
 
-    llm = ChatGroq(
-        groq_api_key=api_key,
-        model_name="meta-llama/llama-4-scout-17b-16e-instruct",
-        temperature=0.3,
-        max_tokens=4000
-    )
+    llm = create_nutrition_llm()
 
-    chain = LLMChain(
-        llm=llm,
-        prompt=prompt_template
-    )
+    # Create runnable sequence using modern LangChain pattern
+    chain = prompt_template | llm
 
-    result = chain.run(**prompt_inputs)
+    result = chain.invoke(prompt_inputs)
     return result

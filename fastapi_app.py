@@ -399,33 +399,34 @@ def process_embeddings(request: ProcessEmbeddingsRequest):
         if not all_chunks:
             raise HTTPException(status_code=400, detail="No valid PDF text content found for embedding")
         
-        # Force rebuild of embeddings with the processed chunks
-        embedding_searcher.chunks = all_chunks
-        embedding_searcher.chunk_metadata = all_metadata
+        # Check if embeddings are already cached and valid
+        status_info = embedding_searcher.check_embeddings_status()
+        if status_info["status"] == "ready":
+            return {
+                "status": "success",
+                "message": "Embeddings already exist and are up to date",
+                "stats": {
+                    "total_documents": len(knowledge_base),
+                    "total_chunks": status_info["chunks_count"],
+                    "total_characters": total_chars,
+                    "chunk_size": request.chunk_size,
+                    "overlap": request.overlap,
+                    "embedding_dimension": embedding_searcher.index.ntotal if embedding_searcher.index else 0,
+                    "batch_size": request.batch_size,
+                    "cached": True
+                }
+            }
         
-        # Create embeddings using the embedding utility
-        import numpy as np
-        import faiss
+        # Use the proper embedding building function that handles caching
+        print(f"Building embeddings for {len(all_chunks)} chunks...")
+        result = embedding_searcher.build_embeddings_from_knowledge_base(batch_size=request.batch_size)
         
-        print(f"Processing {len(all_chunks)} chunks in batches...")
+        # Use the proper embedding building function that handles caching
+        print(f"Building embeddings for {len(all_chunks)} chunks...")
+        result = embedding_searcher.build_embeddings_from_knowledge_base(batch_size=request.batch_size)
         
-        # Create embeddings in batches
-        embeddings = []
-        for i in range(0, len(all_chunks), request.batch_size):
-            batch = all_chunks[i:i + request.batch_size]
-            batch_embeddings = embedding_searcher.model.encode(batch, show_progress_bar=True)
-            embeddings.extend(batch_embeddings)
-        
-        # Convert to numpy array
-        embeddings = np.array(embeddings).astype('float32')
-        
-        # Create FAISS index
-        dimension = embeddings.shape[1]
-        embedding_searcher.index = faiss.IndexFlatIP(dimension)  # Inner product (cosine similarity)
-        
-        # Normalize embeddings for cosine similarity
-        faiss.normalize_L2(embeddings)
-        embedding_searcher.index.add(embeddings)
+        if not result:
+            raise HTTPException(status_code=500, detail="Failed to build embeddings")
         
         # Save to cache
         embedding_searcher._save_embeddings()
@@ -435,12 +436,13 @@ def process_embeddings(request: ProcessEmbeddingsRequest):
             "message": "Embeddings processed successfully",
             "stats": {
                 "total_documents": len(knowledge_base),
-                "total_chunks": len(all_chunks),
+                "total_chunks": len(embedding_searcher.chunks),
                 "total_characters": total_chars,
                 "chunk_size": request.chunk_size,
                 "overlap": request.overlap,
-                "embedding_dimension": dimension,
-                "batch_size": request.batch_size
+                "embedding_dimension": embedding_searcher.index.d if embedding_searcher.index else 0,
+                "batch_size": request.batch_size,
+                "cached": False
             }
         }
         

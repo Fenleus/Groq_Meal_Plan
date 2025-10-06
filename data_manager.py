@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import uuid
 import json
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 class DataManager:
     def update_food(self, food_id, food_data):

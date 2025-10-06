@@ -22,6 +22,9 @@ class EmbeddingSearcher:
         # Create cache directory if it doesn't exist
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
+        
+        # Try to load cached embeddings on initialization
+        self._load_embeddings()
     
     def _get_knowledge_base_hash(self):
         """Generate hash of knowledge base to detect changes."""
@@ -84,10 +87,28 @@ class EmbeddingSearcher:
             print("Failed to load cache, rebuilding...")
             return False
         
-    def build_embeddings_from_knowledge_base(self, batch_size: int = 128):
+    def build_embeddings_from_knowledge_base(self, batch_size: int = 128, force_rebuild: bool = False):
         """Build embeddings for all PDF texts in knowledge base and save to cache.
-        This is a separate function that should be called manually to update embeddings.
+        
+        Args:
+            batch_size: Batch size for encoding
+            force_rebuild: If True, rebuild even if cache is valid
         """
+        # Check if embeddings are already available and valid
+        if not force_rebuild and self.index is not None and len(self.chunks) > 0:
+            # Check if knowledge base hash matches
+            hash_file = os.path.join(self.cache_dir, "kb_hash.txt")
+            if os.path.exists(hash_file):
+                try:
+                    with open(hash_file, 'r') as f:
+                        cached_hash = f.read().strip()
+                    current_hash = self._get_knowledge_base_hash()
+                    if cached_hash == current_hash:
+                        print(f"Using existing embeddings ({len(self.chunks)} chunks).")
+                        return True
+                except:
+                    pass
+        
         print("Building embeddings from knowledge base...")
         knowledge_base = data_manager.get_knowledge_base()
         
@@ -177,15 +198,16 @@ class EmbeddingSearcher:
         }
     
     def search_similar_chunks(self, query: str, k: int = 4) -> List[Tuple[str, float, dict]]:
-        """Search for similar chunks using semantic similarity. Only uses cached embeddings."""
-        if self.index is None:
-            # Try to load from cache first
+        """Search for similar chunks using semantic similarity."""
+        # If index is not loaded, try to load from cache
+        if self.index is None or len(self.chunks) == 0:
             if not self._load_embeddings():
                 # If cache loading fails, return empty results (don't create embeddings)
                 print("Warning: No cached embeddings found. Run build_embeddings_from_knowledge_base() first.")
                 return []
         
         if self.index is None or len(self.chunks) == 0:
+            print("No embeddings available for search.")
             return []
         
         # Encode query
