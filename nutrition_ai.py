@@ -153,6 +153,14 @@ INSTRUCTIONS:
                 "pdf_text": pdf_text
             })
             
+            # Handle AIMessage objects by extracting content
+            if hasattr(response, 'content'):
+                response = response.content
+            
+            # Ensure we have a string
+            if not isinstance(response, str):
+                response = str(response)
+            
             content = response.strip()
             
             # Try to parse as JSON

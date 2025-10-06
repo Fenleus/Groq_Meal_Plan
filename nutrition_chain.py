@@ -59,6 +59,14 @@ def clean_section_text(text):
 
 def parse_assessment_sections(assessment_text):
     """Parse the assessment text into structured sections."""
+    # Handle AIMessage objects by extracting content
+    if hasattr(assessment_text, 'content'):
+        assessment_text = assessment_text.content
+    
+    # Ensure we have a string
+    if not isinstance(assessment_text, str):
+        assessment_text = str(assessment_text)
+    
     sections = {
         "patient_profile_summary": "",
         "nutritional_priorities": "",
@@ -335,6 +343,14 @@ IMPORTANT:
     try:
         # Generate assessment
         result = chain.invoke(template_vars)
+        
+        # Handle AIMessage objects by extracting content
+        if hasattr(result, 'content'):
+            result = result.content
+        
+        # Ensure we have a string
+        if not isinstance(result, str):
+            result = str(result)
         
         # Parse the result into structured sections
         sections = parse_assessment_sections(result)
@@ -613,75 +629,82 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
     age_years = age_months // 12
     age_months_remainder = age_months % 12
 
-    # Create the streamlined prompt
-    prompt_str = f"""You are a Pediatric Nutritionist specializing in Filipino cuisine for children 0-5 years.
-
-    ## PRIMARY CONSTRAINT
-    ONLY recommend foods from the database below. Never mention generic food groups or unlisted foods.
-
-    ## FOOD DATABASE
-    {food_list_str}
+    # Create the streamlined prompt - separate f-string variables from template variables
+    age_guidelines = get_age_specific_guidelines(age_months)
     
-    {pdf_context}
+    prompt_str = """You are a Pediatric Nutritionist specializing in Filipino cuisine for children 0-5 years.
+
+## PRIMARY CONSTRAINT
+ONLY recommend foods from the database below. Never mention generic food groups or unlisted foods.
+
+## FOOD DATABASE
+{food_list_str}
+
+{pdf_context}
+
+Base your response on {nutrition_analysis}
+
+## CHILD PROFILE
+- Age: {age_months} months
+- Weight: {weight_kg} kg | Height: {height_cm} cm | BMI: {bmi_for_age}
+- Allergies: {allergies} | Medical: {other_medical_problems} | Religion: {religion}
+- Available Ingredients: {available_ingredients}
+
+## COMPREHENSIVE NUTRITION PLAN
+
+Based on {nutrition_analysis}, find fitted foods based on {nutrition_tags} and use it in suggesting foods.
+
+Give estimated kcal needed for the patient based on the prompt
+
+### AGE-SPECIFIC FEEDING GUIDELINES
+**Current Age Group ({age_months} months)**:
+{age_guidelines}
+
+### ALLERGY COMPLIANCE
+**Allergies: {allergies}**
+{allergy_section}
+
+### RELIGIOUS DIETARY COMPLIANCE
+**Religion: {religion}**
+{religion_section}
+
+### 7-DAY MEAL PLAN
+**CRITICAL: Provide complete details for ALL 7 days. No summaries or shortcuts.**
+
+**Day 1-7: Format for each day:**
+- **Breakfast**: [Specific dish] ([portion]) - [Nutrition benefit + kcal]
+- **Lunch**: [Specific dish] ([portion]) - [Nutrition benefit + kcal]
+- **Snack**: [Specific item] ([portion]) - [Purpose + kcal]
+- **Dinner**: [Specific dish] ([portion]) - [Evening focus + kcal]
+- **Daily Total**: [Sum all kcal from energy_kcal values]
+
+**Day 1**: Use available ingredients {available_ingredients}
+**Days 2-7**: Vary using database foods, different themes daily
+
+### PARENT OBSERVATION TRACKING
+**Daily**: Appetite (Good/Fair/Poor), Energy levels, Sleep quality, Bowel movements
+**Weekly**: Weight check, Growth observations, Skill development
+**Monthly**: Height measurement, Food preferences, Feeding independence
+
+### RED FLAGS & EMERGENCY PROTOCOLS
+**Immediate Care**: Severe allergic reactions, Choking, Persistent vomiting, Dehydration, High fever with poor feeding
+**Concerning Signs**: Weight loss, Growth stagnation, Feeding aversion, Digestive issues
+**Emergency Protocol**: Call emergency services → Contact pediatrician → Nutritionist follow-up
+
+{filipino_context}
+
+**FINAL VERIFICATION**: All recommendations use only database foods, respect allergies/religion, and are age-appropriate."""
     
-    Base your response on {nutrition_analysis}
-
-    ## CHILD PROFILE
-    - Age: {age_months} months
-    - Weight: {{weight_kg}} kg | Height: {{height_cm}} cm | BMI: {{bmi_for_age}}
-    - Allergies: {{allergies}} | Medical: {{other_medical_problems}} | Religion: {{religion}}
-    - Available Ingredients: {{available_ingredients}}
-
-    ## COMPREHENSIVE NUTRITION PLAN
-
-    Based on {nutrition_analysis}, find fitted foods based on {{nutrition_tags}} and use it in suggesting foods.
-
-    Give estimated kcal needed for the patient based on the prompt
-
-    ### AGE-SPECIFIC FEEDING GUIDELINES
-    **Current Age Group ({age_months} months)**:
-    {get_age_specific_guidelines(age_months)}
-
-    ### ALLERGY COMPLIANCE
-    **Allergies: {{allergies}}**
-    {allergy_section}
-
-    ### RELIGIOUS DIETARY COMPLIANCE
-    **Religion: {{religion}}**
-    {religion_section}
-
-    ### 7-DAY MEAL PLAN
-    **CRITICAL: Provide complete details for ALL 7 days. No summaries or shortcuts.**
-
-    **Day 1-7: Format for each day:**
-    - **Breakfast**: [Specific dish] ([portion]) - [Nutrition benefit + kcal]
-    - **Lunch**: [Specific dish] ([portion]) - [Nutrition benefit + kcal]
-    - **Snack**: [Specific item] ([portion]) - [Purpose + kcal]
-    - **Dinner**: [Specific dish] ([portion]) - [Evening focus + kcal]
-    - **Daily Total**: [Sum all kcal from energy_kcal values]
-
-    **Day 1**: Use available ingredients {{available_ingredients}}
-    **Days 2-7**: Vary using database foods, different themes daily
-
-    ### PARENT OBSERVATION TRACKING
-    **Daily**: Appetite (Good/Fair/Poor), Energy levels, Sleep quality, Bowel movements
-    **Weekly**: Weight check, Growth observations, Skill development
-    **Monthly**: Height measurement, Food preferences, Feeding independence
-
-    ### RED FLAGS & EMERGENCY PROTOCOLS
-    **Immediate Care**: Severe allergic reactions, Choking, Persistent vomiting, Dehydration, High fever with poor feeding
-    **Concerning Signs**: Weight loss, Growth stagnation, Feeding aversion, Digestive issues
-    **Emergency Protocol**: Call emergency services → Contact pediatrician → Nutritionist follow-up
-
-    {filipino_context}
-
-    **FINAL VERIFICATION**: All recommendations use only database foods, respect allergies/religion, and are age-appropriate."""
     prompt_template = PromptTemplate(
-        input_variables=["weight_kg", "height_cm", "bmi_for_age", "allergies", "other_medical_problems", "religion", "available_ingredients", "nutrition_tags"],
+        input_variables=["food_list_str", "pdf_context", "nutrition_analysis", "age_months", "weight_kg", "height_cm", "bmi_for_age", "allergies", "other_medical_problems", "religion", "available_ingredients", "nutrition_tags", "age_guidelines", "allergy_section", "religion_section", "filipino_context"],
         template=prompt_str
     )
 
     prompt_inputs = {
+        "food_list_str": food_list_str,
+        "pdf_context": pdf_context,
+        "nutrition_analysis": nutrition_analysis,
+        "age_months": age_months,
         "weight_kg": patient_data.get('weight_kg', 'Unknown'),
         "height_cm": patient_data.get('height_cm', 'Unknown'),
         "bmi_for_age": patient_data.get('bmi_for_age', 'Unknown'),
@@ -689,7 +712,11 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
         "other_medical_problems": patient_data.get('other_medical_problems', 'None'),
         "religion": religion_val,
         "available_ingredients": available_ingredients if available_ingredients else "None specified",
-        "nutrition_tags": nutrition_tags_str
+        "nutrition_tags": nutrition_tags_str,
+        "age_guidelines": age_guidelines,
+        "allergy_section": allergy_section,
+        "religion_section": religion_section,
+        "filipino_context": filipino_context
     }
 
     llm = create_nutrition_llm()
@@ -698,4 +725,13 @@ def get_meal_plan_with_langchain(patient_id, available_ingredients=None, religio
     chain = prompt_template | llm
 
     result = chain.invoke(prompt_inputs)
+    
+    # Handle AIMessage objects by extracting content
+    if hasattr(result, 'content'):
+        result = result.content
+    
+    # Ensure we have a string
+    if not isinstance(result, str):
+        result = str(result)
+    
     return result

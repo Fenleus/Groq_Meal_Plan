@@ -1,5 +1,6 @@
 
 from fastapi import FastAPI, HTTPException, File, UploadFile, Form
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from nutrition_ai import ChildNutritionAI
 from data_manager import data_manager
@@ -11,6 +12,15 @@ from io import BytesIO
 
 
 app = FastAPI(title="Nutritionist LLM API", description="API for LLM-powered nutrition functions", version="1.0")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000", "*"],  # Allow Laravel app and any origin for testing
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 nutrition_ai = ChildNutritionAI()
 
 # User Role Models
@@ -61,6 +71,25 @@ class ProcessEmbeddingsRequest(BaseModel):
 
 class EmbeddingStatusRequest(BaseModel):
     pass  # No parameters needed for status check
+
+# =============================================================================
+# ROOT ENDPOINT
+# =============================================================================
+
+@app.get("/")
+def root():
+    """Root endpoint for health check"""
+    return {
+        "message": "Meal Planning API is running",
+        "status": "healthy",
+        "version": "1.0",
+        "endpoints": {
+            "user": ["/get_foods_data"],
+            "parent": ["/generate_meal_plan", "/get_children_by_parent", "/get_meal_plans_by_child", "/get_meal_plan_detail"],
+            "nutritionist": ["/nutrition/analysis", "/assessment"],
+            "admin": ["/process_embeddings", "/embedding_status", "/get_knowledge_base", "/upload_pdf"]
+        }
+    }
 
 # =============================================================================
 # USER ROLE ENDPOINTS
@@ -129,6 +158,14 @@ def generate_meal_plan(request: MealPlanRequest):
 
         def clean_meal_plan_text(text):
             import re
+            # Handle AIMessage objects by extracting content
+            if hasattr(text, 'content'):
+                text = text.content
+            
+            # Ensure we have a string
+            if not isinstance(text, str):
+                text = str(text)
+            
             # Remove markdown headers and join sections as a single line
             lines = text.splitlines()
             result = []
@@ -283,9 +320,26 @@ def nutrition_analysis(request: NutritionAnalysis):
             religion=patient_data.get('religion', ''),
             guidelines_context=guidelines_context
         )
+        
+        # Handle AIMessage objects by extracting content
+        if hasattr(analysis_result, 'content'):
+            analysis_result = analysis_result.content
+        
+        # Ensure we have a string
+        if not isinstance(analysis_result, str):
+            analysis_result = str(analysis_result)
+        
         # Parse the LLM output into sections
         def parse_nutrition_analysis(text):
             import re
+            # Handle AIMessage objects by extracting content
+            if hasattr(text, 'content'):
+                text = text.content
+            
+            # Ensure we have a string
+            if not isinstance(text, str):
+                text = str(text)
+                
             # Remove markdown and split by section headers
             text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  
             text = text.replace('\n', '\n')
@@ -327,7 +381,7 @@ def generate_assessment(request: AssessmentRequest):
         
         # Generate assessment using LangChain with enhanced context
         assessment = generate_patient_assessment(patient_id=request.patient_id)
-        
+
         return {
             "patient_id": request.patient_id,
             "assessment": assessment,
@@ -555,9 +609,10 @@ async def upload_pdf(
             nutrition_ai_instance = ChildNutritionAI()
             ai_summary = nutrition_ai_instance.summarize_pdf_for_nutrition_knowledge(all_text, file.filename)
             
-            # Convert list to string if needed
+             # Convert list to string if needed
             if isinstance(ai_summary, list):
                 ai_summary_text = "\n".join(ai_summary) if ai_summary else "No relevant nutrition content found for 0-5 year olds."
+
             else:
                 ai_summary_text = str(ai_summary) if ai_summary else "No relevant nutrition content found for 0-5 year olds."
                 
